@@ -1,11 +1,9 @@
-import { RemoveIndex } from '@/utils/type'
-
 export type Events = Record<string, [ any[], any ]>
 
 export type Emitter<T, E extends Events> = {
     events: Partial<{ [K in keyof E]: E[K][1][] }>
-    emit<K extends keyof RemoveIndex<E>>(event: K, ...args: [ T, ...E[K][0] ]): void
-    on<K extends keyof RemoveIndex<E>>(event: K, cb: (...args: [ T, ...E[K][0] ]) => E[K][1]): () => void
+    emit<K extends keyof E>(event: K, ...args: [ T, ...E[K][0] ]): void
+    on<K extends keyof E>(event: K, cb: (...args: [ T, ...E[K][0] ]) => E[K][1]): () => void
 }
 
 export const createEmitter = <T, E extends Events>(): Emitter<T, E> => {

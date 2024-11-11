@@ -1,4 +1,4 @@
-import { inRect, Game, getImagePixels, CommonEvents, ClickableEvents } from '@/engine'
+import { inRect, Game, getImagePixels, EntityEvents, ClickableEvents } from '@/engine'
 import { ImageConfig, ImageEntity, ImageState } from '@/entities/image'
 
 export interface ButtonConfig extends ImageConfig {}
@@ -9,7 +9,7 @@ export interface ButtonUniqueState {
 export interface ButtonState extends ImageState, ButtonUniqueState {}
 
 
-export interface ButtonEvents extends ClickableEvents, CommonEvents {}
+export interface ButtonEvents extends ClickableEvents, EntityEvents {}
 
 export class ButtonEntity<
     C extends ButtonConfig = ButtonConfig,

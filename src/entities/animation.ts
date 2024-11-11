@@ -1,5 +1,5 @@
 
-import { CommonEvents, CommonState, Entity, Game } from '@/engine'
+import { EntityEvents, EntityState, Entity, Game } from '@/engine'
 
 export interface AnimationConfig {
     srcs: string[]
@@ -12,9 +12,9 @@ export interface AnimationUniqueState {
     isPlaying: boolean
     direction: 1 | -1
 }
-export interface AnimationState extends CommonState, AnimationUniqueState {}
+export interface AnimationState extends EntityState, AnimationUniqueState {}
 
-export interface AnimationEvents extends CommonEvents {
+export interface AnimationEvents extends EntityEvents {
     'animation-finish': [ [], void ]
 }
 

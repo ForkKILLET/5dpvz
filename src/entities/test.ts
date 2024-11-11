@@ -1,12 +1,12 @@
-import { CommonEvents, CommonState, Entity } from '@/engine'
+import { EntityEvents, EntityState, Entity } from '@/engine'
 
 export interface TestConfig {}
 
-export interface TestState extends CommonState {
+export interface TestState extends EntityState {
     moveDirection: 'left' | 'right' | 'up' | 'down'
 }
 
-export interface TestEvents extends CommonEvents {}
+export interface TestEvents extends EntityEvents {}
 
 export class TestEntity extends Entity<TestConfig, TestState, TestEvents> {
     render() {

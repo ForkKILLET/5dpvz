@@ -24,7 +24,10 @@ export class Game {
     private loop() {
         this.ctx.clearRect(0, 0, this.ctx.canvas.width, this.ctx.canvas.height)
         const activeScenes = this.scenes.filter(scene => scene.active)
-        activeScenes.forEach(scene => scene.render())
+        activeScenes.forEach(scene => {
+            scene.runUpdate()
+            scene.runRender()
+        })
     }
 
     start() {
@@ -45,10 +48,10 @@ export class Game {
             removedScene.dispose()
         }
     }
-    selectScene<Sc extends Scene>(SceneCtor: new () => Sc): Sc | undefined {
-        return this.scenes.find((scene): scene is Sc => scene instanceof SceneCtor)
+    selectScene<E extends Scene>(SceneCtor: new () => E): E | undefined {
+        return this.scenes.find((entity): entity is E => entity instanceof SceneCtor)
     }
-    selectManyScene<Sc extends Scene>(SceneCtor: new () => Sc): Sc[] {
-        return this.scenes.filter((scene): scene is Sc => scene instanceof SceneCtor)
+    selectScenes<E extends Scene>(SceneCtor: new () => E): E[] {
+        return this.scenes.filter((entity): entity is E => entity instanceof SceneCtor)
     }
 }

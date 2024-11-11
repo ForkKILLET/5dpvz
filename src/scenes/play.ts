@@ -1,34 +1,25 @@
 import { Scene } from '@/engine'
-import { AnimationEntity } from '@/entities/animation'
-import { UIEntity } from '@/entities/ui'
+import { LevelEntity } from '@/entities/level'
 
 export class PlayScene extends Scene {
     constructor() {
-        const ui = new UIEntity(
-            {
-                slotNum: 2,
-                plantNames: [ 'pea_shooter', 'pea_shooter' ]
-            },
-            UIEntity.initState({
-                position: { x: 5, y: 5 },
-                zIndex: 1
-            })
-        )
-
-        const peaShooter = new AnimationEntity(
-            {
-                srcs: AnimationEntity.getStdSrcs('./assets/plants/pea_shooter', 12),
-                fpsf: 8
-            },
-            AnimationEntity.initState({
-                position: { x: 100, y: 100 },
-                zIndex: 1
-            })
-        )
-
         super([
-            ui,
-            peaShooter
+            new LevelEntity(
+                {
+                    plantSlots: {
+                        slotNum: 2,
+                        plantNames: [ 'pea_shooter', 'pea_shooter' ]
+                    },
+                    lawn: {
+                        width: 9,
+                        height: 5
+                    }
+                },
+                LevelEntity.initState({
+                    position: { x: 0, y: 0 },
+                    zIndex: 0
+                })
+            )
         ])
     }
 }

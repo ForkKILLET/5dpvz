@@ -1,12 +1,12 @@
-import { CommonEvents, CommonState, Entity, Game } from '@/engine'
+import { EntityEvents, EntityState, Entity, Game } from '@/engine'
 
 export interface ImageConfig {
     src: string
 }
 
-export interface ImageState extends CommonState {}
+export interface ImageState extends EntityState {}
 
-export interface ImageEvents extends CommonEvents {}
+export interface ImageEvents extends EntityEvents {}
 
 export class ImageEntity<
     C extends ImageConfig = ImageConfig,
@@ -23,9 +23,5 @@ export class ImageEntity<
     render() {
         const { x, y } = this.state.position
         this.game.ctx.drawImage(this.img!, x, y)
-    }
-
-    update() {
-        return this.state
     }
 }

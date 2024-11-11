@@ -11,8 +11,8 @@ const game = new Game({
 })
 
 await Promise.all([
-    game.addScene(new StartScene().activate()),
-    game.addScene(new PlayScene())
+    game.addScene(new StartScene()),
+    game.addScene(new PlayScene().deactivate())
 ])
 
 game.start()
