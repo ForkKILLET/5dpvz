@@ -9,7 +9,7 @@ export interface CommonState {
 export interface CommonEvents {
     'before-render': [ [], void ]
     'after-render': [ [], void ]
-    [key: string]: [ any[], any ]
+    [event: string]: [ any[], any ]
 }
 
 export abstract class Entity<C extends object, S extends CommonState, E extends CommonEvents> {
@@ -20,9 +20,12 @@ export abstract class Entity<C extends object, S extends CommonState, E extends 
     constructor(protected config: C, public state: S) {}
 
     game: Game = null as any
-    start(game: Game): Promise<void> | void {
+    async start(game: Game): Promise<void> {
         this.game = game
+        await Promise.all(this.delegatedEntities.map(entity => entity.start(game)))
     }
+
+    protected delegatedEntities: Entity<any, any, any>[] = []
 
     protected disposers: Disposer[] = []
     dispose() {
@@ -38,7 +41,11 @@ export abstract class Entity<C extends object, S extends CommonState, E extends 
     }
     protected abstract render(): void
 
-    abstract update(): S
+    runUpdate() {
+        this.state = this.update()
+        this.delegatedEntities.forEach(entity => entity.runUpdate())
+    }
+    protected abstract update(): S
 
     protected emitter = createEmitter<this, E>()
     emit<K extends keyof RemoveIndex<E>>(event: K, ...args: E[K][0]) {

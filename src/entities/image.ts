@@ -1,15 +1,17 @@
 import { CommonEvents, CommonState, Entity, Game } from '@/engine'
 
-export interface ImageState extends CommonState {}
-
 export interface ImageConfig {
     src: string
 }
 
+export interface ImageState extends CommonState {}
+
+export interface ImageEvents extends CommonEvents {}
+
 export class ImageEntity<
     C extends ImageConfig = ImageConfig,
     S extends ImageState = ImageState,
-    E extends CommonEvents = CommonEvents
+    E extends ImageEvents = ImageEvents
 > extends Entity<C, S, E> {
     img: HTMLImageElement | null = null
 

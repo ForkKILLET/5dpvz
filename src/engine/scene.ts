@@ -22,7 +22,7 @@ export abstract class Scene {
         this.entities
             .sort(by(entity => entity.state.zIndex))
             .forEach(entity => {
-                entity.state = entity.update()
+                entity.runUpdate()
                 entity.runRender()
             })
     }

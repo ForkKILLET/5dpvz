@@ -1,4 +1,4 @@
-import { inRect, Game, CommonEvents, getImagePixels } from '@/engine'
+import { inRect, Game, getImagePixels, CommonEvents, ClickableEvents } from '@/engine'
 import { ImageConfig, ImageEntity, ImageState } from '@/entities/image'
 
 export interface ButtonConfig extends ImageConfig {}
@@ -8,11 +8,8 @@ export interface ButtonUniqueState {
 }
 export interface ButtonState extends ImageState, ButtonUniqueState {}
 
-export interface ButtonEvents extends CommonEvents {
-    click: [ [], void ]
-    mouseenter: [ [], void ]
-    mouseleave: [ [], void ]
-}
+
+export interface ButtonEvents extends ClickableEvents, CommonEvents {}
 
 export class ButtonEntity<
     C extends ButtonConfig = ButtonConfig,
@@ -30,9 +27,9 @@ export class ButtonEntity<
         await super.start(game)
         this.pixels = getImagePixels(this.img!)
 
-        game.ctx.canvas.addEventListener('click', () => {
+        this.disposers.push(game.mouse.emitter.on('click', () => {
             if (this.isHovering) this.emitter.emit('click', this)
-        })
+        }))
     }
 
     get isHovering() {

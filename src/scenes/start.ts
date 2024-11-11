@@ -27,7 +27,7 @@ export class StartScene extends Scene {
 
         super([
             background,
-            buttonStart
+            buttonStart,
         ])
     }
 }

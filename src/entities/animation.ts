@@ -31,6 +31,13 @@ export class AnimationEntity<
         direction: 1
     })
 
+    static getStdSrcs = (path: string, num: number): string[] => {
+        const digits = Math.max(String(num).length, 2)
+        return Array
+            .from({ length: num })
+            .map((_, i) => `${path}/${String(i + 1).padStart(digits, '0')}.png`)
+    }
+
     frames: HTMLImageElement[] = []
 
     async start(game: Game) {

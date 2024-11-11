@@ -9,13 +9,6 @@ export interface TestState extends CommonState {
 export interface TestEvents extends CommonEvents {}
 
 export class TestEntity extends Entity<TestConfig, TestState, TestEvents> {
-    constructor(protected config: TestConfig, commonState: CommonState) {
-        super(config, {
-            ...commonState,
-            moveDirection: 'right'
-        })
-    }
-
     render() {
         const { ctx } = this.game
         const { x, y } = this.state.position
@@ -35,6 +28,7 @@ export class TestEntity extends Entity<TestConfig, TestState, TestEvents> {
         else if (dir === 'up' && y === 0) dir = 'right'
 
         return {
+            ...this.state,
             position: { x, y },
             moveDirection: dir
         }
