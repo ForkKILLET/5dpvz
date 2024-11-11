@@ -14,17 +14,19 @@ export interface PlantSlot {
 }
 
 export interface LevelUniqueState {
+    sun: number
     plantSlots: PlantSlot[]
 }
 export interface LevelState extends LevelUniqueState, EntityState {}
 
 export interface LevelEvents extends EntityEvents {}
 
-export const kPlantSlots = injectKey<PlantSlot[]>()
+export const kLevelState = injectKey<LevelUniqueState>()
 
 export class LevelEntity extends Entity<LevelConfig, LevelState, LevelEvents> {
     static initState = <S>(state: S): S & LevelUniqueState => ({
         ...state,
+        sun: 100,
         plantSlots: []
     })
 
@@ -44,7 +46,7 @@ export class LevelEntity extends Entity<LevelConfig, LevelState, LevelEvents> {
             }
         })
 
-        this.provide(kPlantSlots, this.state.plantSlots)
+        this.provide(kLevelState, this.state)
 
         this.ui = new UIEntity(
             config.plantSlots,

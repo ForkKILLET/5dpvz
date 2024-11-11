@@ -1,6 +1,7 @@
 import { EntityEvents, EntityState, Entity } from '@/engine'
 import { PlantSlotEntity } from '@/entities/plantSlot'
 import { PlantName } from '@/data/plants'
+import { SunSlotEntity } from './sunSlot'
 
 export interface PlantSlotsConfig {
     slotNum: number
@@ -16,13 +17,21 @@ export interface UIEvents extends EntityEvents {
 }
 
 export class UIEntity extends Entity<UIConfig, UIState, UIEvents> {
-    slots: PlantSlotEntity[] = []
+    sunSlot: SunSlotEntity
+    plantSlots: PlantSlotEntity[]
 
     constructor(config: UIConfig, state: UIState) {
         super(config, state)
 
         const { position: { x, y }, zIndex } = this.state
-        this.slots = this.config.plantNames.map((plantName, i) => (
+
+        this.sunSlot = new SunSlotEntity({},
+            {
+                position: { x, y },
+                zIndex: zIndex + 1
+            }
+        ).enableAutoRender()
+        this.plantSlots = this.config.plantNames.map((plantName, i) => (
             new PlantSlotEntity(
                 {
                     plantName,
@@ -38,6 +47,6 @@ export class UIEntity extends Entity<UIConfig, UIState, UIEvents> {
                     this.emit('choose-plant', i)
                 })
         ))
-        this.delegate(this.slots)
+        this.delegate([ this.sunSlot, ...this.plantSlots ])
     }
 }

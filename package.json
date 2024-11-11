@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+	"tokei": "tokei -e '*.{yml,html,json,md}'"
   },
   "devDependencies": {
     "typescript": "~5.6.2",

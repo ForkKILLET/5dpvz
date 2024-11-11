@@ -13,7 +13,7 @@ export interface LawnState extends LawnUniqueState, EntityState {}
 export interface LawnEvents extends EntityEvents {}
 
 export class LawnEntity extends Entity<LawnConfig, LawnState, LawnEvents> {
-    lawnImages: ImageEntity[][] = []
+    lawnImages: ImageEntity[][] = null as any
 
     constructor(config: LawnConfig, state: LawnState) {
         super(config, state)
@@ -27,15 +27,7 @@ export class LawnEntity extends Entity<LawnConfig, LawnState, LawnEvents> {
                 position: { x: x + i * 80, y: y + j * 80 },
                 zIndex: zIndex + 1
             }
-        ))
+        ).enableAutoRender())
         this.delegate(this.lawnImages.flat())
-    }
-
-    render() {
-        this.lawnImages.flat().forEach(lawnImage => lawnImage.runRender())
-    }
-
-    update() {
-        return this.state
     }
 }

@@ -1,7 +1,7 @@
 import { ClickableEvents, EntityEvents, EntityState, Entity, Game, inRect } from '@/engine'
 import { ImageEntity } from '@/entities/image'
 import { PLANT_METADATA, PlantMetadata, PlantName } from '@/data/plants'
-import { kPlantSlots } from './level'
+import { kLevelState } from './level'
 
 export interface PlantSlotConfig {
     slotId: number
@@ -54,7 +54,8 @@ export class PlantSlotEntity extends Entity<PlantSlotConfig, PlantSlotState, Pla
     }
 
     render() {
-        const slot = this.inject(kPlantSlots)![this.config.slotId]
+        const { plantSlots } = this.inject(kLevelState)!
+        const slot = plantSlots[this.config.slotId]
 
         const { ctx } = this.game
         const { position: { x, y } } = this.state

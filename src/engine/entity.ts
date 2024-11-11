@@ -1,5 +1,5 @@
 import { createIdGenerator, Game, Position, createEmitter } from '@/engine'
-import { Disposer, RemoveIndex } from '@/utils'
+import { Disposer } from '@/utils'
 
 export interface EntityState {
     position: Position
@@ -9,7 +9,7 @@ export interface EntityState {
 export interface EntityEvents {
     'before-render': [ [], void ]
     'after-render': [ [], void ]
-    'delegated': [ [ Entity ], void ]
+    'delegated': [ [ superEntity: Entity ], void ]
     [event: string]: [ any[], any ]
 }
 
