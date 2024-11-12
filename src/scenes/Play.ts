@@ -1,5 +1,5 @@
 import { Scene } from '@/engine'
-import { LevelEntity } from '@/entities/level'
+import { LevelEntity } from '@/entities/Level'
 
 export class PlayScene extends Scene {
     constructor() {
@@ -8,7 +8,7 @@ export class PlayScene extends Scene {
                 {
                     plantSlots: {
                         slotNum: 2,
-                        plantNames: [ 'pea_shooter', 'pea_shooter' ]
+                        plantIds: [ 'pea_shooter', 'pea_shooter' ]
                     },
                     lawn: {
                         width: 9,

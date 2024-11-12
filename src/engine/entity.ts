@@ -1,22 +1,27 @@
-import { createIdGenerator, Game, Position, createEmitter } from '@/engine'
-import { Disposer } from '@/utils'
+import { createIdGenerator, Game, Position, Emitter, Events } from '@/engine'
+import { Disposer, RemoveIndex } from '@/utils'
 
 export interface EntityState {
     position: Position
     zIndex: number
 }
 
-export interface EntityEvents {
-    'before-render': [ [], void ]
-    'after-render': [ [], void ]
-    'delegated': [ [ superEntity: Entity ], void ]
-    [event: string]: [ any[], any ]
+export interface EntityEvents extends Events {
+    'before-render': []
+    'after-render': []
+    'delegated': [ superEntity: Entity ]
 }
 
 export type InjectKey<T> = symbol & { __injectType: T }
 export const injectKey = <T>() => Symbol() as InjectKey<T>
 
-export class Entity<C extends object = any, S extends EntityState = any, E extends EntityEvents = any> {
+export abstract class Comp {
+    static dependencies: CompCtor[] = []
+}
+
+export type CompCtor<C extends Comp = Comp> = new (...args: any[]) => C
+
+export class Entity<C = any, S extends EntityState = any, E extends EntityEvents = EntityEvents> {
     static generateEntityId = createIdGenerator()
 
     readonly id = Entity.generateEntityId()
@@ -24,6 +29,9 @@ export class Entity<C extends object = any, S extends EntityState = any, E exten
     constructor(protected config: C, public state: S) {}
 
     active = true
+    get deepActive(): boolean {
+        return this.active && (this.superEntity?.deepActive ?? true)
+    }
     activate() {
         this.active = true
         return this
@@ -34,9 +42,15 @@ export class Entity<C extends object = any, S extends EntityState = any, E exten
     }
 
     game: Game = null as any
-    async start(game: Game): Promise<void> {
+    async start(game: Game): Promise<this> {
         this.game = game
+        game.allEntities.push(this)
         await Promise.all(this.delegatedEntities.map(entity => entity.start(game)))
+        return this
+    }
+    startThen(game: Game, fn: (self: this) => void) {
+        this.start(game).then(() => fn(this))
+        return this
     }
 
     autoRender = false
@@ -47,7 +61,7 @@ export class Entity<C extends object = any, S extends EntityState = any, E exten
 
     superEntity: Entity | null = null
     delegatedEntities: Entity[] = []
-    delegate(entities: Entity[]) {
+    delegate(...entities: Entity[]) {
         entities.forEach(entity => {
             entity.superEntity = this
             entity.emit('delegated', this)
@@ -68,26 +82,74 @@ export class Entity<C extends object = any, S extends EntityState = any, E exten
     }
 
     protected disposers: Disposer[] = []
+    disposed = false
     dispose() {
+        if (this.disposed) return
+        this.disposed = true
+
         this.disposers.forEach(dispose => dispose())
         this.delegatedEntities.forEach(entity => entity.dispose())
+
+        if (! this.game) return
+        const index = this.game.allEntities.indexOf(this)
+        if (index >= 0) this.game.allEntities.splice(index, 1)
     }
 
-    runRender() {
-        if (! this.active) return
-        this.game.ctx.save()
-        this.emit('before-render')
-        this.render()
+    comps: Comp[] = []
+    hasComp(...Comps: CompCtor[]) {
+        return Comps.every(Comp => this.comps.some(comp => comp instanceof Comp))
+    }
+    addComp(comp: Comp) {
+        const { dependencies } = comp.constructor as typeof Comp
+        if (! this.hasComp(...dependencies))
+            throw new Error(`Missing dependencies: ${dependencies.map(Comp => Comp.name).join(', ')}.`)
+        this.comps.push(comp)
+        return this
+    }
+    removeComp(comp: Comp) {
+        const index = this.comps.indexOf(comp)
+        if (index >= 0) this.comps.splice(index, 1)
+        return this
+    }
+    getComp<C extends Comp>(Comp: CompCtor<C>): C | undefined {
+        return this.comps.find((comp): comp is C => comp instanceof Comp)
+    }
+    withComp<C extends Comp>(Comp: CompCtor<C>, fn: (comp: C | undefined) => void) {
+        fn(this.getComp(Comp))
+        return this
+    }
+    getComps<C extends Comp>(Comp: CompCtor<C>): C[] {
+        return this.comps.filter((comp): comp is C => comp instanceof Comp)
+    }
+
+    runRender(immediate = false) {
+        if (! this.active || this.disposed) return
+
+        const render = () => {
+            this.game.ctx.save()
+            this.emit('before-render')
+            this.render()
+            this.emit('after-render')
+            this.game.ctx.restore()
+        }
+    
+        this.preRunder(immediate)
+
+        if (immediate) render()
+        else this.game.addRenderJob({
+            zIndex: this.state.zIndex,
+            render
+        })
+    }
+    protected preRunder(immediate = false) {
         this.delegatedEntities
-            .filter(entity => entity.enableAutoRender)
-            .forEach(entity => entity.runRender())
-        this.emit('after-render')
-        this.game.ctx.restore()
+            .filter(entity => entity.autoRender)
+            .forEach(entity => entity.runRender(immediate))
     }
     protected render() {}
 
     runUpdate() {
-        if (! this.active) return
+        if (! this.active || this.disposed) return
         this.state = this.update()
         this.delegatedEntities.forEach(entity => entity.runUpdate())
     }
@@ -95,15 +157,20 @@ export class Entity<C extends object = any, S extends EntityState = any, E exten
         return this.state
     }
 
-    protected emitter = createEmitter<this, E>()
-    emit<K extends keyof E>(event: K, ...args: E[K][0]) {
-        this.emitter.emit(event, this, ...args)
+    protected emitter = new Emitter<E>()
+    emit<K extends keyof RemoveIndex<E>>(event: K, ...args: E[K]) {
+        if (! this.active || this.disposed) return
+        this.emitter.emit(event, ...args)
         return this
     }
-    on<K extends keyof E>(event: K, cb: (...args: [ this, ...E[K][0] ]) => E[K][1], abortController?: AbortController) {
-        const off = this.emitter.on(event, cb)
+    on<K extends keyof RemoveIndex<E>>(event: K, listener: (...args: E[K]) => void, abortController?: AbortController) {
+        const off = this.emitter.on(event, listener)
         this.disposers.push(off)
         abortController?.signal.addEventListener('abort', off)
+        return this
+    }
+    forwardEvents<F extends Events, Ks extends (keyof RemoveIndex<E> & keyof RemoveIndex<F>)[]>(source: Emitter<F>, events: Ks) {
+        this.emitter.forward(source, events)
         return this
     }
 }

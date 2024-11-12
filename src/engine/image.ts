@@ -15,7 +15,10 @@ export const useImageManager = (): ImageManager => {
             imgs[src] = img
             await new Promise((res, rej) => {
                 img.onload = res
-                img.onerror = (_event) => rej(new Error(`Failed to load image: ${src}`))
+                img.onerror = (event) => {
+                    rej(new Error(`Failed to load image: ${src}`))
+                    console.error(`Failed to load image: ${src}\n%o`, event)
+                }
             })
             return img
         }

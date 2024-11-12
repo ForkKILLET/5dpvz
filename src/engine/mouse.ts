@@ -1,35 +1,34 @@
-import { createEmitter, Emitter, Position } from '@/engine'
+import { Emitter, Events, Position } from '@/engine'
+
+export interface MouseEvents extends Events {
+    click: [ MouseEvent ]
+    rightclick: [ MouseEvent ]
+}
 
 export interface Mouse {
     position: Position
-    emitter: Emitter<null, MouseEvents>
-}
-
-export interface MouseEvents {
-    'click': [ [ MouseEvent ], void ]
-    [event: string]: [ any[], any ]
+    emitter: Emitter<MouseEvents>
 }
 
 export const useMouse = (ctx: CanvasRenderingContext2D): Mouse => {
     const position: Position = { x: 0, y: 0 }
 
-    document.addEventListener('mousemove', evt => {
+    document.addEventListener('mousemove', ev => {
         const rect = ctx.canvas.getBoundingClientRect()
-        position.x = evt.clientX - rect.left
-        position.y = evt.clientY - rect.top
+        position.x = ev.clientX - rect.left
+        position.y = ev.clientY - rect.top
     })
 
-    ctx.canvas.addEventListener('click', evt => {
-        emitter.emit('click', null, evt)
+    ctx.canvas.addEventListener('contextmenu', ev => {
+        ev.preventDefault()
+        emitter.emit('rightclick', ev)
     })
 
-    const emitter = createEmitter<null, MouseEvents>()
+    ctx.canvas.addEventListener('click', event => {
+        emitter.emit('click', event)
+    })
+
+    const emitter = new Emitter<MouseEvents>()
 
     return { position, emitter }
-}
-
-export interface ClickableEvents {
-    click: [ [], void ]
-    mouseenter: [ [], void ]
-    mouseleave: [ [], void ]
 }

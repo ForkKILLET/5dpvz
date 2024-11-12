@@ -15,7 +15,7 @@ export interface AnimationUniqueState {
 export interface AnimationState extends EntityState, AnimationUniqueState {}
 
 export interface AnimationEvents extends EntityEvents {
-    'animation-finish': [ [], void ]
+    'animation-finish': []
 }
 
 export class AnimationEntity<
@@ -45,6 +45,7 @@ export class AnimationEntity<
         this.frames = await Promise.all(
             this.config.srcs.map(src => game.imageManager.loadImage(src))
         )
+        return this
     }
 
     render() {

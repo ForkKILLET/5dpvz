@@ -1,7 +1,7 @@
 import { Scene } from '@/engine'
-import { ButtonEntity } from '@/entities/button'
-import { ImageEntity } from '@/entities/image'
-import { PlayScene } from '@/scenes/play'
+import { ButtonEntity } from '@/entities/Button'
+import { ImageEntity } from '@/entities/Image'
+import { PlayScene } from '@/scenes/Play'
 
 export class StartScene extends Scene {
     constructor() {
@@ -11,14 +11,17 @@ export class StartScene extends Scene {
         )
 
         const buttonStart = new ButtonEntity(
-            { src: './assets/start_button_start.png' },
+            {
+                src: './assets/start_button_start.png',
+                containingMode: 'strict'
+            },
             ButtonEntity.initState({
                 position: { x: 450, y: 140 },
                 zIndex: 1
             })
         )
-        buttonStart.on('before-render', ({ game, state }) => {
-            game.ctx.filter = state.hovering ? 'brightness(1.2)' : ''
+        buttonStart.on('before-render', () => {
+            this.game.ctx.filter = buttonStart.state.hovering ? 'brightness(1.2)' : ''
         })
         buttonStart.on('click', () => {
             this.deactivate()

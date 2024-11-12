@@ -16,8 +16,9 @@ export class ImageEntity<
     img: HTMLImageElement | null = null
 
     async start(game: Game) {
-        super.start(game)
+        await super.start(game)
         this.img = await game.imageManager.loadImage(this.config.src)
+        return this
     }
 
     render() {

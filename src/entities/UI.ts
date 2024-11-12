@@ -1,11 +1,12 @@
 import { EntityEvents, EntityState, Entity } from '@/engine'
-import { PlantSlotEntity } from '@/entities/plantSlot'
-import { PlantName } from '@/data/plants'
-import { SunSlotEntity } from './sunSlot'
+import { PlantSlotEntity } from '@/entities/PlantSlot'
+import { PlantId } from '@/data/plants'
+import { SunSlotEntity } from '@/entities/SunSlot'
+import { HoverableComp } from '@/comps/Hoverable'
 
 export interface PlantSlotsConfig {
     slotNum: number
-    plantNames: PlantName[]
+    plantIds: PlantId[]
 }
 
 export interface UIConfig extends PlantSlotsConfig {}
@@ -13,7 +14,7 @@ export interface UIConfig extends PlantSlotsConfig {}
 export interface UIState extends EntityState {}
 
 export interface UIEvents extends EntityEvents {
-    'choose-plant': [ [ slotId: number ], void ]
+    'choose-plant': [ slotId: number ]
 }
 
 export class UIEntity extends Entity<UIConfig, UIState, UIEvents> {
@@ -31,10 +32,10 @@ export class UIEntity extends Entity<UIConfig, UIState, UIEvents> {
                 zIndex: zIndex + 1
             }
         ).enableAutoRender()
-        this.plantSlots = this.config.plantNames.map((plantName, i) => (
+        this.plantSlots = this.config.plantIds.map((plantName, i) => (
             new PlantSlotEntity(
                 {
-                    plantName,
+                    plantId: plantName,
                     slotId: i
                 },
                 {
@@ -43,10 +44,10 @@ export class UIEntity extends Entity<UIConfig, UIState, UIEvents> {
                 }
             )
                 .enableAutoRender()
-                .on('click', () => {
+                .withComp(HoverableComp, hoverable => hoverable!.emitter.on('click', () => {
                     this.emit('choose-plant', i)
-                })
+                }))
         ))
-        this.delegate([ this.sunSlot, ...this.plantSlots ])
+        this.delegate(this.sunSlot, ...this.plantSlots)
     }
 }

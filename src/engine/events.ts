@@ -1,25 +1,47 @@
-export type Events = Record<string, [ any[], any ]>
+import { Disposer, RemoveIndex } from '@/utils'
 
-export type Emitter<T, E extends Events> = {
-    events: Partial<{ [K in keyof E]: E[K][1][] }>
-    emit<K extends keyof E>(event: K, ...args: [ T, ...E[K][0] ]): void
-    on<K extends keyof E>(event: K, cb: (...args: [ T, ...E[K][0] ]) => E[K][1]): () => void
-}
+export type Events = Record<string, any[]>
 
-export const createEmitter = <T, E extends Events>(): Emitter<T, E> => {
-    const events: Partial<{ [K in keyof E]: E[K][1][] }> = {}
+export type Listener<E extends Events, K extends keyof E> = (...args: E[K]) => void
 
-    const emit = <K extends keyof E>(event: K, ...args: E[K][0]) => {
-        events[event]?.forEach(cb => cb(...args))
+export class Emitter<E extends Events> {
+    listeners: Partial<{
+        [K in keyof E]: Listener<E, K>[]
+    }> = {}
+
+    emit<K extends keyof RemoveIndex<E>>(event: K, ...args: E[K]) {
+        this.listeners[event]?.forEach(listener => listener(...args))
     }
 
-    const on = <K extends keyof E>(event: K, cb: E[K][1]) => {
-        const cbs = events[event] ??= []
-        cbs.push(cb)
+    on<K extends keyof RemoveIndex<E>>(event: K, listener: Listener<E, K>) {
+        const currentListeners = this.listeners[event] ??= []
+        currentListeners.push(listener)
         return () => {
-            events[event] = cbs.filter(c => c !== cb)
+            this.listeners[event] = currentListeners.filter(c => c !== listener)
         }
     }
 
-    return { events, emit, on }
+    onSome<const Ks extends (keyof RemoveIndex<E>)[]>(
+        events: Ks, listener: (...args: [ Ks[number], ...E[Ks[number]] ]) => void
+    ) {
+        const disposers: Disposer[] = events
+            .map(event => this.on(event, (...args) => listener(event, ...args)))
+        return () => disposers.forEach(fn => fn())
+    }
+
+    forward<F extends Events, const Ks extends (keyof RemoveIndex<F> & RemoveIndex<E>)[]>(
+        source: Emitter<F>, events: Ks
+    ) {
+        events.forEach(event => {
+            let locked = false
+            const lock = (fn: () => void) => {
+                if (locked) return
+                locked = true
+                fn()
+                locked = false
+            }
+            source.on(event, (...args) => lock(() => this.emit(event as any, ...args as any)))
+            this.on(event as any, (...args) => lock(() => source.emit(event, ...args as any)))
+        })
+    }
 }

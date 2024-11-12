@@ -15,3 +15,5 @@ export const matrix = <T>(width: number, height: number, cb: (x: number, y: numb
     }
     return mat
 }
+
+export const includes = <T>(array: T[], item: any) => array.includes(item)
