@@ -1,4 +1,4 @@
-import { ButtonConfig, ButtonEntity, ButtonEvents, ButtonState } from './Button'
+import { ButtonConfig, ButtonEntity, ButtonEvents, ButtonState } from '@/entities/Button'
 
 export interface LawnBlockConfig extends ButtonConfig {}
 

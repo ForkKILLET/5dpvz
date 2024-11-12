@@ -3,9 +3,9 @@ import { Entity, EntityEvents, EntityState, Game, injectKey } from '@/engine'
 import { LawnConfig, LawnEntity } from '@/entities/Lawn'
 import { PlantSlotsConfig, UIEntity } from '@/entities/UI'
 import { ImageEntity } from '@/entities/Image'
-import { includes, matrix } from '@/utils'
-import { LawnBlockEntity } from './LawnBlock'
-import { PlantEntity } from './Plant'
+import { matrix } from '@/utils'
+import { LawnBlockEntity } from '@/entities/LawnBlock'
+import { PlantEntity } from '@/entities/Plant'
 
 export interface LevelConfig {
     plantSlots: PlantSlotsConfig
