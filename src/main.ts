@@ -17,4 +17,6 @@ void async function() {
     ])
 
     game.start()
+
+    Object.assign(window, { game })
 }()
