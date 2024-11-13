@@ -18,7 +18,6 @@ export class ImageEntity<
     async start(game: Game) {
         await super.start(game)
         this.img = await game.imageManager.loadImage(this.config.src)
-        return this
     }
 
     render() {

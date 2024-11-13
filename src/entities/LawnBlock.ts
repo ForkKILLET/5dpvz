@@ -1,11 +1,11 @@
 import { ButtonConfig, ButtonEntity, ButtonEvents, ButtonState } from '@/entities/Button'
 
-export interface LawnBlockConfig extends ButtonConfig {}
-
-export interface LawnBlockState extends ButtonState {
+export interface LawnBlockConfig extends ButtonConfig {
     i: number
     j: number
 }
+
+export interface LawnBlockState extends ButtonState {}
 
 export interface LawnBlockEvents extends ButtonEvents {}
 

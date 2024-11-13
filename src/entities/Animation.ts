@@ -45,7 +45,6 @@ export class AnimationEntity<
         this.frames = await Promise.all(
             this.config.srcs.map(src => game.imageManager.loadImage(src))
         )
-        return this
     }
 
     render() {

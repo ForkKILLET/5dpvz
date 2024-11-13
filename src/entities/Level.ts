@@ -3,23 +3,24 @@ import { Entity, EntityEvents, EntityState, Game, injectKey } from '@/engine'
 import { LawnConfig, LawnEntity } from '@/entities/Lawn'
 import { PlantSlotsConfig, UIEntity } from '@/entities/UI'
 import { ImageEntity } from '@/entities/Image'
-import { matrix } from '@/utils'
+import { matrix, Nullable } from '@/utils'
 import { LawnBlockEntity } from '@/entities/LawnBlock'
 import { PlantEntity } from '@/entities/Plant'
 
 export interface LevelConfig {
+    sunDropInterval: number
     plantSlots: PlantSlotsConfig
     lawn: LawnConfig
 }
 
-export interface PlantSlot {
+export interface PlantSlotData {
     cd: number
     isCooledDown: boolean
     isSunEnough: boolean
     isPlantable: boolean
 }
 
-export interface Plant {
+export interface PlantData {
     id: PlantId
     hp: number
     position: { i: number, j: number }
@@ -28,10 +29,11 @@ export interface Plant {
 
 export interface LevelUniqueState {
     sun: number
-    plantSlots: PlantSlot[]
-    holdingSlotId: number | null
-    plants: Plant[]
-    plantsOnBlocks: (Plant | null)[][]
+    sunDropTimer: number
+    plantSlotsData: PlantSlotData[]
+    holdingSlotId: Nullable<number>
+    plantsData: PlantData[]
+    plantsOnBlocks: Nullable<PlantData>[][]
 }
 export interface LevelState extends LevelUniqueState, EntityState {}
 
@@ -43,8 +45,9 @@ export class LevelEntity extends Entity<LevelConfig, LevelState, LevelEvents> {
     static initState = <S>(state: S): S & LevelUniqueState => ({
         ...state,
         sun: 500,
-        plantSlots: [],
-        plants: [],
+        sunDropTimer: 0,
+        plantSlotsData: [],
+        plantsData: [],
         plantsOnBlocks: null as any,
         holdingSlotId: null
     })
@@ -52,8 +55,8 @@ export class LevelEntity extends Entity<LevelConfig, LevelState, LevelEvents> {
     ui: UIEntity
     lawn: LawnEntity
 
-    phantomPlantImage: ImageEntity | null = null
-    holdingPlantImage: ImageEntity | null = null
+    phantomPlantImage: Nullable<ImageEntity> = null
+    holdingPlantImage: Nullable<ImageEntity> = null
 
     plantMetadatas: PlantMetadata[] = []
 
@@ -64,7 +67,7 @@ export class LevelEntity extends Entity<LevelConfig, LevelState, LevelEvents> {
     constructor(config: LevelConfig, state: LevelState) {
         super(config, state)
 
-        this.state.plantSlots = this.config.plantSlots.plantIds.map((plantName, i) => {
+        this.state.plantSlotsData = this.config.plantSlots.plantIds.map((plantName, i) => {
             const metadata = this.plantMetadatas[i] = PLANT_METADATA[plantName]
             return {
                 cd: 0,
@@ -84,40 +87,35 @@ export class LevelEntity extends Entity<LevelConfig, LevelState, LevelEvents> {
                 zIndex: 1
             }
         )
-            .enableAutoRender()
             .on('choose-plant', (slotId) => {
-                const slot = this.state.plantSlots[slotId]
+                const slot = this.state.plantSlotsData[slotId]
                 if (! slot.isPlantable) return
 
                 this.state.holdingSlotId = slotId
                 const plantId = this.getPlantIdBySlotId(slotId)
 
                 this.holdingPlantImage?.dispose()
-                const holdingPlantImage = new ImageEntity(
+                this.holdingPlantImage = new ImageEntity(
                     { src: getPlantImageSrc(plantId) },
                     {
                         position: { x: 5, y: 5 },
                         zIndex: this.lawn.state.zIndex + 3
                     }
                 )
-                holdingPlantImage.start(this.game).then(() => {
-                    this.holdingPlantImage = holdingPlantImage
-                })
+                    .attachTo(this)
 
-                const phantomPlantImage = new ImageEntity(
+                this.phantomPlantImage = new ImageEntity(
                     { src: getPlantImageSrc(plantId) },
                     {
                         position: { x: 0, y: 0 },
                         zIndex: this.lawn.state.zIndex + 2
                     }
                 )
-                    .deactivate()
                     .on('before-render', () => {
                         this.game.ctx.globalAlpha = 0.5
                     })
-                    .startThen(this.game, () => {
-                        this.phantomPlantImage = phantomPlantImage
-                    })
+                    .deactivate()
+                    .attachTo(this)
             })
 
         this.lawn = new LawnEntity(
@@ -126,13 +124,44 @@ export class LevelEntity extends Entity<LevelConfig, LevelState, LevelEvents> {
                 position: { x: 5, y: 150 },
                 zIndex: this.state.zIndex + 1
             }
-        ).enableAutoRender()
+        )
 
-        this.delegate(this.ui, this.lawn)
+        this.attach(this.ui, this.lawn)
+
+        this.afterStart(() => {
+            this.game.emitter.on('hoverTargetChange', target => {
+                if (this.state.holdingSlotId === null) return
+
+                if (! target) this.phantomPlantImage!.deactivate()
+                else if (target instanceof LawnBlockEntity) {
+                    const { i, j } = target.config
+                    if (this.isOccupied(i, j)) {
+                        this.phantomPlantImage!.deactivate()
+                        return
+                    }
+
+                    const { x, y } = target.state.position
+                    this.phantomPlantImage!.activate().state.position = { x, y }
+                }
+            })
+
+            this.game.emitter.on('click', target => {
+                if (this.state.holdingSlotId !== null && target instanceof LawnBlockEntity) {
+                    const { i, j } = target.config
+                    this.plant(this.state.holdingSlotId, i, j)
+                }
+            })
+
+            this.game.emitter.on('rightclick', () => {
+                if (this.state.holdingSlotId !== null) {
+                    this.cancelHolding()
+                }
+            })
+        })
     }
 
-    async plant(slotId: number, i: number, j: number) {
-        const slot = this.state.plantSlots[slotId]
+    plant(slotId: number, i: number, j: number) {
+        const slot = this.state.plantSlotsData[slotId]
         if (! slot.isPlantable || this.isOccupied(i, j)) return
 
         const plantId = this.getPlantIdBySlotId(slotId)
@@ -143,20 +172,22 @@ export class LevelEntity extends Entity<LevelConfig, LevelState, LevelEvents> {
         slot.isCooledDown = false
         this.state.sun -= cost
 
-        const newPlant: Plant = {
+        const newPlant = new PlantEntity(
+            { plantId },
+            PlantEntity.initState({
+                position: this.getLawnBlockPosition(i, j),
+                zIndex: this.lawn.state.zIndex + 2
+            })
+        )
+        const newPlantData: PlantData = {
             id: plantId,
             hp: metadata.hp,
             position: { i, j },
-            entity: await new PlantEntity(
-                { plantId },
-                PlantEntity.initState({
-                    position: this.getLawnBlockPosition(i, j),
-                    zIndex: this.lawn.state.zIndex + 2
-                })
-            ).start(this.game)
+            entity: newPlant
         }
-        this.state.plants.push(newPlant)
-        this.state.plantsOnBlocks[i][j] = newPlant
+        this.attach(newPlant)
+        this.state.plantsData.push(newPlantData)
+        this.state.plantsOnBlocks[i][j] = newPlantData
         
         this.cancelHolding()
     }
@@ -177,59 +208,24 @@ export class LevelEntity extends Entity<LevelConfig, LevelState, LevelEvents> {
         this.phantomPlantImage = null
     }
 
+    dropSun() {
+        console.log('Drop sun')
+    }
+
     async start(game: Game) {
         await super.start(game)
 
-        game.emitter.on('hoverTargetChange', target => {
-            if (this.state.holdingSlotId === null) return
-
-            if (! target) this.phantomPlantImage!.deactivate()
-            else if (target instanceof LawnBlockEntity) {
-                const { i, j } = target.state
-                if (this.isOccupied(i, j)) {
-                    this.phantomPlantImage!.deactivate()
-                    return
-                }
-
-                const { x, y } = target.state.position
-                this.phantomPlantImage!.activate().state.position = { x, y }
-            }
-        })
-
-        game.emitter.on('click', target => {
-            if (this.state.holdingSlotId !== null && target instanceof LawnBlockEntity) {
-                const { i, j } = target.state
-                this.plant(this.state.holdingSlotId, i, j)
-            }
-        })
-
-        game.emitter.on('rightclick', () => {
-            if (this.state.holdingSlotId !== null) {
-                this.cancelHolding()
-            }
-        })
-
-        return this
-    }
-
-    preRunder() {
-        super.preRunder()
-
-        this.state.plants.forEach(plant => plant.entity.runRender())
-
-        this.holdingPlantImage?.runRender()
-        this.phantomPlantImage?.runRender()
     }
 
     update() {
-        this.state.plants.forEach(plant => plant.entity.runUpdate())
+        this.state.plantsData.forEach(plant => plant.entity.runUpdate())
 
         if (this.holdingPlantImage) {
             const { x, y } = this.game.mouse.position
             this.holdingPlantImage.state.position = { x: x - 40, y: y - 40 }
         }
 
-        this.state.plantSlots.forEach((slot, i) => {
+        this.state.plantSlotsData.forEach((slot, i) => {
             let { cd, isCooledDown } = slot
 
             if (! isCooledDown) {
@@ -246,6 +242,9 @@ export class LevelEntity extends Entity<LevelConfig, LevelState, LevelEvents> {
 
             slot.isPlantable = slot.isCooledDown && slot.isSunEnough
         })
+
+        this.useTimer('sunDropTimer', this.config.sunDropInterval, this.dropSun)
+
         return this.state
     }
 }

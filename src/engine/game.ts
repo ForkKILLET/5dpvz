@@ -10,7 +10,7 @@ export interface GameConfig {
 
 export interface RenderJob {
     zIndex: number
-    render: () => void
+    renderer: () => void
 }
 
 export interface GameEvents extends Events {
@@ -50,7 +50,7 @@ export class Game {
         let oldHoveringEntity = this.hoveringEntity
         this.hoveringEntity = null
         const hoverableEntities = this.allEntities
-            .filter(entity => entity.deepActive && entity.hasComp(HoverableComp))
+            .filter(entity => entity.started && entity.deepActive && entity.hasComp(HoverableComp))
             .sort(by(entity => - entity.state.zIndex))
 
         for (const entity of hoverableEntities) {
@@ -74,7 +74,7 @@ export class Game {
         this.ctx.clearRect(0, 0, this.ctx.canvas.width, this.ctx.canvas.height)
         this.renderJobs
             .sort(by(job => job.zIndex))
-            .forEach(job => job.render())
+            .forEach(job => job.renderer())
     }
 
     start() {
@@ -102,8 +102,9 @@ export class Game {
     }
 
     async addScene(scene: Scene) {
-        await scene.start(this)
-        this.scenes.push(scene)
+        scene.runStart(this).afterStart(() => {
+            this.scenes.push(scene)
+        })
     }
     removeScene(sceneId: number) {
         const sceneIndex = this.scenes.findIndex(scene => scene.id === sceneId)
@@ -117,5 +118,21 @@ export class Game {
     }
     selectScenes<E extends Scene>(Scene: new () => E): E[] {
         return this.scenes.filter((entity): entity is E => entity instanceof Scene)
+    }
+
+    _printEntityTree() {
+        const showEntityTree = (entity: Entity, depth: number): string => {
+            const indention = ' '.repeat(depth * 3)
+            return `${indention}${entity.constructor.name} #${entity.id}${
+                 entity.attachedEntities
+                    .map(entity => `\n${ showEntityTree(entity, depth + 1) }`)
+                    .join('')
+            }`
+        }
+        console.log(this.scenes.map(scene => showEntityTree(scene, 0)).join('\n'))
+    }
+
+    _getEntityById(id: number): Entity | undefined {
+        return this.allEntities.find(entity => entity.id === id)
     }
 }

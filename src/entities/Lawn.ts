@@ -24,15 +24,15 @@ export class LawnEntity extends Entity<LawnConfig, LawnState, LawnEvents> {
             (i, j) => new LawnBlockEntity(
                 {
                     src: `./assets/lawn/${ (i + j) % 2 ? 'light' : 'dark' }.png`,
-                    containingMode: 'rect'
+                    containingMode: 'rect',
+                    i, j
                 },
                 LawnBlockEntity.initState({
                     position: { x: x + i * 80, y: y + j * 80 },
-                    zIndex: zIndex + 1,
-                    i, j
+                    zIndex: zIndex + 1
                 })
-            ).enableAutoRender()
+            )
         )
-        this.delegate(...this.lawnBlocks.flat())
+        this.attach(...this.lawnBlocks.flat())
     }
 }

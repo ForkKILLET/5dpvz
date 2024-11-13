@@ -7,9 +7,12 @@ export interface EntityState {
 }
 
 export interface EntityEvents extends Events {
+    'start': []
     'before-render': []
     'after-render': []
-    'delegated': [ superEntity: Entity ]
+    'attached': [ superEntity: Entity ]
+    'unattached': []
+    'dispose': []
 }
 
 export type InjectKey<T> = symbol & { __injectType: T }
@@ -26,7 +29,9 @@ export class Entity<C = any, S extends EntityState = any, E extends EntityEvents
 
     readonly id = Entity.generateEntityId()
 
-    constructor(protected config: C, public state: S) {}
+    started = false
+
+    constructor(public config: C, public state: S) {}
 
     active = true
     get deepActive(): boolean {
@@ -42,31 +47,51 @@ export class Entity<C = any, S extends EntityState = any, E extends EntityEvents
     }
 
     game: Game = null as any
-    async start(game: Game): Promise<this> {
+    async start(game: Game): Promise<void> {
         this.game = game
         game.allEntities.push(this)
-        await Promise.all(this.delegatedEntities.map(entity => entity.start(game)))
+    }
+    runStart(game: Game) {
+        this.start(game).then(() => {
+            this.started = true
+            this.emit('start')
+        })
         return this
     }
-    startThen(game: Game, fn: (self: this) => void) {
-        this.start(game).then(() => fn(this))
-        return this
+    afterStart(fn: (self: this) => void) {
+        if (this.started) fn(this)
+        else this.on('start', () => fn(this))
     }
 
-    autoRender = false
-    enableAutoRender() {
-        this.autoRender = true
+    autoRender = true
+    setAutoRender(autoRender: boolean) {
+        this.autoRender = autoRender
         return this
     }
 
     superEntity: Entity | null = null
-    delegatedEntities: Entity[] = []
-    delegate(...entities: Entity[]) {
-        entities.forEach(entity => {
-            entity.superEntity = this
-            entity.emit('delegated', this)
-            this.delegatedEntities.push(entity)
-        })
+    attachedEntities: Entity[] = []
+    attach(...entities: Entity[]) {
+        return this.afterStart(() => entities.forEach(entity => entity
+            .runStart(this.game)
+            .afterStart(() => {
+                entity.superEntity = this
+                this.attachedEntities.push(entity)
+                entity
+                    .emit('attached', this)
+                    .on('dispose', () => {
+                        this.unattach(entity)
+                    })
+            })
+        ))
+    }
+    attachTo(superEntity: Entity) {
+        superEntity.attach(this)
+        return this
+    }
+    unattach(...entities: Entity[]) {
+        entities.forEach(entity => entity.emit('unattached'))
+        this.attachedEntities = this.attachedEntities.filter(entity => ! entities.includes(entity))
         return this
     }
 
@@ -86,9 +111,10 @@ export class Entity<C = any, S extends EntityState = any, E extends EntityEvents
     dispose() {
         if (this.disposed) return
         this.disposed = true
+        this.emit('dispose')
 
         this.disposers.forEach(dispose => dispose())
-        this.delegatedEntities.forEach(entity => entity.dispose())
+        this.attachedEntities.forEach(entity => entity.dispose())
 
         if (! this.game) return
         const index = this.game.allEntities.indexOf(this)
@@ -122,36 +148,34 @@ export class Entity<C = any, S extends EntityState = any, E extends EntityEvents
         return this.comps.filter((comp): comp is C => comp instanceof Comp)
     }
 
-    runRender(immediate = false) {
-        if (! this.active || this.disposed) return
+    runRender() {
+        this.preRunder()
 
-        const render = () => {
+        this.addRenderJob(() => {
             this.game.ctx.save()
             this.emit('before-render')
             this.render()
             this.emit('after-render')
             this.game.ctx.restore()
-        }
-    
-        this.preRunder(immediate)
-
-        if (immediate) render()
-        else this.game.addRenderJob({
-            zIndex: this.state.zIndex,
-            render
         })
     }
-    protected preRunder(immediate = false) {
-        this.delegatedEntities
-            .filter(entity => entity.autoRender)
-            .forEach(entity => entity.runRender(immediate))
+    addRenderJob(renderer: () => void, zIndexDelta = 0) {
+        this.game.addRenderJob({
+            zIndex: this.state.zIndex + zIndexDelta,
+            renderer
+        })
+    }
+    protected preRunder() {
+        this.attachedEntities
+            .filter(entity => entity.active && entity.autoRender)
+            .forEach(entity => entity.runRender())
     }
     protected render() {}
 
     runUpdate() {
         if (! this.active || this.disposed) return
         this.state = this.update()
-        this.delegatedEntities.forEach(entity => entity.runUpdate())
+        this.attachedEntities.forEach(entity => entity.runUpdate())
     }
     protected update() {
         return this.state
@@ -159,7 +183,6 @@ export class Entity<C = any, S extends EntityState = any, E extends EntityEvents
 
     protected emitter = new Emitter<E>()
     emit<K extends keyof RemoveIndex<E>>(event: K, ...args: E[K]) {
-        if (! this.active || this.disposed) return
         this.emitter.emit(event, ...args)
         return this
     }
@@ -172,5 +195,16 @@ export class Entity<C = any, S extends EntityState = any, E extends EntityEvents
     forwardEvents<F extends Events, Ks extends (keyof RemoveIndex<E> & keyof RemoveIndex<F>)[]>(source: Emitter<F>, events: Ks) {
         this.emitter.forward(source, events)
         return this
+    }
+
+    useTimer<K extends keyof {
+        [K in keyof S as S[K] extends number ? K : never]: void
+    }>(timerName: K, timerInterval: number, onTimer: () => void) {
+        let timer = this.state[timerName] as number + this.game.mspf
+        if (timer > timerInterval) {
+            timer -= timerInterval
+            onTimer()
+        }
+        (this.state[timerName] as number) = timer
     }
 }

@@ -28,7 +28,7 @@ export class SunSlotEntity extends Entity<SunSlotConfig, SunSlotState, SunSlotEv
                 zIndex: zIndex + 1
             }
         )
-        this.delegate(this.sumImage)
+        this.attach(this.sumImage)
     }
 
     get isHovering() {
@@ -46,8 +46,6 @@ export class SunSlotEntity extends Entity<SunSlotConfig, SunSlotState, SunSlotEv
     
         ctx.strokeStyle = 'brown'
         ctx.strokeRect(x, y, this.width, this.height)
-
-        this.sumImage.runRender(true)
 
         ctx.fillStyle = 'black'
         ctx.font = '20px Sans'

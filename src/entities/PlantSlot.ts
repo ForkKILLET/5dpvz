@@ -16,7 +16,6 @@ export interface PlantSlotEvents extends HoverableEvents, EntityEvents {}
 
 export class PlantSlotEntity extends Entity<PlantSlotConfig, PlantSlotState, PlantSlotEvents> {
     plantMetadata: PlantMetadata
-    plantImage: ImageEntity
 
     readonly width = 80 + 2
     readonly height = 80 + 20 + 2
@@ -33,43 +32,49 @@ export class PlantSlotEntity extends Entity<PlantSlotConfig, PlantSlotState, Pla
             .addComp(new HoverableComp())
 
         this.plantMetadata = PLANT_METADATA[this.config.plantId]
-        this.plantImage = new ImageEntity(
-            {
-                src: getPlantImageSrc(this.config.plantId),
-            },
-            {
-                position: { x: x + 1, y: y + 1 },
-                zIndex: zIndex + 1
-            }
-        )
-        this.delegate(this.plantImage)
+
+        this.afterStart(() => {
+            this.attach(new ImageEntity(
+                {
+                    src: getPlantImageSrc(this.config.plantId),
+                },
+                {
+                    position: { x: x + 1, y: y + 1 },
+                    zIndex: zIndex + 2
+                }
+            ))
+        })
     }
 
-    render() {
-        const { plantSlots } = this.inject(kLevelState)!
+    preRunder() {
+        super.preRunder()
+
+        const { plantSlotsData: plantSlots } = this.inject(kLevelState)!
         const slot = plantSlots[this.config.slotId]
 
         const { ctx } = this.game
         const { position: { x, y } } = this.state
     
-        ctx.strokeStyle = 'brown'
-        ctx.strokeRect(x, y, this.width, this.height)
+        this.addRenderJob(() => {
+            ctx.strokeStyle = 'brown'
+            ctx.strokeRect(x, y, this.width, this.height)
 
-        this.plantImage.runRender(true)
+            ctx.fillStyle = slot.isSunEnough ? 'black' : 'red'
+            ctx.font = '20px Sans'
+            const costString = String(this.plantMetadata.cost)
+            const { width } = ctx.measureText(costString)
+            ctx.fillText(costString, x + 1 + (80 - width) / 2, y + 1 + 80 + 20 - 2)
+        }, 0)
 
         if (! slot.isPlantable) {
-            ctx.fillStyle = 'rgba(0, 0, 0, 0.3)'
-            ctx.fillRect(x, y, this.width, this.height)
-            if (! slot.isCooledDown) {
-                const cdPercent = slot.cd / this.plantMetadata.cd
-                ctx.fillRect(x, y, this.width, (1 - cdPercent) * this.height)
-            }
+            this.addRenderJob(() => {
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.3)'
+                ctx.fillRect(x, y, this.width, this.height)
+                if (! slot.isCooledDown) {
+                    const cdPercent = slot.cd / this.plantMetadata.cd
+                    ctx.fillRect(x, y, this.width, (1 - cdPercent) * this.height)
+                }
+            }, 2)
         }
-
-        ctx.fillStyle = slot.isSunEnough ? 'black' : 'red'
-        ctx.font = '20px Sans'
-        const costString = String(this.plantMetadata.cost)
-        const { width } = ctx.measureText(costString)
-        ctx.fillText(costString, x + 1 + (80 - width) / 2, y + 1 + 80 + 20 - 2)
     }
 }

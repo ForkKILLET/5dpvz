@@ -31,7 +31,7 @@ export class UIEntity extends Entity<UIConfig, UIState, UIEvents> {
                 position: { x, y },
                 zIndex: zIndex + 1
             }
-        ).enableAutoRender()
+        )
         this.plantSlots = this.config.plantIds.map((plantName, i) => (
             new PlantSlotEntity(
                 {
@@ -43,11 +43,10 @@ export class UIEntity extends Entity<UIConfig, UIState, UIEvents> {
                     zIndex: zIndex + 1,
                 }
             )
-                .enableAutoRender()
                 .withComp(HoverableComp, hoverable => hoverable!.emitter.on('click', () => {
                     this.emit('choose-plant', i)
                 }))
         ))
-        this.delegate(this.sunSlot, ...this.plantSlots)
+        this.attach(this.sunSlot, ...this.plantSlots)
     }
 }

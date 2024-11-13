@@ -13,7 +13,8 @@ export class PlayScene extends Scene {
                     lawn: {
                         width: 9,
                         height: 5
-                    }
+                    },
+                    sunDropInterval: 10000
                 },
                 LevelEntity.initState({
                     position: { x: 0, y: 0 },

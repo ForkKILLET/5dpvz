@@ -54,7 +54,6 @@ export class ButtonEntity<
     async start(game: Game) {
         await super.start(game)
         if (this.config.containingMode === 'strict') this.pixels = getImagePixels(this.img!)
-        return this
     }
 
     render() {

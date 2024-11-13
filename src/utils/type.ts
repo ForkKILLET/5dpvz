@@ -8,3 +8,5 @@ export type RemoveIndex<T> = {
 }
 
 export type Disposer = () => void
+
+export type Nullable<T> = T | null
