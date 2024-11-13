@@ -158,7 +158,7 @@ export abstract class Entity<C = any, S extends EntityState = any, E extends Ent
     }
 
     runRender() {
-        this.preRunder()
+        this.preRender()
 
         this.addRenderJob(() => {
             this.game.ctx.save()
@@ -174,7 +174,7 @@ export abstract class Entity<C = any, S extends EntityState = any, E extends Ent
             renderer
         })
     }
-    protected preRunder() {
+    protected preRender() {
         this.attachedEntities
             .filter(entity => entity.active && entity.autoRender)
             .forEach(entity => entity.runRender())

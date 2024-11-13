@@ -1,5 +1,6 @@
 import { Scene } from '@/engine'
 import { LevelEntity } from '@/entities/Level'
+import {getShovelAnimationConfig, SHOVEL_METADATA} from "@/data/shovel.ts";
 
 export class PlayScene extends Scene {
     constructor() {
@@ -20,6 +21,11 @@ export class PlayScene extends Scene {
                         sunDroppingVelocity: 30,
                         sunLife: 8000,
                         sunAtStart: 200
+                    },
+                    shovel: {
+                        shovelId: "iron_shovel",
+                        srcs, fpsf = getShovelAnimationConfig("iron_shovel")
+
                     }
                 },
                 LevelEntity.initState({

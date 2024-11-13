@@ -46,8 +46,8 @@ export class PlantSlotEntity extends Entity<PlantSlotConfig, PlantSlotState, Pla
         })
     }
 
-    preRunder() {
-        super.preRunder()
+    preRender() {
+        super.preRender()
 
         const { plantSlotsData: plantSlots } = this.inject(kLevelState)!
         const slot = plantSlots[this.config.slotId]

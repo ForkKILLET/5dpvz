@@ -9,9 +9,11 @@ import { PlantEntity } from '@/entities/Plant'
 import { SunEntity } from './Sun'
 import { random } from '@/utils/random'
 import { LifeComp } from '@/comps/Life'
+import {ShovelConfig} from "@/entities/Shovel.ts";
 
 export interface LevelConfig {
     plantSlots: PlantSlotsConfig
+    shovel: ShovelConfig
     lawn: LawnConfig
     sun: SunGlobalConfig
 }
@@ -208,7 +210,7 @@ export class LevelEntity extends Entity<LevelConfig, LevelState, LevelEvents> {
         this.attach(newPlant)
         this.state.plantsData.push(newPlantData)
         this.state.plantsOnBlocks[i][j] = newPlantData
-        
+
         this.cancelHolding()
     }
 
@@ -281,7 +283,7 @@ export class LevelEntity extends Entity<LevelConfig, LevelState, LevelEvents> {
                 slot.cd = cd
             }
 
-            slot.isSunEnough = this.state.sun >= this.plantMetadatas[i].cost            
+            slot.isSunEnough = this.state.sun >= this.plantMetadatas[i].cost
 
             slot.isPlantable = slot.isCooledDown && slot.isSunEnough
         })
