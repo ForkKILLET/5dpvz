@@ -24,8 +24,8 @@ export class PlantSlotEntity extends SlotEntity<PlantSlotConfig, PlantSlotState,
         const { position: { x, y }, zIndex } = this.state
 
         this
-            .addComp(new ShapeComp(point => 
-                isInRect(point, { x, y, width: this.width, height: this.height })
+            .addComp(new ShapeComp(point =>
+                isInRect(point, { x, y, width: this.width, height: this.height }),
             ))
             .addComp(new HoverableComp())
 
@@ -36,8 +36,8 @@ export class PlantSlotEntity extends SlotEntity<PlantSlotConfig, PlantSlotState,
                 plantAnimation.getImageConfig(this.config.plantId),
                 {
                     position: { x: x + 1, y: y + 1 },
-                    zIndex: zIndex + 2
-                }
+                    zIndex: zIndex + 2,
+                },
             ))
         })
     }
@@ -50,7 +50,7 @@ export class PlantSlotEntity extends SlotEntity<PlantSlotConfig, PlantSlotState,
 
         const { ctx } = this.game
         const { position: { x, y } } = this.state
-    
+
         this.addRenderJob(() => {
             ctx.fillStyle = slot.isSunEnough ? 'black' : 'red'
             ctx.font = '20px Sans'

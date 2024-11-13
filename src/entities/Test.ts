@@ -19,18 +19,17 @@ export class TestEntity extends Entity<TestConfig, TestState, TestEvents> {
     update() {
         let { position: { x, y }, moveDirection: dir } = this.state
 
-        x += dir === 'left' ? -1 : dir === 'right' ? 1 : 0
-        y += dir === 'up' ? -1 : dir === 'down' ? 1 : 0
+        x += dir === 'left' ? - 1 : dir === 'right' ? + 1 : 0
+        y += dir === 'up' ? - 1 : dir === 'down' ? + 1 : 0
 
         if (dir === 'right' && x === 100) dir = 'down'
         else if (dir === 'down' && y === 100) dir = 'left'
         else if (dir === 'left' && x === 0) dir = 'up'
         else if (dir === 'up' && y === 0) dir = 'right'
-
         return {
             ...this.state,
             position: { x, y },
-            moveDirection: dir
+            moveDirection: dir,
         }
     }
 }

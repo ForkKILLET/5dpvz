@@ -23,7 +23,7 @@ export class ShovelSlotEntity extends SlotEntity<ShovelSlotConfig, ShovelSlotSta
 
         this
             .addComp(new ShapeComp(point =>
-                isInRect(point, { x, y, width: this.width, height: this.height })
+                isInRect(point, { x, y, width: this.width, height: this.height }),
             ))
             .addComp(new HoverableComp())
 
@@ -34,8 +34,8 @@ export class ShovelSlotEntity extends SlotEntity<ShovelSlotConfig, ShovelSlotSta
                 shovelAnimation.getImageConfig(this.config.shovelId),
                 {
                     position: { x: x + 1, y: y + 1 },
-                    zIndex: zIndex + 2
-                }
+                    zIndex: zIndex + 2,
+                },
             ))
         })
     }

@@ -19,12 +19,12 @@ export class SunSlotEntity extends SlotEntity<SunSlotConfig, SunSlotState, SunSl
 
         this.sumImage = new ImageEntity(
             {
-                src: './assets/sun.png'
+                src: './assets/sun.png',
             },
             {
                 position: { x: x + 1, y: y + 1 },
-                zIndex: zIndex + 1
-            }
+                zIndex: zIndex + 1,
+            },
         )
         this.attach(this.sumImage)
     }
@@ -41,7 +41,7 @@ export class SunSlotEntity extends SlotEntity<SunSlotConfig, SunSlotState, SunSl
 
         const { ctx } = this.game
         const { position: { x, y } } = this.state
-    
+
         ctx.fillStyle = 'black'
         ctx.font = '20px Sans'
         const sunString = String(sun)

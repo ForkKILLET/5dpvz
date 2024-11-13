@@ -8,12 +8,12 @@ void async function() {
 
     const game = new Game({
         ctx,
-        fps: 60
+        fps: 60,
     })
 
     await Promise.all([
         game.addScene(new StartScene()),
-        game.addScene(new PlayScene().deactivate())
+        game.addScene(new PlayScene().deactivate()),
     ])
 
     game.start()

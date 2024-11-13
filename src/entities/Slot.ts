@@ -24,7 +24,7 @@ export class SlotEntity<
 
         this
             .addComp(new ShapeComp(point =>
-                isInRect(point, { x, y, width: this.width, height: this.height })
+                isInRect(point, { x, y, width: this.width, height: this.height }),
             ))
             .addComp(new HoverableComp())
     }
@@ -34,7 +34,7 @@ export class SlotEntity<
 
         const { ctx } = this.game
         const { position: { x, y } } = this.state
-    
+
         this.addRenderJob(() => {
             ctx.strokeStyle = 'brown'
             ctx.strokeRect(x, y, this.width, this.height)

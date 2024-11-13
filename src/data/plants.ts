@@ -21,9 +21,9 @@ export const PLANT_METADATA: Record<PlantId, PlantMetadata> = {
         hp: 300,
         isPlantableAtStart: true,
         animations: {
-            common: { fpsf: 8, frameNum: 12 }
-        }
-    }
+            common: { fpsf: 8, frameNum: 12 },
+        },
+    },
 }
 
 export const plantAnimation = useAnimation('plants', PLANT_METADATA)

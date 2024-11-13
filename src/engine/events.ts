@@ -22,7 +22,7 @@ export class Emitter<E extends Events> {
     }
 
     onSome<const Ks extends (keyof RemoveIndex<E>)[]>(
-        events: Ks, listener: (...args: [ Ks[number], ...E[Ks[number]] ]) => void
+        events: Ks, listener: (...args: [ Ks[number], ...E[Ks[number]] ]) => void,
     ) {
         const disposers: Disposer[] = events
             .map(event => this.on(event, (...args) => listener(event, ...args)))
@@ -30,7 +30,7 @@ export class Emitter<E extends Events> {
     }
 
     forward<F extends Events, const Ks extends (keyof RemoveIndex<F> & RemoveIndex<E>)[]>(
-        source: Emitter<F>, events: Ks
+        source: Emitter<F>, events: Ks,
     ) {
         events.forEach(event => {
             let locked = false

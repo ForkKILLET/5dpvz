@@ -47,7 +47,7 @@ export class Game {
 
         activeScenes.forEach(scene => scene.runUpdate())
 
-        let oldHoveringEntity = this.hoveringEntity
+        const oldHoveringEntity = this.hoveringEntity
         this.hoveringEntity = null
         const hoverableEntities = this.allEntities
             .filter(entity => entity.started && entity.deepActive && entity.hasComp(HoverableComp))
@@ -62,7 +62,7 @@ export class Game {
 
             if (hoverableComp.hovering !== hovering) {
                 hoverableComp.emitter.emit(hovering ? 'mouseenter' : 'mouseleave')
-                hoverableComp.hovering = hovering   
+                hoverableComp.hovering = hovering
             }
         }
 
@@ -90,7 +90,7 @@ export class Game {
         this.mouse = useMouse(ctx)
         this.mspf = 1000 / fps
 
-        this.mouse.emitter.onSome([ 'click', 'rightclick' ], (event) => {
+        this.mouse.emitter.onSome([ 'click', 'rightclick' ], event => {
             if (! this.isRunning) return
 
             const target = this.hoveringEntity
@@ -120,10 +120,12 @@ export class Game {
     _printEntityTree({ zIndex = false }: { zIndex?: boolean } = {}) {
         const showEntityTree = (entity: Entity, depth: number): string => {
             const indention = ' '.repeat(depth * 3)
-            return `${indention}${entity.constructor.name} #${entity.id}${ zIndex ? ` (z=${entity.state.zIndex})` : ''}`
-                + entity.attachedEntities
-                    .map(entity => `\n${ showEntityTree(entity, depth + 1) }`)
-                    .join('')
+            return `${ indention }${ entity.constructor.name } #${ entity.id }${
+                zIndex ? ` (z=${ entity.state.zIndex })` : ''
+            }${ entity.attachedEntities
+                .map(entity => `\n${ showEntityTree(entity, depth + 1) }`)
+                .join('')
+            }`
         }
         console.log(this.scenes.map(scene => showEntityTree(scene, 0)).join('\n'))
     }

@@ -86,7 +86,7 @@ export abstract class Entity<C = any, S extends EntityState = any, E extends Ent
                     .on('dispose', () => {
                         this.unattach(entity)
                     })
-            })
+            }),
         ))
     }
     attachTo(superEntity: Entity) {
@@ -138,7 +138,7 @@ export abstract class Entity<C = any, S extends EntityState = any, E extends Ent
     addComp(comp: Comp) {
         const { dependencies } = comp.constructor as typeof Comp
         if (! this.hasComp(...dependencies))
-            throw new Error(`Missing dependencies: ${dependencies.map(Comp => Comp.name).join(', ')}.`)
+            throw new Error(`Missing dependencies: ${ dependencies.map(Comp => Comp.name).join(', ') }.`)
         this.comps.push(comp)
         return this
     }
@@ -171,7 +171,7 @@ export abstract class Entity<C = any, S extends EntityState = any, E extends Ent
     addRenderJob(renderer: () => void, zIndexDelta = 0) {
         this.game.addRenderJob({
             zIndex: this.state.zIndex + zIndexDelta,
-            renderer
+            renderer,
         })
     }
     protected preRender() {
@@ -201,7 +201,9 @@ export abstract class Entity<C = any, S extends EntityState = any, E extends Ent
         this.disposers.push(off)
         return this
     }
-    forwardEvents<F extends Events, Ks extends (keyof RemoveIndex<E> & keyof RemoveIndex<F>)[]>(source: Emitter<F>, events: Ks) {
+    forwardEvents<F extends Events, Ks extends (keyof RemoveIndex<E> & keyof RemoveIndex<F>)[]>(
+        source: Emitter<F>, events: Ks,
+    ) {
         this.emitter.forward(source, events)
         return this
     }

@@ -5,23 +5,23 @@ export interface ImageManager {
 
 export const useImageManager = (): ImageManager => {
     const imgs: Record<string, HTMLImageElement> = {}
-    
+
     return {
         imgs,
         loadImage: async (src: string) => {
             if (imgs[src]) return imgs[src]
-            const img = new Image
+            const img = new Image()
             img.src = src
             imgs[src] = img
             await new Promise((res, rej) => {
                 img.onload = res
-                img.onerror = (event) => {
-                    rej(new Error(`Failed to load image: ${src}`))
-                    console.error(`Failed to load image: ${src}\n%o`, event)
+                img.onerror = event => {
+                    rej(new Error(`Failed to load image: ${ src }`))
+                    console.error(`Failed to load image: ${ src }\n%o`, event)
                 }
             })
             return img
-        }
+        },
     }
 }
 

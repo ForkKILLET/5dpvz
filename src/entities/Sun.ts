@@ -17,7 +17,7 @@ export class SunEntity extends ButtonEntity<SunConfig, SunState, SunEvents> {
         super({
             ...config,
             src: './assets/sun.png',
-            containingMode: 'rect'
+            containingMode: 'rect',
         }, state)
 
         this.addComp(new LifeComp(config.life))

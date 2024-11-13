@@ -7,18 +7,18 @@ export class StartScene extends Scene {
     constructor() {
         const background = new ImageEntity(
             { src: './assets/start.png' },
-            { position: { x: 0, y: 0 }, zIndex: 0 }
+            { position: { x: 0, y: 0 }, zIndex: 0 },
         )
 
         const startButton = new ButtonEntity(
             {
                 src: './assets/start_button_start.png',
-                containingMode: 'strict'
+                containingMode: 'strict',
             },
             ButtonEntity.initState({
                 position: { x: 450, y: 140 },
-                zIndex: 1
-            })
+                zIndex: 1,
+            }),
         )
             .on('before-render', () => {
                 this.game.ctx.filter = startButton.state.hovering ? 'brightness(1.2)' : ''
@@ -31,12 +31,12 @@ export class StartScene extends Scene {
         const githubButton = new ButtonEntity(
             {
                 src: './assets/github.png',
-                containingMode: 'strict'
+                containingMode: 'strict',
             },
             ButtonEntity.initState({
                 position: { x: 10, y: 10 },
-                zIndex: 1
-            })
+                zIndex: 1,
+            }),
         )
             .on('click', () => {
                 window.open('https://github.com/ForkKILLET/5dpvz', '_blank')
@@ -45,7 +45,7 @@ export class StartScene extends Scene {
         super([
             background,
             startButton,
-            githubButton
+            githubButton,
         ])
     }
 }

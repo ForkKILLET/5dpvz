@@ -12,7 +12,6 @@ export interface ButtonUniqueState {
 }
 export interface ButtonState extends ImageState, ButtonUniqueState {}
 
-
 export interface ButtonEvents extends HoverableEvents, EntityEvents {}
 
 export class ButtonEntity<
@@ -22,7 +21,7 @@ export class ButtonEntity<
 > extends ImageEntity<C, S, E> {
     static initState = <S>(state: S): S & ButtonUniqueState => ({
         ...state,
-        hovering: false
+        hovering: false,
     })
 
     protected pixels: Uint8ClampedArray | null = null
@@ -30,16 +29,16 @@ export class ButtonEntity<
     constructor(config: C, state: S) {
         super(config, state)
 
-        const shapeComp = new ShapeComp((point) => {
+        const shapeComp = new ShapeComp(point => {
             const { x, y } = this.state.position
             const { width, height } = this.img!
 
             if (! isInRect(point, { x, y, width, height })) return false
             if (this.config.containingMode === 'rect') return true
-            
+
             const rx = point.x - x
             const ry = point.y - y
-            const i = ry * width * 4 + rx * 4   
+            const i = ry * width * 4 + rx * 4
             const [ r, g, b, a ] = this.pixels!.slice(i, i + 4)
             return ! (r === 0 && g === 0 && b === 0 && a === 0)
         })

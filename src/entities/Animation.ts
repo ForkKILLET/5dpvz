@@ -14,7 +14,7 @@ export interface AnimationUniqueState {
     f: number
     sf: number
     isPlaying: boolean
-    direction: 1 | -1
+    direction: 1 | - 1
 }
 export interface AnimationState extends EntityState, AnimationUniqueState {}
 
@@ -32,16 +32,16 @@ export type MetadataWithAnimationSet = Record<string, { animations: AnimationSet
 export const useAnimation = <M extends MetadataWithAnimationSet>(category: string, metadata: M) => {
     type Id = keyof M & string
     const animation = {
-        getImageSrc: (id: Id) => `./assets/${category}/${id}/common/01.png`,
+        getImageSrc: (id: Id) => `./assets/${ category }/${ id }/common/01.png`,
         getImageConfig: (id: Id) => ({ src: animation.getImageSrc(id) }),
         getAnimationConfig: (id: Id, name = 'common'): AnimationConfig => {
             const { frameNum, fpsf } = metadata[id].animations[name]
             const srcs = Array.from(
                 { length: frameNum },
-                (_, i) => `./assets/plants/${id}/${name}/${String(i + 1).padStart(2, '0')}.png`
+                (_, i) => `./assets/plants/${ id }/${ name }/${ String(i + 1).padStart(2, '0') }.png`,
             )
             return { srcs, fpsf }
-        }
+        },
     }
     return animation
 }
@@ -56,14 +56,14 @@ export class AnimationEntity<
         f: 0,
         sf: 0,
         isPlaying: true,
-        direction: 1
+        direction: 1,
     })
 
     static getStdSrcs = (path: string, num: number): string[] => {
         const digits = Math.max(String(num).length, 2)
         return Array
             .from({ length: num })
-            .map((_, i) => `${path}/${String(i + 1).padStart(digits, '0')}.png`)
+            .map((_, i) => `${ path }/${ String(i + 1).padStart(digits, '0') }.png`)
     }
 
     frames: HTMLImageElement[] = []
@@ -71,7 +71,7 @@ export class AnimationEntity<
     async start(game: Game) {
         await super.start(game)
         this.frames = await Promise.all(
-            this.config.srcs.map(src => game.imageManager.loadImage(src))
+            this.config.srcs.map(src => game.imageManager.loadImage(src)),
         )
     }
 

@@ -92,7 +92,7 @@ export class LevelEntity extends Entity<LevelConfig, LevelState, LevelEvents> {
                 cd: 0,
                 isSunEnough: metadata.cost <= this.state.sun,
                 isCooledDown: true,
-                isPlantable: metadata.isPlantableAtStart
+                isPlantable: metadata.isPlantableAtStart,
             }
         })
         this.state.plantsOnBlocks = matrix(config.lawn.width, config.lawn.height, () => null)
@@ -106,10 +106,10 @@ export class LevelEntity extends Entity<LevelConfig, LevelState, LevelEvents> {
             config.plantSlots,
             {
                 position: { x: 5, y: 5 },
-                zIndex: 1
-            }
+                zIndex: 1,
+            },
         )
-            .on('choose-plant', (slotId) => {
+            .on('choose-plant', slotId => {
                 const slot = this.state.plantSlotsData[slotId]
                 if (! slot.isPlantable) return
 
@@ -121,8 +121,8 @@ export class LevelEntity extends Entity<LevelConfig, LevelState, LevelEvents> {
                     plantAnimation.getImageConfig(plantId),
                     {
                         position: { x: 5, y: 5 },
-                        zIndex: this.lawn.state.zIndex + 3
-                    }
+                        zIndex: this.lawn.state.zIndex + 3,
+                    },
                 )
                     .attachTo(this)
 
@@ -130,8 +130,8 @@ export class LevelEntity extends Entity<LevelConfig, LevelState, LevelEvents> {
                     plantAnimation.getImageConfig(plantId),
                     {
                         position: { x: 0, y: 0 },
-                        zIndex: this.lawn.state.zIndex + 2
-                    }
+                        zIndex: this.lawn.state.zIndex + 2,
+                    },
                 )
                     .on('before-render', () => {
                         this.game.ctx.globalAlpha = 0.5
@@ -144,8 +144,8 @@ export class LevelEntity extends Entity<LevelConfig, LevelState, LevelEvents> {
             config.lawn,
             {
                 position: { x: 5, y: 150 },
-                zIndex: this.state.zIndex + 1
-            }
+                zIndex: this.state.zIndex + 1,
+            },
         )
 
         this.attach(this.ui, this.lawn)
@@ -198,14 +198,14 @@ export class LevelEntity extends Entity<LevelConfig, LevelState, LevelEvents> {
             { plantId },
             PlantEntity.initState({
                 position: this.getLawnBlockPosition(i, j),
-                zIndex: this.lawn.state.zIndex + 2
-            })
+                zIndex: this.lawn.state.zIndex + 2,
+            }),
         )
         const newPlantData: PlantData = {
             id: plantId,
             hp: metadata.hp,
             position: { i, j },
-            entity: newPlant
+            entity: newPlant,
         }
         this.attach(newPlant)
         this.state.plantsData.push(newPlantData)
@@ -239,12 +239,12 @@ export class LevelEntity extends Entity<LevelConfig, LevelState, LevelEvents> {
         const sun = new SunEntity(
             {
                 life: this.config.sun.sunLife,
-                targetY
+                targetY,
             },
             SunEntity.initState({
                 position: { x, y },
-                zIndex: this.lawn.state.zIndex + 2
-            })
+                zIndex: this.lawn.state.zIndex + 2,
+            }),
         )
             .attachTo(this)
             .on('click', () => {
@@ -260,7 +260,7 @@ export class LevelEntity extends Entity<LevelConfig, LevelState, LevelEvents> {
             })
         this.state.sunsData.push({
             targetY,
-            entity: sun
+            entity: sun,
         })
     }
 
@@ -289,9 +289,9 @@ export class LevelEntity extends Entity<LevelConfig, LevelState, LevelEvents> {
         })
 
         this.state.sunsData.forEach(({ entity, targetY }) => {
-            if (entity.state.position.y < targetY) {
-                entity.state.position.y += this.config.sun.sunDroppingVelocity * this.game.mspf / 1000
-            }
+            if (entity.state.position.y < targetY) entity.state.position.y += (
+                this.config.sun.sunDroppingVelocity * this.game.mspf / 1000
+            )
         })
 
         this.useTimer('sunDropTimer', this.config.sun.sunDroppingInterval, () => this.dropSun())

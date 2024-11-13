@@ -32,19 +32,19 @@ export class UIEntity extends Entity<UIConfig, UIState, UIEvents> {
             {},
             {
                 position: { x, y },
-                zIndex: zIndex + 1
-            }
+                zIndex: zIndex + 1,
+            },
         )
         this.plantSlots = this.config.plantIds.map((plantName, i) => (
             new PlantSlotEntity(
                 {
                     plantId: plantName,
-                    slotId: i
+                    slotId: i,
                 },
                 {
                     position: { x: x + (i + 1) * (80 + 2 + 5), y },
                     zIndex: zIndex + 1,
-                }
+                },
             )
                 .withComp(HoverableComp, hoverable => hoverable!.emitter.on('click', () => {
                     this.emit('choose-plant', i)
@@ -52,12 +52,12 @@ export class UIEntity extends Entity<UIConfig, UIState, UIEvents> {
         ))
         this.shovelSlot = new ShovelSlotEntity(
             {
-                shovelId: 'iron_shovel'
+                shovelId: 'iron_shovel',
             },
             {
                 position: { x: x + (this.config.slotNum + 1) * (80 + 2 + 5), y },
                 zIndex: zIndex + 1,
-            }
+            },
         )
         this.attach(this.sunSlot, ...this.plantSlots, this.shovelSlot)
     }
