@@ -1,10 +1,8 @@
-import { isInRect } from '@/engine'
 import { ImageEntity } from '@/entities/Image'
 import { plantAnimation, PLANT_METADATA, PlantMetadata, PlantId } from '@/data/plants'
 import { kLevelState } from '@/entities/Level'
-import { HoverableComp } from '@/comps/Hoverable'
-import { ShapeComp } from '@/comps/Shape'
 import { SlotConfig, SlotEntity, SlotEvents, SlotState } from '@/entities/Slot'
+import { CursorComp } from '@/comps/Cursor'
 
 export interface PlantSlotConfig extends SlotConfig {
     slotId: number
@@ -23,13 +21,9 @@ export class PlantSlotEntity extends SlotEntity<PlantSlotConfig, PlantSlotState,
 
         const { position: { x, y }, zIndex } = this.state
 
-        this
-            .addComp(new ShapeComp(point =>
-                isInRect(point, { x, y, width: this.width, height: this.height }),
-            ))
-            .addComp(new HoverableComp())
-
         this.plantMetadata = PLANT_METADATA[this.config.plantId]
+
+        this.addComp(CursorComp, 'pointer')
 
         this.afterStart(() => {
             this.attach(new ImageEntity(

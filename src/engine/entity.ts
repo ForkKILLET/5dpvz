@@ -18,17 +18,17 @@ export interface EntityEvents extends Events {
 export type InjectKey<T> = symbol & { __injectType: T }
 export const injectKey = <T>() => Symbol() as InjectKey<T>
 
-export abstract class Comp {
+export class Comp {
     static dependencies: CompCtor[] = []
 
-    update(entity: Entity) {
-        void entity
-    }
+    constructor(public readonly entity: Entity) {}
+
+    update() {}
 }
 
 export type CompCtor<C extends Comp = Comp> = new (...args: any[]) => C
 
-export abstract class Entity<C = any, S extends EntityState = any, E extends EntityEvents = EntityEvents> {
+export class Entity<C = any, S extends EntityState = any, E extends EntityEvents = EntityEvents> {
     static generateEntityId = createIdGenerator()
 
     readonly id = Entity.generateEntityId()
@@ -135,11 +135,15 @@ export abstract class Entity<C = any, S extends EntityState = any, E extends Ent
     hasComp(...Comps: CompCtor[]) {
         return Comps.every(Comp => this.comps.some(comp => comp instanceof Comp))
     }
-    addComp(comp: Comp) {
-        const { dependencies } = comp.constructor as typeof Comp
+    addComp<A extends any[], C extends Comp>(
+        Comp: new (entity: this, ...args: A) => C,
+        ...args: A
+    ) {
+        const { dependencies } = Comp as any as { dependencies: CompCtor[] }
         if (! this.hasComp(...dependencies))
-            throw new Error(`Missing dependencies: ${ dependencies.map(Comp => Comp.name).join(', ') }.`)
-        this.comps.push(comp)
+            throw new Error(`Missing dependencies: ${ dependencies.map(Dep => Dep.name).join(', ') }.`)
+
+        this.comps.push(new Comp(this, ...args))
         return this
     }
     removeComp(comp: Comp) {
@@ -149,8 +153,9 @@ export abstract class Entity<C = any, S extends EntityState = any, E extends Ent
     getComp<C extends Comp>(Comp: CompCtor<C>): C | undefined {
         return this.comps.find((comp): comp is C => comp instanceof Comp)
     }
-    withComp<C extends Comp>(Comp: CompCtor<C>, fn: (comp: C | undefined) => void) {
-        fn(this.getComp(Comp))
+    withComp<C extends Comp>(Comp: CompCtor<C>, fn: (comp: C) => void) {
+        const comp = this.getComp(Comp)
+        if (comp) fn(comp)
         return this
     }
     getComps<C extends Comp>(Comp: CompCtor<C>): C[] {
@@ -184,7 +189,7 @@ export abstract class Entity<C = any, S extends EntityState = any, E extends Ent
     runUpdate() {
         if (! this.active || this.disposed) return
         this.state = this.update()
-        this.comps.forEach(comp => comp.update(this))
+        this.comps.forEach(comp => comp.update())
         this.attachedEntities.forEach(entity => entity.runUpdate())
     }
     protected update() {

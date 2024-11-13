@@ -46,9 +46,9 @@ export class UIEntity extends Entity<UIConfig, UIState, UIEvents> {
                     zIndex: zIndex + 1,
                 },
             )
-                .withComp(HoverableComp, hoverable => hoverable!.emitter.on('click', () => {
-                    this.emit('choose-plant', i)
-                }))
+                .withComp(HoverableComp, ({ emitter }) => {
+                    emitter.on('click', () => this.emit('choose-plant', i))
+                })
         ))
         this.shovelSlot = new ShovelSlotEntity(
             {

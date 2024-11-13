@@ -1,3 +1,4 @@
+import { CursorComp } from '@/comps/Cursor'
 import { LifeComp } from '@/comps/Life'
 import { ButtonConfig, ButtonEntity, ButtonEvents, ButtonState } from '@/entities/Button'
 
@@ -20,6 +21,8 @@ export class SunEntity extends ButtonEntity<SunConfig, SunState, SunEvents> {
             containingMode: 'rect',
         }, state)
 
-        this.addComp(new LifeComp(config.life))
+        this
+            .addComp(LifeComp, config.life)
+            .addComp(CursorComp, 'pointer')
     }
 }

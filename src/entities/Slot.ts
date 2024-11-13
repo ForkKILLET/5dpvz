@@ -23,10 +23,8 @@ export class SlotEntity<
         const { position: { x, y } } = this.state
 
         this
-            .addComp(new ShapeComp(point =>
-                isInRect(point, { x, y, width: this.width, height: this.height }),
-            ))
-            .addComp(new HoverableComp())
+            .addComp(ShapeComp, point => isInRect(point, { x, y, width: this.width, height: this.height }))
+            .addComp(HoverableComp)
     }
 
     preRender() {

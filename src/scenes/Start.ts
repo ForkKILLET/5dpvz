@@ -1,3 +1,4 @@
+import { CursorComp } from '@/comps/Cursor'
 import { Scene } from '@/engine'
 import { ButtonEntity } from '@/entities/Button'
 import { ImageEntity } from '@/entities/Image'
@@ -20,6 +21,7 @@ export class StartScene extends Scene {
                 zIndex: 1,
             }),
         )
+            .addComp(CursorComp, 'pointer')
             .on('before-render', () => {
                 this.game.ctx.filter = startButton.state.hovering ? 'brightness(1.2)' : ''
             })
@@ -38,6 +40,7 @@ export class StartScene extends Scene {
                 zIndex: 1,
             }),
         )
+            .addComp(CursorComp, 'pointer')
             .on('click', () => {
                 window.open('https://github.com/ForkKILLET/5dpvz', '_blank')
             })

@@ -1,7 +1,7 @@
-import { Position, Comp } from '@/engine'
+import { Position, Comp, Entity } from '@/engine'
 
 export class ShapeComp extends Comp {
-    constructor(public contains: (point: Position) => boolean) {
-        super()
+    constructor(entity: Entity, public contains: (point: Position) => boolean) {
+        super(entity)
     }
 }

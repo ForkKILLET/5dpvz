@@ -1,7 +1,4 @@
-import { isInRect } from '@/engine'
-import { HoverableComp } from '@/comps/Hoverable'
 import { shovelAnimation, SHOVEL_METADATA, ShovelId, ShovelMetadata } from '@/data/shovel'
-import { ShapeComp } from '@/comps/Shape'
 import { ImageEntity } from '@/entities/Image'
 import { SlotConfig, SlotEntity, SlotEvents, SlotState } from '@/entities/Slot'
 
@@ -20,12 +17,6 @@ export class ShovelSlotEntity extends SlotEntity<ShovelSlotConfig, ShovelSlotSta
         super(config, state)
 
         const { position: { x, y }, zIndex } = this.state
-
-        this
-            .addComp(new ShapeComp(point =>
-                isInRect(point, { x, y, width: this.width, height: this.height }),
-            ))
-            .addComp(new HoverableComp())
 
         this.shovelMetadata = SHOVEL_METADATA[this.config.shovelId]
 

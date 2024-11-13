@@ -5,16 +5,16 @@ export interface LifeEvents extends Events {
 }
 
 export class LifeComp extends Comp {
-    constructor(public life: number) {
-        super()
+    constructor(entity: Entity, public life: number) {
+        super(entity)
     }
 
     emitter = new Emitter<LifeEvents>()
 
-    update(entity: Entity): void {
-        this.life -= entity.game.mspf
+    update() {
+        this.life -= this.entity.game.mspf
         if (this.life <= 0) {
-            entity.dispose()
+            this.entity.dispose()
             this.emitter.emit('expire')
         }
     }

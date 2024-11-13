@@ -1,3 +1,4 @@
+import { CursorComp } from '@/comps/Cursor'
 import { HoverableComp } from '@/comps/Hoverable'
 import { ShapeComp } from '@/comps/Shape'
 import { Emitter, Entity, Events, ImageManager, Mouse, Scene, useImageManager, useMouse } from '@/engine'
@@ -49,22 +50,32 @@ export class Game {
 
         const oldHoveringEntity = this.hoveringEntity
         this.hoveringEntity = null
+
         const hoverableEntities = this.allEntities
             .filter(entity => entity.started && entity.deepActive && entity.hasComp(HoverableComp))
             .sort(by(entity => - entity.state.zIndex))
 
+        let isCursorSet = false
         for (const entity of hoverableEntities) {
             const shapeComp = entity.getComp(ShapeComp)!
             const hoverableComp = entity.getComp(HoverableComp)!
 
             const hovering = ! this.hoveringEntity && shapeComp.contains(this.mouse.position)
-            if (hovering) this.hoveringEntity = entity
+            if (hovering) {
+                this.hoveringEntity = entity
+                entity.withComp(CursorComp, cursorComp => {
+                    this.ctx.canvas.style.cursor = cursorComp.cursor
+                    isCursorSet = true
+                })
+            }
 
             if (hoverableComp.hovering !== hovering) {
                 hoverableComp.emitter.emit(hovering ? 'mouseenter' : 'mouseleave')
                 hoverableComp.hovering = hovering
             }
         }
+
+        if (! isCursorSet) this.ctx.canvas.style.cursor = ''
 
         if (oldHoveringEntity !== this.hoveringEntity)
             this.emitter.emit('hoverTargetChange', this.hoveringEntity)

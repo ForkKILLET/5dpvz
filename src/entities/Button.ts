@@ -29,25 +29,24 @@ export class ButtonEntity<
     constructor(config: C, state: S) {
         super(config, state)
 
-        const shapeComp = new ShapeComp(point => {
-            const { x, y } = this.state.position
-            const { width, height } = this.img!
-
-            if (! isInRect(point, { x, y, width, height })) return false
-            if (this.config.containingMode === 'rect') return true
-
-            const rx = point.x - x
-            const ry = point.y - y
-            const i = ry * width * 4 + rx * 4
-            const [ r, g, b, a ] = this.pixels!.slice(i, i + 4)
-            return ! (r === 0 && g === 0 && b === 0 && a === 0)
-        })
-        const hoverableComp = new HoverableComp()
-
         this
-            .addComp(shapeComp)
-            .addComp(hoverableComp)
-            .forwardEvents(hoverableComp.emitter, [ 'click', 'rightclick' ])
+            .addComp(ShapeComp, point => {
+                const { x, y } = this.state.position
+                const { width, height } = this.img!
+
+                if (! isInRect(point, { x, y, width, height })) return false
+                if (this.config.containingMode === 'rect') return true
+
+                const rx = point.x - x
+                const ry = point.y - y
+                const i = ry * width * 4 + rx * 4
+                const [ r, g, b, a ] = this.pixels!.slice(i, i + 4)
+                return ! (r === 0 && g === 0 && b === 0 && a === 0)
+            })
+            .addComp(HoverableComp)
+            .withComp(HoverableComp, ({ emitter }) => {
+                this.forwardEvents(emitter, [ 'click', 'rightclick' ])
+            })
     }
 
     async start(game: Game) {
