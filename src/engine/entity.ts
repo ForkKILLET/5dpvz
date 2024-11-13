@@ -1,5 +1,5 @@
 import { createIdGenerator, Game, Position, Emitter, Events } from '@/engine'
-import { Disposer, RemoveIndex } from '@/utils'
+import { Disposer, remove, RemoveIndex } from '@/utils'
 
 export interface EntityState {
     position: Position
@@ -20,11 +20,15 @@ export const injectKey = <T>() => Symbol() as InjectKey<T>
 
 export abstract class Comp {
     static dependencies: CompCtor[] = []
+
+    update(entity: Entity) {
+        void entity
+    }
 }
 
 export type CompCtor<C extends Comp = Comp> = new (...args: any[]) => C
 
-export class Entity<C = any, S extends EntityState = any, E extends EntityEvents = EntityEvents> {
+export abstract class Entity<C = any, S extends EntityState = any, E extends EntityEvents = EntityEvents> {
     static generateEntityId = createIdGenerator()
 
     readonly id = Entity.generateEntityId()
@@ -95,6 +99,13 @@ export class Entity<C = any, S extends EntityState = any, E extends EntityEvents
         return this
     }
 
+    select<E extends Entity>(EntityCtor: EntityCtor<E>): E | undefined {
+        return this.attachedEntities.find((entity): entity is E => entity instanceof EntityCtor)
+    }
+    selectAll<E extends Entity>(EntityCtor: EntityCtor<E>): E[] {
+        return this.attachedEntities.filter((entity): entity is E => entity instanceof EntityCtor)
+    }
+
     providedValues: Record<symbol, any> = {}
     provide<T>(injectKey: InjectKey<T>, value: T) {
         this.providedValues[injectKey] = value
@@ -117,8 +128,7 @@ export class Entity<C = any, S extends EntityState = any, E extends EntityEvents
         this.attachedEntities.forEach(entity => entity.dispose())
 
         if (! this.game) return
-        const index = this.game.allEntities.indexOf(this)
-        if (index >= 0) this.game.allEntities.splice(index, 1)
+        remove(this.game.allEntities, entity => entity === this)
     }
 
     comps: Comp[] = []
@@ -133,8 +143,7 @@ export class Entity<C = any, S extends EntityState = any, E extends EntityEvents
         return this
     }
     removeComp(comp: Comp) {
-        const index = this.comps.indexOf(comp)
-        if (index >= 0) this.comps.splice(index, 1)
+        remove(this.comps, c => c === comp)
         return this
     }
     getComp<C extends Comp>(Comp: CompCtor<C>): C | undefined {
@@ -175,6 +184,7 @@ export class Entity<C = any, S extends EntityState = any, E extends EntityEvents
     runUpdate() {
         if (! this.active || this.disposed) return
         this.state = this.update()
+        this.comps.forEach(comp => comp.update(this))
         this.attachedEntities.forEach(entity => entity.runUpdate())
     }
     protected update() {
@@ -186,10 +196,9 @@ export class Entity<C = any, S extends EntityState = any, E extends EntityEvents
         this.emitter.emit(event, ...args)
         return this
     }
-    on<K extends keyof RemoveIndex<E>>(event: K, listener: (...args: E[K]) => void, abortController?: AbortController) {
+    on<K extends keyof RemoveIndex<E>>(event: K, listener: (...args: E[K]) => void) {
         const off = this.emitter.on(event, listener)
         this.disposers.push(off)
-        abortController?.signal.addEventListener('abort', off)
         return this
     }
     forwardEvents<F extends Events, Ks extends (keyof RemoveIndex<E> & keyof RemoveIndex<F>)[]>(source: Emitter<F>, events: Ks) {
@@ -208,3 +217,5 @@ export class Entity<C = any, S extends EntityState = any, E extends EntityEvents
         (this.state[timerName] as number) = timer
     }
 }
+
+export type EntityCtor<E extends Entity = Entity> = new (...args: any[]) => E

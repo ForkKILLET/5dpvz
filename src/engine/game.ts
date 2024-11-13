@@ -1,7 +1,7 @@
 import { HoverableComp } from '@/comps/Hoverable'
 import { ShapeComp } from '@/comps/Shape'
 import { Emitter, Entity, Events, ImageManager, Mouse, Scene, useImageManager, useMouse } from '@/engine'
-import { by } from '@/utils'
+import { by, remove } from '@/utils'
 
 export interface GameConfig {
     ctx: CanvasRenderingContext2D
@@ -106,28 +106,24 @@ export class Game {
             this.scenes.push(scene)
         })
     }
-    removeScene(sceneId: number) {
-        const sceneIndex = this.scenes.findIndex(scene => scene.id === sceneId)
-        if (sceneIndex >= 0) {
-            const [ removedScene ] = this.scenes.splice(sceneIndex, 1)
-            removedScene.dispose()
-        }
+    removeScene(scene: Scene) {
+        remove(this.scenes, s => s === scene)
+        scene.dispose()
     }
     selectScene<E extends Scene>(Scene: new () => E): E | undefined {
         return this.scenes.find((scene): scene is E => scene instanceof Scene)
     }
-    selectScenes<E extends Scene>(Scene: new () => E): E[] {
+    selectAllScenes<E extends Scene>(Scene: new () => E): E[] {
         return this.scenes.filter((entity): entity is E => entity instanceof Scene)
     }
 
-    _printEntityTree() {
+    _printEntityTree({ zIndex = false }: { zIndex?: boolean } = {}) {
         const showEntityTree = (entity: Entity, depth: number): string => {
             const indention = ' '.repeat(depth * 3)
-            return `${indention}${entity.constructor.name} #${entity.id}${
-                 entity.attachedEntities
+            return `${indention}${entity.constructor.name} #${entity.id}${ zIndex ? ` (z=${entity.state.zIndex})` : ''}`
+                + entity.attachedEntities
                     .map(entity => `\n${ showEntityTree(entity, depth + 1) }`)
                     .join('')
-            }`
         }
         console.log(this.scenes.map(scene => showEntityTree(scene, 0)).join('\n'))
     }

@@ -1,16 +1,27 @@
 import { getPlantImageSrc, PLANT_METADATA, PlantId, PlantMetadata } from '@/data/plants'
-import { Entity, EntityEvents, EntityState, Game, injectKey } from '@/engine'
+import { Entity, EntityEvents, EntityState, injectKey } from '@/engine'
 import { LawnConfig, LawnEntity } from '@/entities/Lawn'
 import { PlantSlotsConfig, UIEntity } from '@/entities/UI'
 import { ImageEntity } from '@/entities/Image'
-import { matrix, Nullable } from '@/utils'
+import { matrix, Nullable, remove } from '@/utils'
 import { LawnBlockEntity } from '@/entities/LawnBlock'
 import { PlantEntity } from '@/entities/Plant'
+import { SunEntity } from './Sun'
+import { random } from '@/utils/random'
+import { LifeComp } from '@/comps/Life'
 
 export interface LevelConfig {
-    sunDropInterval: number
     plantSlots: PlantSlotsConfig
     lawn: LawnConfig
+    sun: SunGlobalConfig
+}
+
+export interface SunGlobalConfig {
+    sunDroppingInterval: number
+    firstSunDroppingTime: number
+    sunDroppingVelocity: number
+    sunLife: number
+    sunAtStart: number
 }
 
 export interface PlantSlotData {
@@ -27,6 +38,11 @@ export interface PlantData {
     entity: PlantEntity
 }
 
+export interface SunData {
+    targetY: number
+    entity: SunEntity
+}
+
 export interface LevelUniqueState {
     sun: number
     sunDropTimer: number
@@ -34,6 +50,7 @@ export interface LevelUniqueState {
     holdingSlotId: Nullable<number>
     plantsData: PlantData[]
     plantsOnBlocks: Nullable<PlantData>[][]
+    sunsData: SunData[]
 }
 export interface LevelState extends LevelUniqueState, EntityState {}
 
@@ -44,17 +61,17 @@ export const kLevelState = injectKey<LevelUniqueState>()
 export class LevelEntity extends Entity<LevelConfig, LevelState, LevelEvents> {
     static initState = <S>(state: S): S & LevelUniqueState => ({
         ...state,
-        sun: 500,
+        sun: 0,
         sunDropTimer: 0,
         plantSlotsData: [],
+        holdingSlotId: null,
         plantsData: [],
         plantsOnBlocks: null as any,
-        holdingSlotId: null
+        sunsData: [],
     })
 
     ui: UIEntity
     lawn: LawnEntity
-
     phantomPlantImage: Nullable<ImageEntity> = null
     holdingPlantImage: Nullable<ImageEntity> = null
 
@@ -77,6 +94,9 @@ export class LevelEntity extends Entity<LevelConfig, LevelState, LevelEvents> {
             }
         })
         this.state.plantsOnBlocks = matrix(config.lawn.width, config.lawn.height, () => null)
+
+        this.state.sun = config.sun.sunAtStart
+        this.state.sunDropTimer = config.sun.sunDroppingInterval - config.sun.firstSunDroppingTime
 
         this.provide(kLevelState, this.state)
 
@@ -209,17 +229,40 @@ export class LevelEntity extends Entity<LevelConfig, LevelState, LevelEvents> {
     }
 
     dropSun() {
-        console.log('Drop sun')
-    }
+        const { x: x0, y: y0 } = this.lawn.state.position
+        const x = x0 + random((this.config.lawn.width - 1) * 80)
+        const y = y0 + random(1 * 80)
+        const targetY = y + random((this.config.lawn.height - 1) * 80)
 
-    async start(game: Game) {
-        await super.start(game)
-
+        const sun = new SunEntity(
+            {
+                life: this.config.sun.sunLife,
+                targetY
+            },
+            SunEntity.initState({
+                position: { x, y },
+                zIndex: this.lawn.state.zIndex + 2
+            })
+        )
+            .attachTo(this)
+            .on('click', () => {
+                this.state.sun += 25
+                sun.dispose()
+            })
+            .on('before-render', () => {
+                const lifeComp = sun.getComp(LifeComp)!
+                if (lifeComp.life < 3000) this.game.ctx.globalAlpha = 0.5
+            })
+            .on('dispose', () => {
+                remove(this.state.sunsData, sunData => sunData.entity === sun)
+            })
+        this.state.sunsData.push({
+            targetY,
+            entity: sun
+        })
     }
 
     update() {
-        this.state.plantsData.forEach(plant => plant.entity.runUpdate())
-
         if (this.holdingPlantImage) {
             const { x, y } = this.game.mouse.position
             this.holdingPlantImage.state.position = { x: x - 40, y: y - 40 }
@@ -243,7 +286,13 @@ export class LevelEntity extends Entity<LevelConfig, LevelState, LevelEvents> {
             slot.isPlantable = slot.isCooledDown && slot.isSunEnough
         })
 
-        this.useTimer('sunDropTimer', this.config.sunDropInterval, this.dropSun)
+        this.state.sunsData.forEach(({ entity, targetY }) => {
+            if (entity.state.position.y < targetY) {
+                entity.state.position.y += this.config.sun.sunDroppingVelocity * this.game.mspf / 1000
+            }
+        })
+
+        this.useTimer('sunDropTimer', this.config.sun.sunDroppingInterval, () => this.dropSun())
 
         return this.state
     }

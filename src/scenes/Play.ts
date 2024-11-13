@@ -14,7 +14,13 @@ export class PlayScene extends Scene {
                         width: 9,
                         height: 5
                     },
-                    sunDropInterval: 10000
+                    sun: {
+                        sunDroppingInterval: 10000,
+                        firstSunDroppingTime: 6000,
+                        sunDroppingVelocity: 30,
+                        sunLife: 8000,
+                        sunAtStart: 200
+                    }
                 },
                 LevelEntity.initState({
                     position: { x: 0, y: 0 },

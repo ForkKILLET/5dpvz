@@ -17,3 +17,8 @@ export const matrix = <T>(width: number, height: number, cb: (x: number, y: numb
 }
 
 export const includes = <T>(array: T[], item: any) => array.includes(item)
+
+export const remove = <T>(array: T[], pred: (item: T) => boolean) => {
+    const index = array.findIndex(pred)
+    if (index >= 0) array.splice(index, 1)
+}

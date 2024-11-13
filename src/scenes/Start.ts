@@ -10,7 +10,7 @@ export class StartScene extends Scene {
             { position: { x: 0, y: 0 }, zIndex: 0 }
         )
 
-        const buttonStart = new ButtonEntity(
+        const startButton = new ButtonEntity(
             {
                 src: './assets/start_button_start.png',
                 containingMode: 'strict'
@@ -20,17 +20,32 @@ export class StartScene extends Scene {
                 zIndex: 1
             })
         )
-        buttonStart.on('before-render', () => {
-            this.game.ctx.filter = buttonStart.state.hovering ? 'brightness(1.2)' : ''
-        })
-        buttonStart.on('click', () => {
-            this.deactivate()
-            this.game.selectScene(PlayScene)!.activate()
-        })
+            .on('before-render', () => {
+                this.game.ctx.filter = startButton.state.hovering ? 'brightness(1.2)' : ''
+            })
+            .on('click', () => {
+                this.deactivate()
+                this.game.selectScene(PlayScene)!.activate()
+            })
+
+        const githubButton = new ButtonEntity(
+            {
+                src: './assets/github.png',
+                containingMode: 'strict'
+            },
+            ButtonEntity.initState({
+                position: { x: 10, y: 10 },
+                zIndex: 1
+            })
+        )
+            .on('click', () => {
+                window.open('https://github.com/ForkKILLET/5dpvz', '_blank')
+            })
 
         super([
             background,
-            buttonStart,
+            startButton,
+            githubButton
         ])
     }
 }
