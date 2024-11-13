@@ -1,4 +1,4 @@
-import { getPlantAnimationConfig, PlantId } from '@/data/plants'
+import { plantAnimation, PlantId } from '@/data/plants'
 import { AnimationConfig, AnimationEntity, AnimationEvents, AnimationState } from '@/entities/Animation'
 
 export interface PlantUniqueConfig {
@@ -15,7 +15,7 @@ export class PlantEntity extends AnimationEntity<PlantConfig, PlantState, PlantE
     constructor(config: PlantUniqueConfig, state: PlantState) {
         super({
             ...config,
-            ...getPlantAnimationConfig(config.plantId),
+            ...plantAnimation.getAnimationConfig(config.plantId, 'common'),
         }, state)
     }
 }

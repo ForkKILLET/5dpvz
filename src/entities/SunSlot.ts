@@ -1,18 +1,16 @@
-import { EntityEvents, EntityState, Entity, inRect } from '@/engine'
+import { isInRect } from '@/engine'
 import { ImageEntity } from '@/entities/Image'
 import { kLevelState } from '@/entities/Level'
+import { SlotConfig, SlotEntity, SlotEvents, SlotState } from '@/entities/Slot'
 
-export interface SunSlotConfig {}
+export interface SunSlotConfig extends SlotConfig {}
 
-export interface SunSlotState extends EntityState {}
+export interface SunSlotState extends SlotState {}
 
-export interface SunSlotEvents extends EntityEvents {}
+export interface SunSlotEvents extends SlotEvents {}
 
-export class SunSlotEntity extends Entity<SunSlotConfig, SunSlotState, SunSlotEvents> {
+export class SunSlotEntity extends SlotEntity<SunSlotConfig, SunSlotState, SunSlotEvents> {
     sumImage: ImageEntity
-
-    readonly width = 80 + 2
-    readonly height = 80 + 20 + 2
 
     constructor(config: SunSlotConfig, state: SunSlotState) {
         super(config, state)
@@ -35,7 +33,7 @@ export class SunSlotEntity extends Entity<SunSlotConfig, SunSlotState, SunSlotEv
         const { x, y } = this.state.position
         const { mouse } = this.game
 
-        return inRect(mouse.position, { x, y, width: 80 + 2, height: 80 + 20 + 2 })
+        return isInRect(mouse.position, { x, y, width: 80 + 2, height: 80 + 20 + 2 })
     }
 
     render() {
@@ -44,9 +42,6 @@ export class SunSlotEntity extends Entity<SunSlotConfig, SunSlotState, SunSlotEv
         const { ctx } = this.game
         const { position: { x, y } } = this.state
     
-        ctx.strokeStyle = 'brown'
-        ctx.strokeRect(x, y, this.width, this.height)
-
         ctx.fillStyle = 'black'
         ctx.font = '20px Sans'
         const sunString = String(sun)

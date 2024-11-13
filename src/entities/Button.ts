@@ -1,4 +1,4 @@
-import { inRect, Game, getImagePixels, EntityEvents } from '@/engine'
+import { isInRect, Game, getImagePixels, EntityEvents } from '@/engine'
 import { ImageConfig, ImageEntity, ImageState } from '@/entities/Image'
 import { HoverableComp, HoverableEvents } from '@/comps/Hoverable'
 import { ShapeComp } from '@/comps/Shape'
@@ -34,7 +34,7 @@ export class ButtonEntity<
             const { x, y } = this.state.position
             const { width, height } = this.img!
 
-            if (! inRect(point, { x, y, width, height })) return false
+            if (! isInRect(point, { x, y, width, height })) return false
             if (this.config.containingMode === 'rect') return true
             
             const rx = point.x - x

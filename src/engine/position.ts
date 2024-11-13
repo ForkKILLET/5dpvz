@@ -10,7 +10,7 @@ export interface Rect {
     height: number
 }
 
-export const inRect = (point: Position, rect: Rect) => (
+export const isInRect = (point: Position, rect: Rect) => (
     point.x >= rect.x && point.x < rect.x + rect.width &&
     point.y >= rect.y && point.y < rect.y + rect.height
 )

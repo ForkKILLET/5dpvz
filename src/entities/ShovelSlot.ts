@@ -1,22 +1,20 @@
-import {Entity, EntityEvents, EntityState, inRect} from "@/engine";
-import {HoverableComp, HoverableEvents} from "@/comps/Hoverable.ts";
-import {getShovelImageSrc, SHOVEL_METADATA, ShovelId, ShovelMetadata} from "@/data/shovel.ts";
-import {ShapeComp} from "@/comps/Shape.ts";
-import {ImageEntity} from "@/entities/Image.ts";
+import { isInRect } from '@/engine'
+import { HoverableComp } from '@/comps/Hoverable'
+import { shovelAnimation, SHOVEL_METADATA, ShovelId, ShovelMetadata } from '@/data/shovel'
+import { ShapeComp } from '@/comps/Shape'
+import { ImageEntity } from '@/entities/Image'
+import { SlotConfig, SlotEntity, SlotEvents, SlotState } from '@/entities/Slot'
 
-export interface ShovelSlotConfig {
-    shovelId: ShovelId;
+export interface ShovelSlotConfig extends SlotConfig {
+    shovelId: ShovelId
 }
 
-export interface ShovelSlotState extends EntityState {}
+export interface ShovelSlotState extends SlotState {}
 
-export interface ShovelSlotEvents extends HoverableEvents, EntityEvents {}
+export interface ShovelSlotEvents extends SlotEvents {}
 
-export class ShovelSlotEntity extends Entity<ShovelSlotConfig, ShovelSlotState, ShovelSlotEvents> {
+export class ShovelSlotEntity extends SlotEntity<ShovelSlotConfig, ShovelSlotState, ShovelSlotEvents> {
     shovelMetadata: ShovelMetadata
-
-    readonly width = 80 + 2
-    readonly height = 80 + 20 + 2
 
     constructor(config: ShovelSlotConfig, state: ShovelSlotState) {
         super(config, state)
@@ -25,7 +23,7 @@ export class ShovelSlotEntity extends Entity<ShovelSlotConfig, ShovelSlotState, 
 
         this
             .addComp(new ShapeComp(point =>
-                inRect(point, { x, y, width: 80 + 2, height: 80 + 20 + 2})
+                isInRect(point, { x, y, width: this.width, height: this.height })
             ))
             .addComp(new HoverableComp())
 
@@ -33,11 +31,9 @@ export class ShovelSlotEntity extends Entity<ShovelSlotConfig, ShovelSlotState, 
 
         this.afterStart(() => {
             this.attach(new ImageEntity(
+                shovelAnimation.getImageConfig(this.config.shovelId),
                 {
-                    src: getShovelImageSrc(this.config.shovelId),
-                },
-                {
-                    position: {x: x + 1, y: y + 1 },
+                    position: { x: x + 1, y: y + 1 },
                     zIndex: zIndex + 2
                 }
             ))
@@ -47,6 +43,6 @@ export class ShovelSlotEntity extends Entity<ShovelSlotConfig, ShovelSlotState, 
     preRender() {
         super.preRender()
 
-
+        // TODO
     }
 }
