@@ -3,6 +3,7 @@ import { PlantSlotEntity } from '@/entities/PlantSlot'
 import { PlantId } from '@/data/plants'
 import { SunSlotEntity } from '@/entities/SunSlot'
 import { HoverableComp } from '@/comps/Hoverable'
+import { ShovelSlotEntity } from '@/entities/ShovelSlot'
 
 export interface PlantSlotsConfig {
     slotNum: number
@@ -20,13 +21,15 @@ export interface UIEvents extends EntityEvents {
 export class UIEntity extends Entity<UIConfig, UIState, UIEvents> {
     sunSlot: SunSlotEntity
     plantSlots: PlantSlotEntity[]
+    shovelSlot: ShovelSlotEntity
 
     constructor(config: UIConfig, state: UIState) {
         super(config, state)
 
         const { position: { x, y }, zIndex } = this.state
 
-        this.sunSlot = new SunSlotEntity({},
+        this.sunSlot = new SunSlotEntity(
+            {},
             {
                 position: { x, y },
                 zIndex: zIndex + 1
@@ -47,6 +50,15 @@ export class UIEntity extends Entity<UIConfig, UIState, UIEvents> {
                     this.emit('choose-plant', i)
                 }))
         ))
-        this.attach(this.sunSlot, ...this.plantSlots)
+        this.shovelSlot = new ShovelSlotEntity(
+            {
+                shovelId: 'iron_shovel'
+            },
+            {
+                position: { x: x + (this.config.slotNum + 1) * (80 + 2 + 5), y },
+                zIndex: zIndex + 1,
+            }
+        )
+        this.attach(this.sunSlot, ...this.plantSlots, this.shovelSlot)
     }
 }

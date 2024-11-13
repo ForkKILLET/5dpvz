@@ -1,5 +1,9 @@
-
 import { EntityEvents, EntityState, Entity, Game } from '@/engine'
+
+export interface AnimationData {
+    fpsf: number
+    frameNum: number
+}
 
 export interface AnimationConfig {
     srcs: string[]
@@ -16,6 +20,30 @@ export interface AnimationState extends EntityState, AnimationUniqueState {}
 
 export interface AnimationEvents extends EntityEvents {
     'animation-finish': []
+}
+
+export type AnimationSetData = {
+    common: AnimationData
+    [name: string]: AnimationData
+}
+
+export type MetadataWithAnimationSet = Record<string, { animations: AnimationSetData }>
+
+export const useAnimation = <M extends MetadataWithAnimationSet>(category: string, metadata: M) => {
+    type Id = keyof M & string
+    const animation = {
+        getImageSrc: (id: Id) => `./assets/${category}/${id}/common/01.png`,
+        getImageConfig: (id: Id) => ({ src: animation.getImageSrc(id) }),
+        getAnimationConfig: (id: Id, name = 'common'): AnimationConfig => {
+            const { frameNum, fpsf } = metadata[id].animations[name]
+            const srcs = Array.from(
+                { length: frameNum },
+                (_, i) => `./assets/plants/${id}/${name}/${String(i + 1).padStart(2, '0')}.png`
+            )
+            return { srcs, fpsf }
+        }
+    }
+    return animation
 }
 
 export class AnimationEntity<

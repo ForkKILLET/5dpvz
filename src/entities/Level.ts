@@ -1,4 +1,4 @@
-import { getPlantImageSrc, PLANT_METADATA, PlantId, PlantMetadata } from '@/data/plants'
+import { plantAnimation, PLANT_METADATA, PlantId, PlantMetadata } from '@/data/plants'
 import { Entity, EntityEvents, EntityState, injectKey } from '@/engine'
 import { LawnConfig, LawnEntity } from '@/entities/Lawn'
 import { PlantSlotsConfig, UIEntity } from '@/entities/UI'
@@ -9,11 +9,11 @@ import { PlantEntity } from '@/entities/Plant'
 import { SunEntity } from './Sun'
 import { random } from '@/utils/random'
 import { LifeComp } from '@/comps/Life'
-import {ShovelConfig} from "@/entities/Shovel.ts";
+import { ShovelSlotConfig } from '@/entities/ShovelSlot'
 
 export interface LevelConfig {
     plantSlots: PlantSlotsConfig
-    shovel: ShovelConfig
+    shovelSlot: ShovelSlotConfig
     lawn: LawnConfig
     sun: SunGlobalConfig
 }
@@ -118,7 +118,7 @@ export class LevelEntity extends Entity<LevelConfig, LevelState, LevelEvents> {
 
                 this.holdingPlantImage?.dispose()
                 this.holdingPlantImage = new ImageEntity(
-                    { src: getPlantImageSrc(plantId) },
+                    plantAnimation.getImageConfig(plantId),
                     {
                         position: { x: 5, y: 5 },
                         zIndex: this.lawn.state.zIndex + 3
@@ -127,7 +127,7 @@ export class LevelEntity extends Entity<LevelConfig, LevelState, LevelEvents> {
                     .attachTo(this)
 
                 this.phantomPlantImage = new ImageEntity(
-                    { src: getPlantImageSrc(plantId) },
+                    plantAnimation.getImageConfig(plantId),
                     {
                         position: { x: 0, y: 0 },
                         zIndex: this.lawn.state.zIndex + 2

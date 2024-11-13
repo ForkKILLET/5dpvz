@@ -1,24 +1,22 @@
-import { EntityEvents, EntityState, Entity, inRect } from '@/engine'
+import { isInRect } from '@/engine'
 import { ImageEntity } from '@/entities/Image'
-import { PLANT_METADATA, PlantMetadata, PlantId, getPlantImageSrc } from '@/data/plants'
+import { plantAnimation, PLANT_METADATA, PlantMetadata, PlantId } from '@/data/plants'
 import { kLevelState } from '@/entities/Level'
-import { HoverableComp, HoverableEvents } from '@/comps/Hoverable'
+import { HoverableComp } from '@/comps/Hoverable'
 import { ShapeComp } from '@/comps/Shape'
+import { SlotConfig, SlotEntity, SlotEvents, SlotState } from '@/entities/Slot'
 
-export interface PlantSlotConfig {
+export interface PlantSlotConfig extends SlotConfig {
     slotId: number
     plantId: PlantId
 }
 
-export interface PlantSlotState extends EntityState {}
+export interface PlantSlotState extends SlotState {}
 
-export interface PlantSlotEvents extends HoverableEvents, EntityEvents {}
+export interface PlantSlotEvents extends SlotEvents {}
 
-export class PlantSlotEntity extends Entity<PlantSlotConfig, PlantSlotState, PlantSlotEvents> {
+export class PlantSlotEntity extends SlotEntity<PlantSlotConfig, PlantSlotState, PlantSlotEvents> {
     plantMetadata: PlantMetadata
-
-    readonly width = 80 + 2
-    readonly height = 80 + 20 + 2
 
     constructor(config: PlantSlotConfig, state: PlantSlotState) {
         super(config, state)
@@ -27,7 +25,7 @@ export class PlantSlotEntity extends Entity<PlantSlotConfig, PlantSlotState, Pla
 
         this
             .addComp(new ShapeComp(point => 
-                inRect(point, { x, y, width: 80 + 2, height: 80 + 20 + 2 })
+                isInRect(point, { x, y, width: this.width, height: this.height })
             ))
             .addComp(new HoverableComp())
 
@@ -35,9 +33,7 @@ export class PlantSlotEntity extends Entity<PlantSlotConfig, PlantSlotState, Pla
 
         this.afterStart(() => {
             this.attach(new ImageEntity(
-                {
-                    src: getPlantImageSrc(this.config.plantId),
-                },
+                plantAnimation.getImageConfig(this.config.plantId),
                 {
                     position: { x: x + 1, y: y + 1 },
                     zIndex: zIndex + 2
@@ -56,9 +52,6 @@ export class PlantSlotEntity extends Entity<PlantSlotConfig, PlantSlotState, Pla
         const { position: { x, y } } = this.state
     
         this.addRenderJob(() => {
-            ctx.strokeStyle = 'brown'
-            ctx.strokeRect(x, y, this.width, this.height)
-
             ctx.fillStyle = slot.isSunEnough ? 'black' : 'red'
             ctx.font = '20px Sans'
             const costString = String(this.plantMetadata.cost)
