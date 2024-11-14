@@ -4,7 +4,7 @@ import { PlantId } from '@/data/plants'
 import { SunSlotEntity } from '@/entities/SunSlot'
 import { HoverableComp } from '@/comps/Hoverable'
 import { ShovelSlotEntity } from '@/entities/ShovelSlot'
-import {ShovelId} from "@/data/shovel";
+import { ShovelId } from '@/data/shovel'
 
 export interface PlantSlotsConfig {
     slotNum: number

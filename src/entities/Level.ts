@@ -10,10 +10,10 @@ import { SunEntity } from '@/entities/Sun'
 import { random } from '@/utils/random'
 import { LifeComp } from '@/comps/Life'
 import { ShovelSlotConfig } from '@/entities/ShovelSlot'
-import {shovelAnimation, ShovelId} from "@/data/shovel.ts";
-import {ButtonEntity} from "@/entities/Button.ts";
-import {CursorComp} from "@/comps/Cursor.ts";
-import {placeholder} from "@/utils/any.ts";
+import { shovelAnimation, ShovelId } from '@/data/shovel.ts'
+import { ButtonEntity } from '@/entities/Button.ts'
+import { CursorComp } from '@/comps/Cursor.ts'
+import { placeholder } from '@/utils/any.ts'
 
 export interface LevelConfig {
     plantSlots: PlantSlotsConfig
@@ -159,15 +159,15 @@ export class LevelEntity extends Entity<LevelConfig, LevelState, LevelEvents> {
                     .deactivate()
                     .attachTo(this)
             })
-            .on('use-shovel', (shovelId) => {
-                this.state.holdingObject = { type: 'shovel', shovelId}
+            .on('use-shovel', shovelId => {
+                this.state.holdingObject = { type: 'shovel', shovelId }
                 this.holdingImage?.dispose()
                 this.holdingImage = new ImageEntity(
                     shovelAnimation.getImageConfig(shovelId),
                     {
                         position: { x: 5, y: 5 },
-                        zIndex: this.lawn.state.zIndex + 3
-                    }
+                        zIndex: this.lawn.state.zIndex + 3,
+                    },
                 )
                     .attachTo(this)
 
@@ -202,16 +202,16 @@ export class LevelEntity extends Entity<LevelConfig, LevelState, LevelEvents> {
                 const { holdingObject } = this.state
 
                 if (holdingObject?.type === 'plant') {
-                    if (!target) this.phantomImage!.deactivate()
+                    if (! target) this.phantomImage!.deactivate()
                     else if (target instanceof LawnBlockEntity) {
-                        const {i, j} = target.config
+                        const { i, j } = target.config
                         if (this.isOccupied(i, j)) {
                             this.phantomImage!.deactivate()
                             return
                         }
 
-                        const {x, y} = target.state.position
-                        this.phantomImage!.activate().state.position = {x, y}
+                        const { x, y } = target.state.position
+                        this.phantomImage!.activate().state.position = { x, y }
                     }
                 }
                 // if (holdingObject.type === 'shovel') {
@@ -230,6 +230,13 @@ export class LevelEntity extends Entity<LevelConfig, LevelState, LevelEvents> {
                     if (holdingObject?.type === 'plant') {
                         const { i, j } = target.config
                         this.plant(holdingObject.slotId, i, j)
+                    }
+                    if (holdingObject?.type === 'shovel') {
+                        const { i, j } = target.config
+                        if (this.isOccupied(i, j)) {
+                            this.kill(i, j)
+                        }
+                        this.cancelHolding()
                     }
                 }
             })
@@ -302,7 +309,8 @@ export class LevelEntity extends Entity<LevelConfig, LevelState, LevelEvents> {
             .on('before-render', () => {
                 if (newPlant.state.isHighlight) {
                     this.game.ctx.filter = 'brightness(1.5)'
-                } else {
+                }
+                else {
                     this.game.ctx.filter = 'none'
                 }
             }) // FIXME
@@ -318,6 +326,20 @@ export class LevelEntity extends Entity<LevelConfig, LevelState, LevelEvents> {
         this.state.plantsOnBlocks[i][j] = newPlantData
 
         this.cancelHolding()
+    }
+
+    kill(i: number, j: number) {
+        const plantData = this.state.plantsOnBlocks[i][j]
+        if (! plantData) return // maybe dont need this line
+        const { entity } = plantData
+        entity.dispose()
+
+        const plantIndex = this.state.plantsData.findIndex(pd => pd.id === plantData.id)
+        if (plantIndex !== - 1) {
+            this.state.plantsData.splice(plantIndex, 1)
+        }
+
+        this.state.plantsOnBlocks[i][j] = null
     }
 
     isOccupied(i: number, j: number) {

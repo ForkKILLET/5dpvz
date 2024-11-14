@@ -1,7 +1,7 @@
 import { shovelAnimation, SHOVEL_METADATA, ShovelId, ShovelMetadata } from '@/data/shovel'
 import { ImageEntity } from '@/entities/Image'
 import { SlotConfig, SlotEntity, SlotEvents, SlotState } from '@/entities/Slot'
-import {kLevelState} from "@/entities/Level.ts";
+import { kLevelState } from '@/entities/Level.ts'
 
 export interface ShovelSlotConfig extends SlotConfig {
     shovelId: ShovelId
@@ -28,7 +28,7 @@ export class ShovelSlotEntity extends SlotEntity<ShovelSlotConfig, ShovelSlotSta
                 {
                     position: { x: x + 1, y: y + 1 },
                     zIndex: zIndex + 2,
-                }
+                },
             )
             this.attach(imageEntity)
             this.attachedImageEntity = imageEntity
