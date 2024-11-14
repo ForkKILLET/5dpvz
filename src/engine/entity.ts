@@ -17,7 +17,7 @@ export interface EntityEvents extends Events {
 }
 
 export type InjectKey<T> = symbol & { __injectType: T }
-export const injectKey = <T>() => Symbol() as InjectKey<T>
+export const injectKey = <T>(description: string) => Symbol(description) as InjectKey<T>
 
 export class Comp {
     static dependencies: CompCtor[] = []
@@ -115,6 +115,12 @@ export class Entity<C = any, S extends EntityState = any, E extends EntityEvents
     provide<T>(injectKey: InjectKey<T>, value: T) {
         this.providedValues[injectKey] = value
         return this
+    }
+    get injectableKeys(): symbol[] {
+        return [
+            ...Object.getOwnPropertySymbols(this.providedValues),
+            ...this.superEntity?.injectableKeys ?? [],
+        ]
     }
     inject<T>(injectKey: InjectKey<T>): T | null {
         if (! this.superEntity) return null

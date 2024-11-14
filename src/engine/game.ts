@@ -151,4 +151,8 @@ export class Game {
     selectAllScenes<E extends Scene>(Scene: new () => E): E[] {
         return this.scenes.filter((entity): entity is E => entity instanceof Scene)
     }
+
+    getEntityById(id: number) {
+        return this.allEntities.find(entity => entity.id === id)
+    }
 }

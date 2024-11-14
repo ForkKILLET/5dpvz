@@ -61,7 +61,7 @@ export interface LevelState extends LevelUniqueState, EntityState {}
 
 export interface LevelEvents extends EntityEvents {}
 
-export const kLevelState = injectKey<LevelUniqueState>()
+export const kLevelState = injectKey<LevelUniqueState>('kLevelState')
 
 export class LevelEntity extends Entity<LevelConfig, LevelState, LevelEvents> {
     static initState = <S>(state: S): S & LevelUniqueState => ({
