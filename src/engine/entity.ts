@@ -170,6 +170,11 @@ export class Entity<C = any, S extends EntityState = any, E extends EntityEvents
         if (comp) fn(comp)
         return this
     }
+    withComps<const Cs extends Comp[]>(Comps: { [I in keyof Cs]: CompCtor<Cs[I]> }, fn: (...comps: Cs) => void) {
+        const comps = Comps.map(this.getComp.bind(this))
+        if (comps.every(comp => comp)) fn(...comps as Cs)
+        return this
+    }
     getComps<C extends Comp>(Comp: CompCtor<C>): C[] {
         return this.comps.filter((comp): comp is C => comp instanceof Comp)
     }

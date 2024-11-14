@@ -45,3 +45,7 @@ export class Emitter<E extends Events> {
         })
     }
 }
+
+export interface Stopable {
+    stop(): void
+}

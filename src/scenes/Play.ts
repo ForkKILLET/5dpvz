@@ -16,7 +16,7 @@ export class PlayScene extends Scene {
                 sun: {
                     sunDroppingInterval: 10000,
                     firstSunDroppingTime: 6000,
-                    sunDroppingVelocity: 30,
+                    sunDroppingVelocity: 30 / 1000,
                     sunLife: 8000,
                     sunAtStart: 200,
                 },

@@ -1,21 +1,19 @@
 import { plantAnimation, PlantId } from '@/data/plants'
 import { AnimationConfig, AnimationEntity, AnimationEvents, AnimationState } from '@/entities/Animation'
-import { HoverableComp } from '@/comps/Hoverable.ts'
-import { kLevelState } from '@/entities/Level.ts'
+import { HoverableComp } from '@/comps/Hoverable'
+import { kLevelState } from '@/entities/Level'
+import { HighlightableComp } from '@/comps/Highlightable'
 
 export interface PlantUniqueConfig {
     plantId: PlantId
 }
 export interface PlantConfig extends PlantUniqueConfig, AnimationConfig {}
 
-export interface PlantState extends AnimationState {
-    isHighlight: boolean
-}
+export interface PlantState extends AnimationState {}
 
 export interface PlantEvents extends AnimationEvents {}
 
 export class PlantEntity extends AnimationEntity<PlantConfig, PlantState, PlantEvents> {
-
     constructor(config: PlantUniqueConfig, state: PlantState) {
         super({
             ...config,
@@ -23,17 +21,20 @@ export class PlantEntity extends AnimationEntity<PlantConfig, PlantState, PlantE
         }, state)
 
         this.afterStart(() => {
-            this.withComp(HoverableComp, ({ emitter }) => {
-                emitter.on('mouseenter', () => {
-                    console.log('mouseenter')
-                    if (this.inject(kLevelState)!.holdingObject?.type === 'shovel') {
-                        this.state.isHighlight = true
-                    }
+            this
+                .addComp(HighlightableComp)
+                .withComps([ HoverableComp, HighlightableComp ], ({ emitter }, highlightableComp) => {
+                    emitter.on('mouseenter', () => {
+                        if (this.inject(kLevelState)!.holdingObject?.type === 'shovel')
+                            highlightableComp.highlighting = true
+                    })
+                    emitter.on('mouseleave', () => {
+                        highlightableComp.highlighting = false
+                    })
                 })
-                emitter.on('mouseleave', () => {
-                    this.state.isHighlight = false
+                .on('before-render', () => {
+                    if (this.getComp(HighlightableComp)!.highlighting) this.game.ctx.filter = 'brightness(1.5)'
                 })
-            })
         })
     }
 }

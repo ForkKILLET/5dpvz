@@ -127,8 +127,13 @@ export class Game {
             const target = this.hoveringEntity
             if (! target) return
 
-            target.getComp(HoverableComp)!.emitter.emit(event)
-            this.emitter.emit(event, target)
+            let stopped = false
+            target.getComp(HoverableComp)!.emitter.emit(event, {
+                stop: () => {
+                    stopped = true
+                },
+            })
+            if (! stopped) this.emitter.emit(event, target)
         })
 
         if (new URLSearchParams(location.search).has('debug')) {

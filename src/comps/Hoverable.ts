@@ -1,11 +1,11 @@
-import { Comp, Emitter, Events } from '@/engine'
+import { Comp, Emitter, Events, Stopable } from '@/engine'
 import { ShapeComp } from '@/comps/Shape'
 
 export interface HoverableEvents extends Events {
     mouseenter: []
     mouseleave: []
-    click: []
-    rightclick: []
+    click: [ Stopable ]
+    rightclick: [ Stopable ]
 }
 
 export class HoverableComp extends Comp {
