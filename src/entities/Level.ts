@@ -160,15 +160,15 @@ export class LevelEntity extends Entity<LevelConfig, LevelState, LevelEvents> {
                     .deactivate()
                     .attachTo(this)
             })
-            .on('use-shovel', shovelId => {
-                this.state.holdingObject = { type: 'shovel', shovelId }
+            .on('use-shovel', (shovelId) => {
+                this.state.holdingObject = { type: 'shovel', shovelId}
                 this.holdingImage?.dispose()
                 this.holdingImage = new ImageEntity(
                     shovelAnimation.getImageConfig(shovelId),
                     {
                         position: { x: 5, y: 5 },
-                        zIndex: this.lawn.state.zIndex + 3,
-                    },
+                        zIndex: this.lawn.state.zIndex + 3
+                    }
                 )
                     .attachTo(this)
 
