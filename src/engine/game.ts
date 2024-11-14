@@ -105,6 +105,11 @@ export class Game {
         this.mouse = useMouse(ctx)
         this.mspf = 1000 / fps
 
+        const floor = new Scene([])
+            .addComp(ShapeComp, () => true)
+            .addComp(HoverableComp)
+        this.addScene(floor)
+
         this.mouse.emitter.onSome([ 'click', 'rightclick' ], event => {
             if (! this.isRunning) return
 
