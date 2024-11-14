@@ -163,8 +163,7 @@ export class LevelEntity extends Entity<LevelConfig, LevelState, LevelEvents> {
             this.game.emitter.on('hoverTargetChange', target => {
                 if (this.state.holdingSlotId === null) return
 
-                if (! target) this.phantomPlantImage!.deactivate()
-                else if (target instanceof LawnBlockEntity) {
+                if (target instanceof LawnBlockEntity) {
                     const { i, j } = target.config
                     if (this.isOccupied(i, j)) {
                         this.phantomPlantImage!.deactivate()
@@ -174,6 +173,7 @@ export class LevelEntity extends Entity<LevelConfig, LevelState, LevelEvents> {
                     const { x, y } = target.state.position
                     this.phantomPlantImage!.activate().state.position = { x, y }
                 }
+                else this.phantomPlantImage!.deactivate()
             })
 
             this.game.emitter.on('click', target => {

@@ -3,6 +3,7 @@ import { HoverableComp } from '@/comps/Hoverable'
 import { ShapeComp } from '@/comps/Shape'
 import { Emitter, Entity, Events, ImageManager, Mouse, Scene, useImageManager, useMouse } from '@/engine'
 import { by, remove } from '@/utils'
+import { loadDebugWindow } from '@/debug'
 
 export interface GameConfig {
     ctx: CanvasRenderingContext2D
@@ -18,6 +19,12 @@ export interface GameEvents extends Events {
     hoverTargetChange: [ Entity | null ]
     click: [ Entity | null ]
     rightclick: [ Entity | null ]
+
+    entityStart: [ Entity ]
+    entityDispose: [ Entity ]
+    entityAttach: [ Entity ]
+    entityActivate: [ Entity ]
+    entityDeactivate: [ Entity ]
 }
 
 export class Game {
@@ -105,9 +112,13 @@ export class Game {
         this.mouse = useMouse(ctx)
         this.mspf = 1000 / fps
 
-        const floor = new Scene([])
-            .addComp(ShapeComp, () => true)
-            .addComp(HoverableComp)
+        const floor = new class Floor extends Scene {
+            constructor() {
+                super([])
+                this.addComp(ShapeComp, () => true)
+                    .addComp(HoverableComp)
+            }
+        }
         this.addScene(floor)
 
         this.mouse.emitter.onSome([ 'click', 'rightclick' ], event => {
@@ -119,6 +130,10 @@ export class Game {
             target.getComp(HoverableComp)!.emitter.emit(event)
             this.emitter.emit(event, target)
         })
+
+        if (new URLSearchParams(location.search).has('debug')) {
+            loadDebugWindow(this)
+        }
     }
 
     async addScene(scene: Scene) {
@@ -135,22 +150,5 @@ export class Game {
     }
     selectAllScenes<E extends Scene>(Scene: new () => E): E[] {
         return this.scenes.filter((entity): entity is E => entity instanceof Scene)
-    }
-
-    _printEntityTree({ zIndex = false }: { zIndex?: boolean } = {}) {
-        const showEntityTree = (entity: Entity, depth: number): string => {
-            const indention = ' '.repeat(depth * 3)
-            return `${ indention }${ entity.constructor.name } #${ entity.id }${
-                zIndex ? ` (z=${ entity.state.zIndex })` : ''
-            }${ entity.attachedEntities
-                .map(entity => `\n${ showEntityTree(entity, depth + 1) }`)
-                .join('')
-            }`
-        }
-        console.log(this.scenes.map(scene => showEntityTree(scene, 0)).join('\n'))
-    }
-
-    _getEntityById(id: number): Entity | undefined {
-        return this.allEntities.find(entity => entity.id === id)
     }
 }

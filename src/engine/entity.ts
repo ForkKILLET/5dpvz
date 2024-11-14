@@ -44,10 +44,12 @@ export class Entity<C = any, S extends EntityState = any, E extends EntityEvents
     }
     activate() {
         this.active = true
+        this.afterStart(() => this.game.emitter.emit('entityActivate', this))
         return this
     }
     deactivate() {
         this.active = false
+        this.afterStart(() => this.game.emitter.emit('entityDeactivate', this))
         return this
     }
 
@@ -60,6 +62,7 @@ export class Entity<C = any, S extends EntityState = any, E extends EntityEvents
         this.start(game).then(() => {
             this.started = true
             this.emit('start')
+            this.game.emitter.emit('entityStart', this)
         })
         return this
     }
@@ -87,6 +90,7 @@ export class Entity<C = any, S extends EntityState = any, E extends EntityEvents
                     .on('dispose', () => {
                         this.unattach(entity)
                     })
+                this.game.emitter.emit('entityAttach', entity)
             }),
         ))
     }
@@ -124,6 +128,7 @@ export class Entity<C = any, S extends EntityState = any, E extends EntityEvents
         if (this.disposed) return
         this.disposed = true
         this.emit('dispose')
+        this.game.emitter.emit('entityStart', this)
 
         this.disposers.forEach(dispose => dispose())
         this.attachedEntities.forEach(entity => entity.dispose())

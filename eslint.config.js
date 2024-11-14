@@ -50,7 +50,6 @@ export default tseslint.config({
         '@stylistic/js/keyword-spacing': error({ before: true, after: true }),
         '@stylistic/js/linebreak-style': error('unix'),
         '@stylistic/js/multiline-comment-style': error('separate-lines'),
-        '@stylistic/js/new-parens': error('always'),
         '@stylistic/js/newline-per-chained-call': error({ ignoreChainWithDepth: 2 }),
         '@stylistic/js/no-multi-spaces': error({ ignoreEOLComments: true }),
         '@stylistic/js/no-multiple-empty-lines': error({ max: 1 }),
