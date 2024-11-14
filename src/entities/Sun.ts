@@ -16,19 +16,23 @@ interface SunState extends SunUniqueState, ButtonState {}
 interface SunEvents extends ButtonEvents {}
 
 export class SunEntity extends ButtonEntity<SunConfig, SunState, SunEvents> {
-    static create(config: SunUniqueConfig, state: EntityState) {
-        return SunEntity
-            .from(
-                new ImageEntity(
-                    { src: './assets/sun.png', containingMode: 'strict' },
-                    state
-                ),
-                {
-                    containingMode: 'rect',
-                    ...config,
-                },
-            )
+    constructor(config: SunConfig, state: SunState) {
+        super(config, state)
+        this
             .addComp(LifeComp, config.life)
             .addComp(CursorComp, 'pointer')
+    }
+
+    static create(config: SunUniqueConfig, state: EntityState) {
+        return SunEntity.from(
+            new ImageEntity(
+                { src: './assets/sun.png', containingMode: 'strict' },
+                state
+            ),
+            {
+                containingMode: 'rect',
+                ...config,
+            },
+        )
     }
 }

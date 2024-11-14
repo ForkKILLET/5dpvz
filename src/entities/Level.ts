@@ -211,11 +211,10 @@ export class LevelEntity extends Entity<LevelConfig, LevelState, LevelEvents> {
                         const { i, j } = target.config
                         this.plant(holdingObject.slotId, i, j)
                     }
+                }
+                else if (target instanceof PlantEntity) {
                     if (holdingObject?.type === 'shovel') {
-                        const { i, j } = target.config
-                        if (this.isOccupied(i, j)) {
-                            this.kill(i, j)
-                        }
+                        this.kill(target.config.i, target.config.j)
                         this.cancelHolding()
                     }
                 }
@@ -279,12 +278,12 @@ export class LevelEntity extends Entity<LevelConfig, LevelState, LevelEvents> {
 
         this.updatePlantSlot(false)
 
-        const newPlant = new PlantEntity(
-            { plantId },
-            PlantEntity.initState({
+        const newPlant = PlantEntity.create(
+            { plantId, i, j },
+            {
                 position: this.getLawnBlockPosition(i, j),
                 zIndex: this.lawn.state.zIndex + 2,
-            })
+            }
         )
 
         const newPlantData: PlantData = {

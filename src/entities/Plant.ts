@@ -1,27 +1,28 @@
 import { plantAnimation, PlantId } from '@/data/plants'
-import { AnimationConfig, AnimationEntity, AnimationEvents, AnimationState } from '@/entities/Animation'
+import { AnimationEntity } from '@/entities/Animation'
 import { HoverableComp } from '@/comps/Hoverable'
 import { kLevelState } from '@/entities/Level'
 import { HighlightableComp } from '@/comps/Highlightable'
+import { ButtonConfig, ButtonEntity, ButtonEvents, ButtonState } from '@/entities/Button'
+import { EntityState } from '@/engine'
 
 export interface PlantUniqueConfig {
+    i: number
+    j: number
     plantId: PlantId
 }
-export interface PlantConfig extends PlantUniqueConfig, AnimationConfig {}
+export interface PlantConfig extends PlantUniqueConfig, ButtonConfig {}
 
-export interface PlantState extends AnimationState {}
+export interface PlantState extends ButtonState {}
 
-export interface PlantEvents extends AnimationEvents {}
+export interface PlantEvents extends ButtonEvents {}
 
-export class PlantEntity extends AnimationEntity<PlantConfig, PlantState, PlantEvents> {
-    constructor(config: PlantUniqueConfig, state: PlantState) {
-        super({
-            ...config,
-            ...plantAnimation.getAnimationConfig(config.plantId, 'common'),
-        }, state)
+export class PlantEntity extends ButtonEntity<PlantConfig, PlantState, PlantEvents> {
+    constructor(config: PlantConfig, state: PlantState) {
+        super(config, state)
 
         this.afterStart(() => this
-            .addComp(HighlightableComp)
+            .addComp(HighlightableComp, 'brightness(1.2)')
             .withComps([ HoverableComp, HighlightableComp ], ({ emitter }, highlightableComp) => {
                 emitter.on('mouseenter', () => {
                     if (this.inject(kLevelState)!.holdingObject?.type === 'shovel')
@@ -34,6 +35,19 @@ export class PlantEntity extends AnimationEntity<PlantConfig, PlantState, PlantE
             .on('before-render', () => {
                 if (this.getComp(HighlightableComp)!.highlighting) this.game.ctx.filter = 'brightness(1.5)'
             })
+        )
+    }
+
+    static create(config: PlantUniqueConfig, state: EntityState) {
+        return PlantEntity.from(
+            new AnimationEntity(
+                plantAnimation.getAnimationConfig(config.plantId),
+                AnimationEntity.initState(state)
+            ),
+            {
+                containingMode: 'rect',
+                ...config,
+            },
         )
     }
 }
