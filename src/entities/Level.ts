@@ -3,16 +3,17 @@ import { Entity, EntityEvents, EntityState, injectKey } from '@/engine'
 import { LawnConfig, LawnEntity } from '@/entities/Lawn'
 import { PlantSlotsConfig, UIEntity } from '@/entities/UI'
 import { ImageEntity } from '@/entities/Image'
+import { matrix, Nullable, remove } from '@/utils'
 import { LawnBlockEntity } from '@/entities/LawnBlock'
 import { PlantEntity } from '@/entities/Plant'
 import { SunEntity } from '@/entities/Sun'
 import { random } from '@/utils/random'
-import { ShovelSlotConfig } from '@/entities/ShovelSlot'
-import { ButtonEntity } from '@/entities/Button'
 import { LifeComp } from '@/comps/Life'
-import { CursorComp } from '@/comps/Cursor'
-import { matrix, Nullable, remove } from '@/utils'
-import { placeholder } from '@/utils/any'
+import { ShovelSlotConfig } from '@/entities/ShovelSlot'
+import {shovelAnimation, ShovelId} from "@/data/shovel.ts";
+import {ButtonEntity} from "@/entities/Button.ts";
+import {CursorComp} from "@/comps/Cursor.ts";
+import {placeholder} from "@/utils/any.ts";
 
 export interface LevelConfig {
     plantSlots: PlantSlotsConfig
@@ -48,14 +49,23 @@ export interface SunData {
     entity: SunEntity
 }
 
+// export interface ShovelSlotData {
+//     isHolding: boolean
+// }
+
+type HoldingObject =
+    | { type: 'plant', slotId: number }
+    | { type: 'shovel', shovelId: ShovelId }
+
 export interface LevelUniqueState {
     sun: number
     sunDropTimer: number
     plantSlotsData: PlantSlotData[]
-    holdingSlotId: Nullable<number>
+    holdingObject: Nullable<HoldingObject>
     plantsData: PlantData[]
     plantsOnBlocks: Nullable<PlantData>[][]
     sunsData: SunData[]
+    // shovelSlotData: ShovelSlotData
 }
 export interface LevelState extends LevelUniqueState, EntityState {}
 
@@ -69,16 +79,17 @@ export class LevelEntity extends Entity<LevelConfig, LevelState, LevelEvents> {
         sun: 0,
         sunDropTimer: 0,
         plantSlotsData: [],
-        holdingSlotId: null,
+        holdingObject: null,
         plantsData: [],
         plantsOnBlocks: placeholder,
         sunsData: [],
+        // shovelSlotData: {isHolding: false},
     })
 
     ui: UIEntity
     lawn: LawnEntity
-    phantomPlantImage: Nullable<ImageEntity> = null
-    holdingPlantImage: Nullable<ImageEntity> = null
+    phantomImage: Nullable<ImageEntity> = null
+    holdingImage: Nullable<ImageEntity> = null
 
     width: number
     height: number
@@ -122,11 +133,11 @@ export class LevelEntity extends Entity<LevelConfig, LevelState, LevelEvents> {
                 const slot = this.state.plantSlotsData[slotId]
                 if (! slot.isPlantable) return
 
-                this.state.holdingSlotId = slotId
                 const plantId = this.getPlantIdBySlotId(slotId)
+                this.state.holdingObject = { type: 'plant', slotId }
 
-                this.holdingPlantImage?.dispose()
-                this.holdingPlantImage = new ImageEntity(
+                this.holdingImage?.dispose()
+                this.holdingImage = new ImageEntity(
                     plantAnimation.getImageConfig(plantId),
                     {
                         position: { x: 5, y: 5 },
@@ -135,7 +146,7 @@ export class LevelEntity extends Entity<LevelConfig, LevelState, LevelEvents> {
                 )
                     .attachTo(this)
 
-                this.phantomPlantImage = new ImageEntity(
+                this.phantomImage = new ImageEntity(
                     plantAnimation.getImageConfig(plantId),
                     {
                         position: { x: 0, y: 0 },
@@ -147,6 +158,31 @@ export class LevelEntity extends Entity<LevelConfig, LevelState, LevelEvents> {
                     })
                     .deactivate()
                     .attachTo(this)
+            })
+            .on('use-shovel', (shovelId) => {
+                this.state.holdingObject = { type: 'shovel', shovelId}
+                this.holdingImage?.dispose()
+                this.holdingImage = new ImageEntity(
+                    shovelAnimation.getImageConfig(shovelId),
+                    {
+                        position: { x: 5, y: 5 },
+                        zIndex: this.lawn.state.zIndex + 3
+                    }
+                )
+                    .attachTo(this)
+
+                // this.phantomImage = new ImageEntity(
+                //     shovelAnimation.getImageConfig(shovelId),
+                //     {
+                //         position: { x: 0, y: 0 },
+                //         zIndex: this.lawn.state.zIndex + 2
+                //     }
+                // )
+                //     .on('before-render', () => {
+                //         this.game.ctx.globalAlpha = 0.5
+                //     })
+                //     .deactivate()
+                //     .attachTo(this)
             })
 
         this.lawn = new LawnEntity(
@@ -161,30 +197,45 @@ export class LevelEntity extends Entity<LevelConfig, LevelState, LevelEvents> {
 
         this.afterStart(() => {
             this.game.emitter.on('hoverTargetChange', target => {
-                if (this.state.holdingSlotId === null) return
+                if (this.state.holdingObject === null) return
 
-                if (target instanceof LawnBlockEntity) {
-                    const { i, j } = target.config
-                    if (this.isOccupied(i, j)) {
-                        this.phantomPlantImage!.deactivate()
-                        return
+                const { holdingObject } = this.state
+
+                if (holdingObject?.type === 'plant') {
+                    if (!target) this.phantomImage!.deactivate()
+                    else if (target instanceof LawnBlockEntity) {
+                        const {i, j} = target.config
+                        if (this.isOccupied(i, j)) {
+                            this.phantomImage!.deactivate()
+                            return
+                        }
+
+                        const {x, y} = target.state.position
+                        this.phantomImage!.activate().state.position = {x, y}
                     }
-
-                    const { x, y } = target.state.position
-                    this.phantomPlantImage!.activate().state.position = { x, y }
                 }
-                else this.phantomPlantImage!.deactivate()
+                // if (holdingObject.type === 'shovel') {
+                //     if (target instanceof LawnBlockEntity) {
+                //         const {i, j} = target.config
+                //         if (this.isOccupied(i, j)) {
+                //             this.state.plantsOnBlocks[i][j]!.entity.state.isHighlight = true
+                //         }
+                //     }
+                // }
             })
 
             this.game.emitter.on('click', target => {
-                if (this.state.holdingSlotId !== null && target instanceof LawnBlockEntity) {
-                    const { i, j } = target.config
-                    this.plant(this.state.holdingSlotId, i, j)
+                if (this.state.holdingObject !== null && target instanceof LawnBlockEntity) {
+                    const { holdingObject } = this.state
+                    if (holdingObject?.type === 'plant') {
+                        const { i, j } = target.config
+                        this.plant(holdingObject.slotId, i, j)
+                    }
                 }
             })
 
             this.game.emitter.on('rightclick', () => {
-                if (this.state.holdingSlotId !== null) {
+                if (this.state.holdingObject !== null) {
                     this.cancelHolding()
                 }
             })
@@ -245,8 +296,17 @@ export class LevelEntity extends Entity<LevelConfig, LevelState, LevelEvents> {
             PlantEntity.initState({
                 position: this.getLawnBlockPosition(i, j),
                 zIndex: this.lawn.state.zIndex + 2,
+                isHighlight: false,
             }),
         )
+            .on('before-render', () => {
+                if (newPlant.state.isHighlight) {
+                    this.game.ctx.filter = 'brightness(1.5)'
+                } else {
+                    this.game.ctx.filter = 'none'
+                }
+            }) // FIXME
+
         const newPlantData: PlantData = {
             id: plantId,
             hp: metadata.hp,
@@ -269,11 +329,14 @@ export class LevelEntity extends Entity<LevelConfig, LevelState, LevelEvents> {
     }
 
     cancelHolding() {
-        this.state.holdingSlotId = null
-        this.holdingPlantImage!.dispose()
-        this.holdingPlantImage = null
-        this.phantomPlantImage!.dispose()
-        this.phantomPlantImage = null
+        if (this.state.holdingObject?.type === 'shovel') {
+            this.ui.shovelSlot.attachedImageEntity?.activate()
+        }
+        this.state.holdingObject = null
+        this.holdingImage?.dispose()
+        this.holdingImage = null
+        this.phantomImage?.dispose()
+        this.phantomImage = null
     }
 
     dropSun() {
@@ -319,9 +382,9 @@ export class LevelEntity extends Entity<LevelConfig, LevelState, LevelEvents> {
     }
 
     update() {
-        if (this.holdingPlantImage) {
+        if (this.holdingImage) {
             const { x, y } = this.game.mouse.position
-            this.holdingPlantImage.state.position = { x: x - 40, y: y - 40 }
+            this.holdingImage.state.position = { x: x - 40, y: y - 40 }
         }
 
         if (this.frozen) return this.state
