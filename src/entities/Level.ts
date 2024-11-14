@@ -3,13 +3,16 @@ import { Entity, EntityEvents, EntityState, injectKey } from '@/engine'
 import { LawnConfig, LawnEntity } from '@/entities/Lawn'
 import { PlantSlotsConfig, UIEntity } from '@/entities/UI'
 import { ImageEntity } from '@/entities/Image'
-import { matrix, Nullable, remove } from '@/utils'
 import { LawnBlockEntity } from '@/entities/LawnBlock'
 import { PlantEntity } from '@/entities/Plant'
-import { SunEntity } from './Sun'
+import { SunEntity } from '@/entities/Sun'
 import { random } from '@/utils/random'
-import { LifeComp } from '@/comps/Life'
 import { ShovelSlotConfig } from '@/entities/ShovelSlot'
+import { ButtonEntity } from '@/entities/Button'
+import { LifeComp } from '@/comps/Life'
+import { CursorComp } from '@/comps/Cursor'
+import { matrix, Nullable, remove } from '@/utils'
+import { placeholder } from '@/utils/any'
 
 export interface LevelConfig {
     plantSlots: PlantSlotsConfig
@@ -68,7 +71,7 @@ export class LevelEntity extends Entity<LevelConfig, LevelState, LevelEvents> {
         plantSlotsData: [],
         holdingSlotId: null,
         plantsData: [],
-        plantsOnBlocks: null as any,
+        plantsOnBlocks: placeholder,
         sunsData: [],
     })
 
@@ -76,6 +79,9 @@ export class LevelEntity extends Entity<LevelConfig, LevelState, LevelEvents> {
     lawn: LawnEntity
     phantomPlantImage: Nullable<ImageEntity> = null
     holdingPlantImage: Nullable<ImageEntity> = null
+
+    width: number
+    height: number
 
     plantMetadatas: PlantMetadata[] = []
 
@@ -99,6 +105,9 @@ export class LevelEntity extends Entity<LevelConfig, LevelState, LevelEvents> {
 
         this.state.sun = config.sun.sunAtStart
         this.state.sunDropTimer = config.sun.sunDroppingInterval - config.sun.firstSunDroppingTime
+
+        this.width = 10 + config.lawn.width * 80
+        this.height = 150 + config.lawn.height * 80
 
         this.provide(kLevelState, this.state)
 
@@ -179,6 +188,43 @@ export class LevelEntity extends Entity<LevelConfig, LevelState, LevelEvents> {
                     this.cancelHolding()
                 }
             })
+
+            const pauseButton = new ButtonEntity(
+                {
+                    src: './assets/ui/pause_button.png',
+                    containingMode: 'rect',
+                },
+                ButtonEntity.initState({
+                    position: { x: this.width - 32, y: 5 },
+                    zIndex: 1,
+                }),
+            )
+                .addComp(CursorComp, 'pointer')
+                .attachTo(this)
+                .on('click', () => {
+                    this.freeze()
+                    pauseButton.deactivate()
+                    resumeButton.activate()
+                })
+
+            const resumeButton = new ButtonEntity(
+                {
+                    src: './assets/ui/resume_button.png',
+                    containingMode: 'rect',
+                },
+                ButtonEntity.initState({
+                    position: { x: this.width - 32, y: 5 },
+                    zIndex: 1,
+                }),
+            )
+                .addComp(CursorComp, 'pointer')
+                .deactivate()
+                .attachTo(this)
+                .on('click', () => {
+                    this.unfreeze()
+                    resumeButton.deactivate()
+                    pauseButton.activate()
+                })
         })
     }
 
@@ -264,11 +310,21 @@ export class LevelEntity extends Entity<LevelConfig, LevelState, LevelEvents> {
         })
     }
 
+    preUpdate() {
+        if (this.frozen) {
+            this.state = this.update()
+            return
+        }
+        super.preUpdate()
+    }
+
     update() {
         if (this.holdingPlantImage) {
             const { x, y } = this.game.mouse.position
             this.holdingPlantImage.state.position = { x: x - 40, y: y - 40 }
         }
+
+        if (this.frozen) return this.state
 
         this.state.plantSlotsData.forEach((slot, i) => {
             let { cd, isCooledDown } = slot
@@ -297,5 +353,16 @@ export class LevelEntity extends Entity<LevelConfig, LevelState, LevelEvents> {
         this.useTimer('sunDropTimer', this.config.sun.sunDroppingInterval, () => this.dropSun())
 
         return this.state
+    }
+
+    preRender() {
+        if (this.frozen) this.addRenderJob(() => {
+            const { ctx } = this.game
+            ctx.fillStyle = 'rgba(0, 0, 0, .3)'
+
+            ctx.fillRect(0, 0, 10 + this.width, this.height)
+        }, 5)
+
+        super.preRender()
     }
 }

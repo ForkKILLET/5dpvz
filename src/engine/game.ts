@@ -85,7 +85,11 @@ export class Game {
         this.ctx.clearRect(0, 0, this.ctx.canvas.width, this.ctx.canvas.height)
         this.renderJobs
             .sort(by(job => job.zIndex))
-            .forEach(job => job.renderer())
+            .forEach(job => {
+                this.ctx.save()
+                job.renderer()
+                this.ctx.restore()
+            })
     }
 
     start() {

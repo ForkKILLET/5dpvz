@@ -1,5 +1,6 @@
 import { createIdGenerator, Game, Position, Emitter, Events } from '@/engine'
 import { Disposer, remove, RemoveIndex } from '@/utils'
+import { placeholder } from '@/utils/any'
 
 export interface EntityState {
     position: Position
@@ -50,7 +51,7 @@ export class Entity<C = any, S extends EntityState = any, E extends EntityEvents
         return this
     }
 
-    game: Game = null as any
+    game: Game = placeholder
     async start(game: Game): Promise<void> {
         this.game = game
         game.allEntities.push(this)
@@ -166,11 +167,9 @@ export class Entity<C = any, S extends EntityState = any, E extends EntityEvents
         this.preRender()
 
         this.addRenderJob(() => {
-            this.game.ctx.save()
             this.emit('before-render')
             this.render()
             this.emit('after-render')
-            this.game.ctx.restore()
         })
     }
     addRenderJob(renderer: () => void, zIndexDelta = 0) {
@@ -186,11 +185,24 @@ export class Entity<C = any, S extends EntityState = any, E extends EntityEvents
     }
     protected render() {}
 
+    frozen = false
+    freeze() {
+        this.frozen = true
+        return this
+    }
+    unfreeze() {
+        this.frozen = false
+        return this
+    }
+
     runUpdate() {
         if (! this.active || this.disposed) return
+        this.preUpdate()
+    }
+    preUpdate() {
         this.state = this.update()
-        this.comps.forEach(comp => comp.update())
         this.attachedEntities.forEach(entity => entity.runUpdate())
+        this.comps.forEach(comp => comp.update())
     }
     protected update() {
         return this.state
