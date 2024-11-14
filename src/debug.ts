@@ -55,13 +55,13 @@ export const loadDebugWindow = (game: Game) => {
                 color: green;
             }
 
-            #entity-tree-content {
-                font-size: 12px;
+            #debug-window ul {
+                margin: 0;
             }
-            #entity-tree-content li {
+            #debug-window li {
                 margin-left: -15px;
             }
-            #entity-tree-content li.inactive {
+            #debug-window li.inactive {
                 color: #888;
             }
 
@@ -135,6 +135,7 @@ export const loadDebugWindow = (game: Game) => {
         <tab-content data-tab="entity-tree">
             <debug-button id="refresh-entity-tree">Refresh</debug-button>
             <debug-button id="auto-refresh-entity-tree">Manual</debug-button>
+            <br /><br />
             <div id="entity-tree-content"></div>
         </tab-content>
         <tab-content data-tab="entity-detail">
@@ -180,38 +181,42 @@ export const loadDebugWindow = (game: Game) => {
         ].filter(c => c)
     }
 
-    const showEntityTree = () => {
-        const show = (entity: Entity): string => {
-            const className = [
-                entity.active ? null : 'inactive',
-            ].filter(c => c !== null).join(' ')
-            const isFolden = foldState.get(entity.id)
-            const hasAttached = entity.attachedEntities.length > 0
-            return `<li class="${ className }" data-id="${ entity.id }">
-                ${ hasAttached
-                    ? `<debug-button class="fold-entity">${ isFolden ? '+' : '-' }</debug-button>`
-                    : ''
-                }
-                ${ showEntityLink(entity) }
-                ${ hasAttached && ! isFolden
-                    ? `<ul>
-                        ${ entity.attachedEntities
-                            .map(entity => `\n${ show(entity) }`)
-                            .join('')
-                        }
-                    </ul>`
-                    : ''
-                }
-            </li>`
-        }
-        return `<ul>${ game.scenes.map(show).join('\n') }</ul>`
+    const showEntityTree = (entity: Entity): string => {
+        const className = [
+            entity.active ? null : 'inactive',
+        ].filter(c => c !== null).join(' ')
+        const isFolden = foldState.get(entity.id)
+        const hasAttached = entity.attachedEntities.length > 0
+        return `<li class="${ className }" data-id="${ entity.id }">
+            ${ hasAttached
+                ? `<debug-button class="fold-entity">${ isFolden ? '+' : '-' }</debug-button>`
+                : ''
+            }
+            ${ showEntityLink(entity) }
+            ${ hasAttached && ! isFolden
+                ? `<ul>
+                    ${ entity.attachedEntities
+                        .map(entity => `\n${ showEntityTree(entity) }`)
+                        .join('')
+                    }
+                </ul>`
+                : ''
+            }
+        </li>`
+    }
+
+    const showEntityRoot = (entities: Entity[]) => {
+        return `<ul>${ entities.map(showEntityTree).join('\n') }</ul>`
     }
 
     let watchingEntity: Entity | undefined = undefined
 
     let autoRefreshEntityTree = true
     const refreshEntityTree = () => {
-        $entityTreeContent.innerHTML = showEntityTree()
+        if (currentTab === 'entity-detail')
+            $('#entity-detail-tree-content')!.innerHTML = showEntityRoot(watchingEntity!.attachedEntities)
+        else
+            $entityTreeContent.innerHTML = showEntityRoot(game.scenes)
     }
     const $entityTreeContent = $('#entity-tree-content')!
     $('#refresh-entity-tree')!.addEventListener('click', refreshEntityTree)
@@ -226,7 +231,7 @@ export const loadDebugWindow = (game: Game) => {
         typeof obj === 'string' ? `<json-string>${ obj }</json-string>` :
         typeof obj === 'boolean' ? `<json-boolean>${ obj }</json-boolean>` :
         typeof obj === 'symbol' ? `<json-symbol>${ obj.description }</json-symbol>` :
-        obj === null ? '<json-null />' :
+        obj === null ? '<json-null></json-null>' :
         Array.isArray(obj) ? `<json-array>${ obj
             .map((child): string => `<json-item>${ showJson(child) }</json-item>`)
             .join('') }</json-array>` :
@@ -249,10 +254,15 @@ export const loadDebugWindow = (game: Game) => {
         $entityDetailContent.innerHTML = `
             ${ e.constructor.name } <debug-button class="show-entity-detail">#${ e.id }</debug-button>
             ${ showEntityAttrs(attrs) }<br />
-            state ${ showJson(e.state) }<br />
-            providedKeys ${ showJson(Object.getOwnPropertySymbols(e.providedValues)) }<br />
-            injectableKeys ${ showJson(e.injectableKeys) }<br />
+            <b>state</b> ${ showJson(e.state) }<br />
+            <b>config</b> ${ showJson(e.config) }<br />
+            <b>providedKeys</b> ${ showJson(Object.getOwnPropertySymbols(e.providedValues)) }<br />
+            <b>injectableKeys</b> ${ showJson(e.injectableKeys) }<br />
+            <b>comps</b> ${ showJson(e.comps.map(comp => comp.constructor.name)) }<br />
+            <b>superEntity</b> ${ showJson(e.superEntity) }<br />
+            <b>attachedEntities</b> <div id="entity-detail-tree-content"></div>
         `
+        refreshEntityTree()
     }
     const $entityDetailContent = $('#entity-detail-content')!
     $('#refresh-entity-detail')!.addEventListener('click', refreshEntityDetail)
