@@ -1,7 +1,7 @@
 import { plantAnimation, PlantId } from '@/data/plants'
 import { AnimationConfig, AnimationEntity, AnimationEvents, AnimationState } from '@/entities/Animation'
-import {HoverableComp} from "@/comps/Hoverable.ts";
-import {kLevelState} from "@/entities/Level.ts";
+import { HoverableComp } from '@/comps/Hoverable.ts'
+import { kLevelState } from '@/entities/Level.ts'
 
 export interface PlantUniqueConfig {
     plantId: PlantId
@@ -20,10 +20,10 @@ export class PlantEntity extends AnimationEntity<PlantConfig, PlantState, PlantE
         super({
             ...config,
             ...plantAnimation.getAnimationConfig(config.plantId, 'common'),
-        }, state);
+        }, state)
 
         this.afterStart(() => {
-            this.withComp(HoverableComp, ({emitter}) => {
+            this.withComp(HoverableComp, ({ emitter }) => {
                 emitter.on('mouseenter', () => {
                     console.log('mouseenter')
                     if (this.inject(kLevelState)!.holdingObject?.type === 'shovel') {
