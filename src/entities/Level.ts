@@ -219,23 +219,23 @@ export class LevelEntity extends Entity<LevelConfig, LevelState, LevelEvents> {
                         this.cancelHolding()
                     }
                 }
-                else this.cancelHolding()
+                // else this.cancelHolding()
             })
 
             this.game.emitter.on('rightclick', () => {
                 if (this.state.holdingObject !== null) this.cancelHolding()
             })
 
-            const pauseButton = new ButtonEntity(
+            const pauseButton = ButtonEntity.from(new ImageEntity(
                 {
                     src: './assets/ui/pause_button.png',
                     containingMode: 'rect',
                 },
-                ButtonEntity.initState({
+                {
                     position: { x: this.width - 32, y: 5 },
                     zIndex: 1,
-                }),
-            )
+                },
+            ))
                 .addComp(CursorComp, 'pointer')
                 .attachTo(this)
                 .on('click', () => {
@@ -244,16 +244,16 @@ export class LevelEntity extends Entity<LevelConfig, LevelState, LevelEvents> {
                     resumeButton.activate()
                 })
 
-            const resumeButton = new ButtonEntity(
+            const resumeButton = ButtonEntity.from(new ImageEntity(
                 {
                     src: './assets/ui/resume_button.png',
                     containingMode: 'rect',
                 },
-                ButtonEntity.initState({
+                {
                     position: { x: this.width - 32, y: 5 },
                     zIndex: 1,
-                }),
-            )
+                },
+            ))
                 .addComp(CursorComp, 'pointer')
                 .deactivate()
                 .attachTo(this)
@@ -282,7 +282,7 @@ export class LevelEntity extends Entity<LevelConfig, LevelState, LevelEvents> {
             PlantEntity.initState({
                 position: this.getLawnBlockPosition(i, j),
                 zIndex: this.lawn.state.zIndex + 2,
-            }),
+            })
         )
 
         const newPlantData: PlantData = {
@@ -336,15 +336,15 @@ export class LevelEntity extends Entity<LevelConfig, LevelState, LevelEvents> {
         const targetY = y + deltaY
         const life = deltaY / this.config.sun.sunDroppingVelocity + 4000
 
-        const sun = new SunEntity(
+        const sun = SunEntity.create(
             {
                 life,
                 targetY,
             },
-            SunEntity.initState({
+            {
                 position: { x, y },
                 zIndex: this.lawn.state.zIndex + 2,
-            }),
+            }
         )
             .attachTo(this)
             .on('click', () => {

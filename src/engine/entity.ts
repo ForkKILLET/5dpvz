@@ -54,9 +54,11 @@ export class Entity<C = any, S extends EntityState = any, E extends EntityEvents
     }
 
     game: Game = placeholder
+    starters: (() => void)[] = []
     async start(game: Game): Promise<void> {
         this.game = game
         game.allEntities.push(this)
+        await Promise.all(this.starters.map(fn => fn()))
     }
     runStart(game: Game) {
         this.start(game).then(() => {
@@ -66,9 +68,18 @@ export class Entity<C = any, S extends EntityState = any, E extends EntityEvents
         })
         return this
     }
+    beforeStart(fn: () => void) {
+        if (this.started) fn()
+        else this.starters.push(fn)
+        return this
+    }
     afterStart(fn: (self: this) => void) {
         if (this.started) fn(this)
         else this.on('start', () => fn(this))
+        return this
+    }
+    toStart() {
+        return new Promise(res => this.afterStart(res))
     }
 
     autoRender = true
@@ -80,19 +91,22 @@ export class Entity<C = any, S extends EntityState = any, E extends EntityEvents
     superEntity: Entity | null = null
     attachedEntities: Entity[] = []
     attach(...entities: Entity[]) {
-        return this.afterStart(() => entities.forEach(entity => entity
-            .runStart(this.game)
-            .afterStart(() => {
-                entity.superEntity = this
-                this.attachedEntities.push(entity)
-                entity
-                    .emit('attached', this)
-                    .on('dispose', () => {
-                        this.unattach(entity)
-                    })
-                this.game.emitter.emit('entityAttach', entity)
-            }),
-        ))
+        entities.forEach(entity => this.beforeStart(() => new Promise<void>(res => {
+            entity
+                .runStart(this.game)
+                .afterStart(() => {
+                    entity.superEntity = this
+                    this.attachedEntities.push(entity)
+                    entity
+                        .emit('attached', this)
+                        .on('dispose', () => {
+                            this.unattach(entity)
+                        })
+                    this.game.emitter.emit('entityAttach', entity)
+                    res()
+                })
+        })))
+        return this
     }
     attachTo(superEntity: Entity) {
         superEntity.attach(this)
@@ -151,11 +165,13 @@ export class Entity<C = any, S extends EntityState = any, E extends EntityEvents
         Comp: new (entity: this, ...args: A) => C,
         ...args: A
     ) {
-        const { dependencies } = Comp as any as { dependencies: CompCtor[] }
-        if (! this.hasComp(...dependencies))
-            throw new Error(`Missing dependencies: ${ dependencies.map(Dep => Dep.name).join(', ') }.`)
+        this.afterStart(() => {
+            const { dependencies } = Comp as any as { dependencies: CompCtor[] }
+            if (! this.hasComp(...dependencies))
+                throw new Error(`Missing dependencies: ${ dependencies.map(Dep => Dep.name).join(', ') }.`)
 
-        this.comps.push(new Comp(this, ...args))
+            this.comps.push(new Comp(this, ...args))
+        })
         return this
     }
     removeComp(comp: Comp) {
@@ -166,14 +182,16 @@ export class Entity<C = any, S extends EntityState = any, E extends EntityEvents
         return this.comps.find((comp): comp is C => comp instanceof Comp)
     }
     withComp<C extends Comp>(Comp: CompCtor<C>, fn: (comp: C) => void) {
-        const comp = this.getComp(Comp)
-        if (comp) fn(comp)
-        return this
+        return this.afterStart(() => {
+            const comp = this.getComp(Comp)
+            if (comp) fn(comp)
+        })
     }
     withComps<const Cs extends Comp[]>(Comps: { [I in keyof Cs]: CompCtor<Cs[I]> }, fn: (...comps: Cs) => void) {
-        const comps = Comps.map(this.getComp.bind(this))
-        if (comps.every(comp => comp)) fn(...comps as Cs)
-        return this
+        return this.afterStart(() => {
+            const comps = Comps.map(this.getComp.bind(this))
+            if (comps.every(comp => comp)) fn(...comps as Cs)
+        })
     }
     getComps<C extends Comp>(Comp: CompCtor<C>): C[] {
         return this.comps.filter((comp): comp is C => comp instanceof Comp)
@@ -183,15 +201,17 @@ export class Entity<C = any, S extends EntityState = any, E extends EntityEvents
         this.preRender()
 
         this.addRenderJob(() => {
-            this.emit('before-render')
             this.render()
-            this.emit('after-render')
         })
     }
     addRenderJob(renderer: () => void, zIndexDelta = 0) {
         this.game.addRenderJob({
             zIndex: this.state.zIndex + zIndexDelta,
-            renderer,
+            renderer: () => {
+                this.bubble('before-render')
+                renderer()
+                this.bubble('after-render')
+            },
         })
     }
     protected preRender() {
@@ -227,6 +247,11 @@ export class Entity<C = any, S extends EntityState = any, E extends EntityEvents
     protected emitter = new Emitter<E>()
     emit<K extends keyof RemoveIndex<E>>(event: K, ...args: E[K]) {
         this.emitter.emit(event, ...args)
+        return this
+    }
+    bubble<K extends keyof RemoveIndex<E>>(event: K, ...args: E[K]) {
+        this.emit(event, ...args)
+        this.superEntity?.bubble(event, ...args)
         return this
     }
     on<K extends keyof RemoveIndex<E>>(event: K, listener: (...args: E[K]) => void) {

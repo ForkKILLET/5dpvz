@@ -38,7 +38,11 @@ export default tseslint.config({
         '@stylistic/js/arrow-spacing': error({ before: true, after: true }),
         '@stylistic/js/block-spacing': error('always'),
         '@stylistic/js/brace-style': error('stroustrup'),
-        '@stylistic/js/comma-dangle': error('always-multiline'),
+        '@stylistic/js/comma-dangle': error({
+            arrays: 'always-multiline',
+            objects: 'always-multiline',
+            functions: 'only-multiline',
+        }),
         '@stylistic/js/comma-spacing': error({ before: false, after: true }),
         '@stylistic/js/comma-style': error('last'),
         '@stylistic/js/computed-property-spacing': error('never'),
@@ -67,7 +71,6 @@ export default tseslint.config({
         '@stylistic/js/switch-colon-spacing': error({ after: true, before: false }),
         '@stylistic/js/template-curly-spacing': error('always'),
         '@stylistic/js/template-tag-spacing': error('never'),
-
 
         // TypeScript Style
         '@stylistic/ts/member-delimiter-style': error({

@@ -21,17 +21,16 @@ export class LawnEntity extends Entity<LawnConfig, LawnState, LawnEvents> {
         const { position: { x, y }, zIndex } = this.state
         this.lawnBlocks = matrix(
             this.config.width, this.config.height,
-            (i, j) => new LawnBlockEntity(
+            (i, j) => LawnBlockEntity.create(
                 {
-                    src: `./assets/lawn/${ (i + j) % 2 ? 'light' : 'dark' }.png`,
-                    containingMode: 'rect',
                     i, j,
+                    type: (i + j) % 2 === 0 ? 'light' : 'dark',
                 },
-                LawnBlockEntity.initState({
+                {
                     position: { x: x + i * 80, y: y + j * 80 },
                     zIndex: zIndex + 1,
-                }),
-            ),
+                },
+            )
         )
         this.attach(...this.lawnBlocks.flat())
     }

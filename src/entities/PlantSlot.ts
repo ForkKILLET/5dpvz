@@ -23,17 +23,15 @@ export class PlantSlotEntity extends SlotEntity<PlantSlotConfig, PlantSlotState,
 
         this.plantMetadata = PLANT_METADATA[this.config.plantId]
 
-        this.addComp(CursorComp, 'pointer')
-
-        this.afterStart(() => {
-            this.attach(new ImageEntity(
+        this
+            .addComp(CursorComp, 'pointer')
+            .attach(new ImageEntity(
                 plantAnimation.getImageConfig(this.config.plantId),
                 {
                     position: { x: x + 1, y: y + 1 },
                     zIndex: zIndex + 2,
                 },
             ))
-        })
     }
 
     preRender() {

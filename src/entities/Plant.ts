@@ -20,21 +20,20 @@ export class PlantEntity extends AnimationEntity<PlantConfig, PlantState, PlantE
             ...plantAnimation.getAnimationConfig(config.plantId, 'common'),
         }, state)
 
-        this.afterStart(() => {
-            this
-                .addComp(HighlightableComp)
-                .withComps([ HoverableComp, HighlightableComp ], ({ emitter }, highlightableComp) => {
-                    emitter.on('mouseenter', () => {
-                        if (this.inject(kLevelState)!.holdingObject?.type === 'shovel')
-                            highlightableComp.highlighting = true
-                    })
-                    emitter.on('mouseleave', () => {
-                        highlightableComp.highlighting = false
-                    })
+        this.afterStart(() => this
+            .addComp(HighlightableComp)
+            .withComps([ HoverableComp, HighlightableComp ], ({ emitter }, highlightableComp) => {
+                emitter.on('mouseenter', () => {
+                    if (this.inject(kLevelState)!.holdingObject?.type === 'shovel')
+                        highlightableComp.highlighting = true
                 })
-                .on('before-render', () => {
-                    if (this.getComp(HighlightableComp)!.highlighting) this.game.ctx.filter = 'brightness(1.5)'
+                emitter.on('mouseleave', () => {
+                    highlightableComp.highlighting = false
                 })
-        })
+            })
+            .on('before-render', () => {
+                if (this.getComp(HighlightableComp)!.highlighting) this.game.ctx.filter = 'brightness(1.5)'
+            })
+        )
     }
 }

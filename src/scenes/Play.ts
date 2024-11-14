@@ -27,7 +27,7 @@ export class PlayScene extends Scene {
             LevelEntity.initState({
                 position: { x: 0, y: 0 },
                 zIndex: 0,
-            }),
+            })
         )
 
         super([

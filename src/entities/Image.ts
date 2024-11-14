@@ -1,4 +1,5 @@
 import { EntityEvents, EntityState, Entity, Game } from '@/engine'
+import { placeholder } from '@/utils'
 
 export interface ImageConfig {
     src: string
@@ -13,7 +14,7 @@ export class ImageEntity<
     S extends ImageState = ImageState,
     E extends ImageEvents = ImageEvents
 > extends Entity<C, S, E> {
-    img: HTMLImageElement | null = null
+    img: HTMLImageElement = placeholder
 
     async start(game: Game) {
         await super.start(game)

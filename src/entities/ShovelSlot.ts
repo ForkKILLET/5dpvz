@@ -2,6 +2,7 @@ import { shovelAnimation, SHOVEL_METADATA, ShovelId, ShovelMetadata } from '@/da
 import { ImageEntity } from '@/entities/Image'
 import { SlotConfig, SlotEntity, SlotEvents, SlotState } from '@/entities/Slot'
 import { kLevelState } from '@/entities/Level'
+import { CursorComp } from '@/comps/Cursor'
 
 export interface ShovelSlotConfig extends SlotConfig {
     shovelId: ShovelId
@@ -22,15 +23,15 @@ export class ShovelSlotEntity extends SlotEntity<ShovelSlotConfig, ShovelSlotSta
 
         this.shovelMetadata = SHOVEL_METADATA[this.config.shovelId]
 
-        this.afterStart(() => {
-            this.shovelImage = new ImageEntity(
+        this
+            .attach(this.shovelImage = new ImageEntity(
                 shovelAnimation.getImageConfig(this.config.shovelId),
                 {
                     position: { x: x + 1, y: y + 1 },
                     zIndex: zIndex + 2,
                 },
-            ).attachTo(this)
-        })
+            ))
+            .addComp(CursorComp, 'pointer')
     }
 
     preRender() {
