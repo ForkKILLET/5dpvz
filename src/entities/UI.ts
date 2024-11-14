@@ -4,6 +4,7 @@ import { PlantId } from '@/data/plants'
 import { SunSlotEntity } from '@/entities/SunSlot'
 import { HoverableComp } from '@/comps/Hoverable'
 import { ShovelSlotEntity } from '@/entities/ShovelSlot'
+import {ShovelId} from "@/data/shovel";
 
 export interface PlantSlotsConfig {
     slotNum: number
@@ -16,6 +17,7 @@ export interface UIState extends EntityState {}
 
 export interface UIEvents extends EntityEvents {
     'choose-plant': [ slotId: number ]
+    'use-shovel': [ shovelId: ShovelId ]
 }
 
 export class UIEntity extends Entity<UIConfig, UIState, UIEvents> {
@@ -59,6 +61,9 @@ export class UIEntity extends Entity<UIConfig, UIState, UIEvents> {
                 zIndex: zIndex + 1,
             },
         )
+            .withComp(HoverableComp, hoverable => hoverable!.emitter.on('click', () => {
+                this.emit('use-shovel', 'iron_shovel') // Not sure
+            }))
         this.attach(this.sunSlot, ...this.plantSlots, this.shovelSlot)
     }
 }
