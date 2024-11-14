@@ -45,6 +45,7 @@ export interface PlantData {
 }
 
 export interface SunData {
+    lifeLimit: number
     targetY: number
     entity: SunEntity
 }
@@ -365,11 +366,13 @@ export class LevelEntity extends Entity<LevelConfig, LevelState, LevelEvents> {
         const { x: x0, y: y0 } = this.lawn.state.position
         const x = x0 + random((this.config.lawn.width - 1) * 80)
         const y = y0 + random(1 * 80)
-        const targetY = y + random((this.config.lawn.height - 1) * 80)
+        const targetY = y + random((this.config.lawn.height - 2) * 80)
+        const lifeLimit = (targetY - y) / (this.config.sun.sunDroppingVelocity * this.game.mspf / 1000) * this.game.mspf + 4000
 
         const sun = new SunEntity(
             {
-                life: this.config.sun.sunLife,
+                // life: this.config.sun.sunLife,
+                life: lifeLimit,
                 targetY,
             },
             SunEntity.initState({
@@ -384,12 +387,13 @@ export class LevelEntity extends Entity<LevelConfig, LevelState, LevelEvents> {
             })
             .on('before-render', () => {
                 const lifeComp = sun.getComp(LifeComp)!
-                if (lifeComp.life < 3000) this.game.ctx.globalAlpha = 0.5
+                if (lifeComp.life < 3000) this.game.ctx.globalAlpha = 0.5 // TODO
             })
             .on('dispose', () => {
                 remove(this.state.sunsData, sunData => sunData.entity === sun)
             })
         this.state.sunsData.push({
+            lifeLimit,
             targetY,
             entity: sun,
         })
