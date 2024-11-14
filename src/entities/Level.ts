@@ -219,7 +219,7 @@ export class LevelEntity extends Entity<LevelConfig, LevelState, LevelEvents> {
                         this.cancelHolding()
                     }
                 }
-                // else this.cancelHolding()
+                else this.cancelHolding()
             })
 
             this.game.emitter.on('rightclick', () => {
@@ -276,6 +276,8 @@ export class LevelEntity extends Entity<LevelConfig, LevelState, LevelEvents> {
         slot.cd = 0
         slot.isCooledDown = false
         this.state.sun -= cost
+
+        this.updatePlantSlot(false)
 
         const newPlant = new PlantEntity(
             { plantId },
@@ -373,18 +375,11 @@ export class LevelEntity extends Entity<LevelConfig, LevelState, LevelEvents> {
         super.preUpdate()
     }
 
-    update() {
-        if (this.holdingImage) {
-            const { x, y } = this.game.mouse.position
-            this.holdingImage.state.position = { x: x - 40, y: y - 40 }
-        }
-
-        if (this.frozen) return this.state
-
+    updatePlantSlot(runCoolDown = true) {
         this.state.plantSlotsData.forEach((slot, i) => {
             let { cd, isCooledDown } = slot
 
-            if (! isCooledDown) {
+            if (runCoolDown && ! isCooledDown) {
                 const { cd: maxCd } = this.plantMetadatas[i]
                 cd += this.game.mspf
                 if (cd > maxCd) {
@@ -398,6 +393,17 @@ export class LevelEntity extends Entity<LevelConfig, LevelState, LevelEvents> {
 
             slot.isPlantable = slot.isCooledDown && slot.isSunEnough
         })
+    }
+
+    update() {
+        if (this.holdingImage) {
+            const { x, y } = this.game.mouse.position
+            this.holdingImage.state.position = { x: x - 40, y: y - 40 }
+        }
+
+        if (this.frozen) return this.state
+
+        this.updatePlantSlot()
 
         this.state.sunsData.forEach(({ entity, targetY }) => {
             if (entity.state.position.y < targetY) entity.state.position.y += (
