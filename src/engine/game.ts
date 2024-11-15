@@ -31,7 +31,8 @@ export class Game {
     readonly ctx: CanvasRenderingContext2D
     readonly imageManager: ImageManager
     readonly mouse: Mouse
-    readonly mspf: number
+
+    mspf: number
 
     allEntities: Entity[] = []
     scenes: Scene[] = []
@@ -50,7 +51,7 @@ export class Game {
     }
 
     private loopTimerId: number | null = null
-    private loop() {
+    loop() {
         const activeScenes = this.scenes.filter(scene => scene.active)
 
         activeScenes.forEach(scene => scene.runUpdate())
@@ -99,10 +100,13 @@ export class Game {
             })
     }
 
+    running = false
     start() {
+        this.running = true
         this.loopTimerId = setInterval(() => this.loop(), this.mspf)
     }
     pause() {
+        this.running = false
         if (this.loopTimerId !== null) clearInterval(this.loopTimerId)
     }
 

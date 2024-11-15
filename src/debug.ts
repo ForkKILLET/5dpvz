@@ -29,7 +29,15 @@ export const loadDebugWindow = (game: Game) => {
                 content: ']';
             }
             tab-header.active {
-                color: blue;
+                font-weight: bold;
+            }
+            tab-header.active::before {
+                content: '<';
+                color: red;
+            }
+            tab-header.active::after {
+                content: '>';
+                color: red;
             }
             tab-header:hover {
                 cursor: pointer;
@@ -40,19 +48,52 @@ export const loadDebugWindow = (game: Game) => {
                 display: none;
             }
 
+            debug-button, tab-header {
+                user-select: none;
+            }
             debug-button::before {
                 content: '['
             }
             debug-button::after {
                 content: ']'
             }
-            debug-button:hover {
+            debug-button.disabled {
+                color: #888;
+            }
+            debug-button:not(.disabled):hover {
                 cursor: pointer;
                 text-decoration: underline;
             }
 
             debug-button.show-entity-detail {
                 color: green;
+            }
+
+            debug-input::before {
+                content: '['
+            }
+            debug-input::after {
+                content: ']'
+            }
+            debug-input:focus-within::before {
+                content: '<';
+                color: red;
+            }
+            debug-input:focus-within::after {
+                content: '>';
+                color: red;
+            }
+            debug-input > input {
+                font-family: monospace;
+                border: none;
+                outline: none;
+            }
+            debug-input > input[type="number"] {
+                color: blue;
+                appearance: textfield;
+            }
+            debug-input > input:focus {
+                text-decoration: underline;
             }
 
             #debug-window ul {
@@ -131,6 +172,7 @@ export const loadDebugWindow = (game: Game) => {
 
         <tab-header data-tab="entity-tree">Entity Tree</tab-header>
         <tab-header data-tab="entity-detail">Entity Detail</tab-header>
+        <tab-header data-tab="loop">Loop</tab-header>
         <br /><br />
         <tab-content data-tab="entity-tree">
             <debug-button id="refresh-entity-tree">Refresh</debug-button>
@@ -142,6 +184,13 @@ export const loadDebugWindow = (game: Game) => {
             <debug-button id="refresh-entity-detail">Refresh</debug-button>
             <br /><br />
             <div id="entity-detail-content"></div>
+        </tab-content>
+        <tab-content data-tab="loop">
+            <debug-button id="pause-start">Pause</debug-button>
+            <debug-button id="step" class="disabled">Step</debug-button>
+            <br /><br />
+            <b>mspf</b>: <debug-input><input id="mspf-input" type="number" value="${ game.mspf }" /></debug-input>
+            <debug-button id="mspf-submit">OK</debug-button>
         </tab-content>
     `
     const $ = <E extends Node = HTMLElement>(selector: string) =>
@@ -309,4 +358,32 @@ export const loadDebugWindow = (game: Game) => {
             }
         }
     }, { capture: true })
+
+    let stepCount = 0
+    const $pauseStartButton = $('#pause-start')!
+    $pauseStartButton.addEventListener('click', () => {
+        game[game.running ? 'pause' : 'start']()
+        if (game.running) {
+            $stepButton.innerHTML = 'Step'
+            stepCount = 0
+        }
+        $pauseStartButton.innerHTML = game.running ? 'Pause' : 'Start'
+        $stepButton.className = game.running ? 'disabled' : ''
+    })
+
+    const $stepButton = $('#step')!
+    $stepButton.addEventListener('click', () => {
+        if (game.running) return
+        $stepButton.innerHTML = `Step: ${ ++ stepCount }`
+        game.loop()
+    })
+
+    const $mspfInput = $<HTMLInputElement>('#mspf-input')!
+    $('#mspf-submit')!.addEventListener('click', () => {
+        const { running } = game
+        if (running) game.pause()
+        game.mspf = + $mspfInput.value
+        $mspfInput.value = game.mspf.toString()
+        if (running) game.start()
+    })
 }
