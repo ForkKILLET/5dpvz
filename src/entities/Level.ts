@@ -5,7 +5,7 @@ import { PlantSlotsConfig, UIEntity } from '@/entities/UI'
 import { ImageEntity } from '@/entities/Image'
 import { eq, matrix, Nullable, remove } from '@/utils'
 import { LawnBlockEntity } from '@/entities/LawnBlock'
-import { PlantEntity } from '@/entities/Plant'
+import { PlantEntity } from '@/entities/plants/Plant'
 import { SunEntity } from '@/entities/Sun'
 import { random } from '@/utils/random'
 import { LifeComp } from '@/comps/Life'
@@ -286,7 +286,8 @@ export class LevelEntity extends Entity<LevelConfig, LevelState, LevelEvents> {
         this.updatePlantSlot(false)
 
         const newPlant = PlantEntity.create(
-            { plantId, i, j },
+            plantId,
+            { i, j },
             {
                 position: this.getLawnBlockPosition(i, j),
                 zIndex: this.lawn.state.zIndex + 2,

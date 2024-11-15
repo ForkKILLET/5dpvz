@@ -1,15 +1,14 @@
-import { plantAnimation, PlantId } from '@/data/plants'
+import { PLANT_METADATA, plantAnimation, PlantId, PlantMetadata } from '@/data/plants'
 import { AnimationEntity } from '@/entities/Animation'
 import { HoverableComp } from '@/comps/Hoverable'
 import { kLevelState } from '@/entities/Level'
 import { HighlightableComp } from '@/comps/Highlightable'
 import { ButtonConfig, ButtonEntity, ButtonEvents, ButtonState } from '@/entities/Button'
-import { EntityState } from '@/engine'
+import { EntityCtor, EntityState } from '@/engine'
 
 export interface PlantUniqueConfig {
     i: number
     j: number
-    plantId: PlantId
 }
 export interface PlantConfig extends PlantUniqueConfig, ButtonConfig {}
 
@@ -17,7 +16,7 @@ export interface PlantState extends ButtonState {}
 
 export interface PlantEvents extends ButtonEvents {}
 
-export class PlantEntity extends ButtonEntity<PlantConfig, PlantState, PlantEvents> {
+export abstract class PlantEntity extends ButtonEntity<PlantConfig, PlantState, PlantEvents> {
     constructor(config: PlantConfig, state: PlantState) {
         super(config, state)
 
@@ -38,10 +37,10 @@ export class PlantEntity extends ButtonEntity<PlantConfig, PlantState, PlantEven
         )
     }
 
-    static create(config: PlantUniqueConfig, state: EntityState) {
-        return PlantEntity.from(
+    static create<P extends PlantId, C, S extends EntityState>(plantId: P, config: C, state: S) {
+        return PLANT_METADATA[plantId].from(
             new AnimationEntity(
-                plantAnimation.getAnimationConfig(config.plantId),
+                plantAnimation.getAnimationConfig(plantId),
                 AnimationEntity.initState(state)
             ),
             {
@@ -51,3 +50,5 @@ export class PlantEntity extends ButtonEntity<PlantConfig, PlantState, PlantEven
         )
     }
 }
+
+export const definePlant = <E extends PlantEntity, Ec extends EntityCtor<E> & PlantMetadata>(PlantCtor: Ec) => PlantCtor

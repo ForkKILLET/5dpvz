@@ -96,6 +96,7 @@ export default tseslint.config({
         '@typescript-eslint/no-unused-expressions': error({}),
         '@typescript-eslint/no-explicit-any': 'off',
         '@typescript-eslint/no-empty-object-type': 'off',
+        '@typescript-eslint/no-unsafe-declaration-merging': 'off',
         '@typescript-eslint/array-type': error({ default: 'array' }),
     }
 })
