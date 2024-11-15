@@ -232,7 +232,7 @@ export class LevelEntity extends Entity<LevelConfig, LevelState, LevelEvents> {
                 },
                 {
                     position: { x: this.width - 32, y: 5 },
-                    zIndex: 1,
+                    zIndex: this.state.zIndex + 5,
                 },
             ))
                 .addComp(CursorComp, 'pointer')
@@ -250,7 +250,7 @@ export class LevelEntity extends Entity<LevelConfig, LevelState, LevelEvents> {
                 },
                 {
                     position: { x: this.width - 32, y: 5 },
-                    zIndex: 1,
+                    zIndex: this.state.zIndex + 5,
                 },
             ))
                 .addComp(CursorComp, 'pointer')
@@ -418,10 +418,10 @@ export class LevelEntity extends Entity<LevelConfig, LevelState, LevelEvents> {
     preRender() {
         if (this.frozen) this.addRenderJob(() => {
             const { ctx } = this.game
-            ctx.fillStyle = 'rgba(0, 0, 0, .3)'
+            ctx.fillStyle = 'rgba(0, 32, 255, .3)'
 
             ctx.fillRect(0, 0, 10 + this.width, this.height)
-        }, 5)
+        }, 4)
 
         super.preRender()
     }
