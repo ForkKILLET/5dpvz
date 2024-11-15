@@ -362,7 +362,9 @@ export class LevelEntity extends Entity<LevelConfig, LevelState, LevelEvents> {
             })
             .on('before-render', () => {
                 const lifeComp = sun.getComp(LifeComp)!
-                if (lifeComp.life < 3000) this.game.ctx.globalAlpha = 0.5 // TODO
+                if (lifeComp.life < 3000) {
+                    this.game.ctx.globalAlpha = 0.75 + 0.25 * Math.cos(2 * Math.PI * lifeComp.life / 1000)
+                }
             })
             .on('dispose', () => {
                 remove(this.state.sunsData, sunData => sunData.entity === sun)
