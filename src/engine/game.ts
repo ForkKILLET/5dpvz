@@ -20,6 +20,7 @@ export interface GameEvents extends Events {
     hoverTargetChange: [ Entity | null ]
     click: [ Entity | null ]
     rightclick: [ Entity | null ]
+    keypress: [ KeyboardEvent ]
 
     entityStart: [ Entity ]
     entityDispose: [ Entity ]
@@ -141,12 +142,6 @@ export class Game {
                 },
             })
             if (! stopped) this.emitter.emit(event, target)
-        })
-
-        this.keyboard.emitter.on('keydown', event => {
-            if (event.key === 'Escape') {
-                // TODO
-            }
         })
 
         if (new URLSearchParams(location.search).has('debug')) {

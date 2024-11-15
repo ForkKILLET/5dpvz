@@ -89,6 +89,8 @@ export class LevelEntity extends Entity<LevelConfig, LevelState, LevelEvents> {
     width: number
     height: number
 
+    isFreeze: boolean = false
+
     plantMetadatas: PlantMetadata[] = []
 
     getPlantIdBySlotId(slotId: number) {
@@ -225,6 +227,24 @@ export class LevelEntity extends Entity<LevelConfig, LevelState, LevelEvents> {
                 if (this.state.holdingObject !== null) this.cancelHolding()
             })
 
+            this.game.keyboard.emitter.on('keypress', (ev: KeyboardEvent) => {
+                console.log('keypress', ev.key)
+            })
+
+            this.game.keyboard.emitter.on('keydown', (ev: KeyboardEvent) => {
+                console.log('keydown', ev.key)
+                if (ev.key == 'Escape') {
+                    if (this.isFreeze) {
+                        this.unfreeze()
+                        this.isFreeze = false
+                    }
+                    else {
+                        this.freeze()
+                        this.isFreeze = true
+                    }
+                }
+            })
+
             const pauseButton = ButtonEntity.from(new ImageEntity(
                 {
                     src: './assets/ui/pause_button.png',
@@ -239,6 +259,7 @@ export class LevelEntity extends Entity<LevelConfig, LevelState, LevelEvents> {
                 .attachTo(this)
                 .on('click', () => {
                     this.freeze()
+                    this.isFreeze = true
                     pauseButton.deactivate()
                     resumeButton.activate()
                 })
@@ -258,6 +279,7 @@ export class LevelEntity extends Entity<LevelConfig, LevelState, LevelEvents> {
                 .attachTo(this)
                 .on('click', () => {
                     this.unfreeze()
+                    this.isFreeze = false
                     resumeButton.deactivate()
                     pauseButton.activate()
                 })
