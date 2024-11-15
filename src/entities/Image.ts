@@ -23,6 +23,6 @@ export class ImageEntity<
 
     render() {
         const { x, y } = this.state.position
-        this.game.ctx.drawImage(this.img!, x, y)
+        this.game.ctx.drawImage(this.img, x, y)
     }
 }
