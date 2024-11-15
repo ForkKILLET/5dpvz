@@ -1,18 +1,19 @@
 import { EntityEvents, EntityState, Entity, Game } from '@/engine'
+import { placeholder } from '@/utils'
 
 export interface AnimationData {
-    fpsf: number
+    fpaf: number
     frameNum: number
 }
 
 export interface AnimationConfig {
     srcs: string[]
-    fpsf: number
+    fpaf: number
 }
 
 export interface AnimationUniqueState {
     f: number
-    sf: number
+    af: number
     isPlaying: boolean
     direction: 1 | - 1
 }
@@ -35,12 +36,12 @@ export const useAnimation = <M extends MetadataWithAnimationSet>(category: strin
         getImageSrc: (id: Id) => `./assets/${ category }/${ id }/common/01.png`,
         getImageConfig: (id: Id) => ({ src: animation.getImageSrc(id) }),
         getAnimationConfig: (id: Id, name = 'common'): AnimationConfig => {
-            const { frameNum, fpsf } = metadata[id].animations[name]
+            const { frameNum, fpaf: fpaf } = metadata[id].animations[name]
             const srcs = Array.from(
                 { length: frameNum },
                 (_, i) => `./assets/plants/${ id }/${ name }/${ String(i + 1).padStart(2, '0') }.png`,
             )
-            return { srcs, fpsf }
+            return { srcs, fpaf }
         },
     }
     return animation
@@ -54,7 +55,7 @@ export class AnimationEntity<
     static initState = <S>(state: S): S & AnimationUniqueState => ({
         ...state,
         f: 0,
-        sf: 0,
+        af: 0,
         isPlaying: true,
         direction: 1,
     })
@@ -66,28 +67,28 @@ export class AnimationEntity<
             .map((_, i) => `${ path }/${ String(i + 1).padStart(digits, '0') }.png`)
     }
 
-    frames: HTMLImageElement[] = []
+    frames: HTMLImageElement[] = placeholder
 
     async start(game: Game) {
         await super.start(game)
         this.frames = await Promise.all(
-            this.config.srcs.map(src => game.imageManager.loadImage(src)),
+            this.config.srcs.map(src => game.imageManager.loadImage(src))
         )
     }
 
     render() {
-        const { position: { x, y }, sf } = this.state
-        this.game.ctx.drawImage(this.frames[sf], x, y)
+        const { position: { x, y }, af } = this.state
+        this.game.ctx.drawImage(this.frames[af], x, y)
     }
 
     update() {
-        let { f, sf, isPlaying, direction } = this.state
+        let { f, af, isPlaying, direction } = this.state
         if (! isPlaying) return this.state
-        if (++ f === this.config.fpsf) {
+        if (++ f === this.config.fpaf) {
             this.emit('animation-finish')
             f = 0
-            if ((sf += direction) === this.frames.length) sf = 0
+            if ((af += direction) === this.frames.length) af = 0
         }
-        return { ...this.state, f, sf }
+        return { ...this.state, f, af }
     }
 }

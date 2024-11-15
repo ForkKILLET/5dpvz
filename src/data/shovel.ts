@@ -18,7 +18,7 @@ export const SHOVEL_METADATA: Record<ShovelId, ShovelMetadata> = {
         name: 'Iron Shovel',
         recycle: false,
         animations: {
-            common: { fpsf: 8, frameNum: 1 },
+            common: { fpaf: 8, frameNum: 1 },
         },
     },
 }

@@ -1,3 +1,5 @@
 export * from './type'
 export * from './array'
 export * from './random'
+export * from './function'
+export * from './any'

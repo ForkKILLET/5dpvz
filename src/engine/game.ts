@@ -4,6 +4,7 @@ import { ShapeComp } from '@/comps/Shape'
 import { Emitter, Entity, Events, ImageManager, Mouse, Scene, useImageManager, useMouse } from '@/engine'
 import { by, remove } from '@/utils'
 import { loadDebugWindow } from '@/debug'
+import { Keyboard, useKeyboard } from '@/engine/keyboard.ts'
 
 export interface GameConfig {
     ctx: CanvasRenderingContext2D
@@ -31,7 +32,9 @@ export class Game {
     readonly ctx: CanvasRenderingContext2D
     readonly imageManager: ImageManager
     readonly mouse: Mouse
-    readonly mspf: number
+    readonly keyboard: Keyboard
+
+    mspf: number
 
     allEntities: Entity[] = []
     scenes: Scene[] = []
@@ -50,7 +53,7 @@ export class Game {
     }
 
     private loopTimerId: number | null = null
-    private loop() {
+    loop() {
         const activeScenes = this.scenes.filter(scene => scene.active)
 
         activeScenes.forEach(scene => scene.runUpdate())
@@ -99,10 +102,13 @@ export class Game {
             })
     }
 
+    running = false
     start() {
+        this.running = true
         this.loopTimerId = setInterval(() => this.loop(), this.mspf)
     }
     pause() {
+        this.running = false
         if (this.loopTimerId !== null) clearInterval(this.loopTimerId)
     }
 
@@ -110,6 +116,7 @@ export class Game {
         this.ctx = ctx
         this.imageManager = useImageManager()
         this.mouse = useMouse(ctx)
+        this.keyboard = useKeyboard()
         this.mspf = 1000 / fps
 
         const floor = new class Floor extends Scene {
@@ -127,8 +134,19 @@ export class Game {
             const target = this.hoveringEntity
             if (! target) return
 
-            target.getComp(HoverableComp)!.emitter.emit(event)
-            this.emitter.emit(event, target)
+            let stopped = false
+            target.getComp(HoverableComp)!.emitter.emit(event, {
+                stop: () => {
+                    stopped = true
+                },
+            })
+            if (! stopped) this.emitter.emit(event, target)
+        })
+
+        this.keyboard.emitter.on('keydown', event => {
+            if (event.key === 'Escape') {
+                // TODO
+            }
         })
 
         if (new URLSearchParams(location.search).has('debug')) {

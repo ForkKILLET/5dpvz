@@ -1,16 +1,21 @@
-import { isInRect, Game, getImagePixels, EntityEvents } from '@/engine'
-import { ImageConfig, ImageEntity, ImageState } from '@/entities/Image'
+import { Game, getImagePixels, EntityEvents, Entity, EntityState, Position, isInRect } from '@/engine'
+import { ImageEntity } from '@/entities/Image'
 import { HoverableComp, HoverableEvents } from '@/comps/Hoverable'
 import { ShapeComp } from '@/comps/Shape'
+import { AnimationEntity } from './Animation'
+import { placeholder } from '@/utils'
 
-export interface ButtonConfig extends ImageConfig {
+export interface ContainingModeConfig {
     containingMode: 'rect' | 'strict'
+}
+export interface ButtonConfig extends ContainingModeConfig {
+    entity: ImageEntity | AnimationEntity
 }
 
 export interface ButtonUniqueState {
     hovering: boolean
 }
-export interface ButtonState extends ImageState, ButtonUniqueState {}
+export interface ButtonState extends ButtonUniqueState, EntityState {}
 
 export interface ButtonEvents extends HoverableEvents, EntityEvents {}
 
@@ -18,45 +23,66 @@ export class ButtonEntity<
     C extends ButtonConfig = ButtonConfig,
     S extends ButtonState = ButtonState,
     E extends ButtonEvents = ButtonEvents
-> extends ImageEntity<C, S, E> {
+> extends Entity<C, S, E> {
     static initState = <S>(state: S): S & ButtonUniqueState => ({
         ...state,
         hovering: false,
     })
 
-    protected pixels: Uint8ClampedArray | null = null
+    contains: (point: Position) => boolean = placeholder
 
     constructor(config: C, state: S) {
         super(config, state)
 
         this
-            .addComp(ShapeComp, point => {
-                const { x, y } = this.state.position
-                const { width, height } = this.img!
+            .attach(config.entity)
+            .afterStart(() => this
+                .addComp(ShapeComp, this.contains)
+                .addComp(HoverableComp)
+                .withComp(HoverableComp, ({ emitter }) => {
+                    this.forwardEvents(emitter, [ 'click', 'rightclick' ])
+                })
+            )
+    }
 
-                if (! isInRect(point, { x, y, width, height })) return false
-                if (this.config.containingMode === 'rect') return true
-
-                const rx = point.x - x
-                const ry = point.y - y
-                const i = ry * width * 4 + rx * 4
-                const [ r, g, b, a ] = this.pixels!.slice(i, i + 4)
-                return ! (r === 0 && g === 0 && b === 0 && a === 0)
+    static from<C extends ContainingModeConfig>(
+        entity: ImageEntity | AnimationEntity,
+        config: C = { containingMode: 'strict' } as C
+    ) {
+        return new this(
+            { entity, ...config },
+            ButtonEntity.initState({
+                position: entity.state.position,
+                zIndex: entity.state.zIndex,
             })
-            .addComp(HoverableComp)
-            .withComp(HoverableComp, ({ emitter }) => {
-                this.forwardEvents(emitter, [ 'click', 'rightclick' ])
-            })
+        )
     }
 
     async start(game: Game) {
         await super.start(game)
-        if (this.config.containingMode === 'strict') this.pixels = getImagePixels(this.img!)
-    }
 
-    render() {
-        const { x, y } = this.state.position
-        this.game.ctx.drawImage(this.img!, x, y)
+        const { entity } = this.config
+        await entity.toStart()
+
+        const isImage = entity instanceof ImageEntity
+        const images = isImage ? [ entity.img ] : entity.frames
+        const pixelsList = images.map(getImagePixels)
+        const [ { width, height } ] = images
+
+        const getCurrentPixels = () => isImage ? pixelsList[0] : pixelsList[entity.state.af]
+
+        this.contains = point => {
+            const { x, y } = this.state.position
+
+            if (! isInRect(point, { x, y, width, height })) return false
+            if (this.config.containingMode === 'rect') return true
+
+            const rx = point.x - x
+            const ry = point.y - y
+            const i = ry * width * 4 + rx * 4
+            const [ r, g, b, a ] = getCurrentPixels().slice(i, i + 4)
+            return ! (r === 0 && g === 0 && b === 0 && a === 0)
+        }
     }
 
     update() {

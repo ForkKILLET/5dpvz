@@ -29,7 +29,15 @@ export const loadDebugWindow = (game: Game) => {
                 content: ']';
             }
             tab-header.active {
-                color: blue;
+                font-weight: bold;
+            }
+            tab-header.active::before {
+                content: '<';
+                color: red;
+            }
+            tab-header.active::after {
+                content: '>';
+                color: red;
             }
             tab-header:hover {
                 cursor: pointer;
@@ -40,13 +48,19 @@ export const loadDebugWindow = (game: Game) => {
                 display: none;
             }
 
+            debug-button, tab-header {
+                user-select: none;
+            }
             debug-button::before {
                 content: '['
             }
             debug-button::after {
                 content: ']'
             }
-            debug-button:hover {
+            debug-button.disabled {
+                color: #888;
+            }
+            debug-button:not(.disabled):hover {
                 cursor: pointer;
                 text-decoration: underline;
             }
@@ -55,8 +69,31 @@ export const loadDebugWindow = (game: Game) => {
                 color: green;
             }
 
-            #entity-tree-content {
-                font-size: 12px;
+            debug-input::before {
+                content: '['
+            }
+            debug-input::after {
+                content: ']'
+            }
+            debug-input:focus-within::before {
+                content: '<';
+                color: red;
+            }
+            debug-input:focus-within::after {
+                content: '>';
+                color: red;
+            }
+            debug-input > input {
+                font-family: monospace;
+                border: none;
+                outline: none;
+            }
+            debug-input > input[type="number"] {
+                color: blue;
+                appearance: textfield;
+            }
+            debug-input > input:focus {
+                text-decoration: underline;
             }
 
             #debug-window ul {
@@ -135,6 +172,7 @@ export const loadDebugWindow = (game: Game) => {
 
         <tab-header data-tab="entity-tree">Entity Tree</tab-header>
         <tab-header data-tab="entity-detail">Entity Detail</tab-header>
+        <tab-header data-tab="loop">Loop</tab-header>
         <br /><br />
         <tab-content data-tab="entity-tree">
             <debug-button id="refresh-entity-tree">Refresh</debug-button>
@@ -146,6 +184,13 @@ export const loadDebugWindow = (game: Game) => {
             <debug-button id="refresh-entity-detail">Refresh</debug-button>
             <br /><br />
             <div id="entity-detail-content"></div>
+        </tab-content>
+        <tab-content data-tab="loop">
+            <debug-button id="pause-start">Pause</debug-button>
+            <debug-button id="step" class="disabled">Step</debug-button>
+            <br /><br />
+            <b>mspf</b>: <debug-input><input id="mspf-input" type="number" value="${ game.mspf }" /></debug-input>
+            <debug-button id="mspf-submit">OK</debug-button>
         </tab-content>
     `
     const $ = <E extends Node = HTMLElement>(selector: string) =>
@@ -185,31 +230,32 @@ export const loadDebugWindow = (game: Game) => {
         ].filter(c => c)
     }
 
-    const showEntityTree = () => {
-        const show = (entity: Entity): string => {
-            const className = [
-                entity.active ? null : 'inactive',
-            ].filter(c => c !== null).join(' ')
-            const isFolden = foldState.get(entity.id)
-            const hasAttached = entity.attachedEntities.length > 0
-            return `<li class="${ className }" data-id="${ entity.id }">
-                ${ hasAttached
-                    ? `<debug-button class="fold-entity">${ isFolden ? '+' : '-' }</debug-button>`
-                    : ''
-                }
-                ${ showEntityLink(entity) }
-                ${ hasAttached && ! isFolden
-                    ? `<ul>
-                        ${ entity.attachedEntities
-                            .map(entity => `\n${ show(entity) }`)
-                            .join('')
-                        }
-                    </ul>`
-                    : ''
-                }
-            </li>`
-        }
-        return `<ul>${ game.scenes.map(show).join('\n') }</ul>`
+    const showEntityTree = (entity: Entity): string => {
+        const className = [
+            entity.active ? null : 'inactive',
+        ].filter(c => c !== null).join(' ')
+        const isFolden = foldState.get(entity.id)
+        const hasAttached = entity.attachedEntities.length > 0
+        return `<li class="${ className }" data-id="${ entity.id }">
+            ${ hasAttached
+                ? `<debug-button class="fold-entity">${ isFolden ? '+' : '-' }</debug-button>`
+                : ''
+            }
+            ${ showEntityLink(entity) }
+            ${ hasAttached && ! isFolden
+                ? `<ul>
+                    ${ entity.attachedEntities
+                        .map(entity => `\n${ showEntityTree(entity) }`)
+                        .join('')
+                    }
+                </ul>`
+                : ''
+            }
+        </li>`
+    }
+
+    const showEntityRoot = (entities: Entity[]) => {
+        return `<ul>${ entities.map(showEntityTree).join('\n') }</ul>`
     }
 
     let watchingEntity: Entity | undefined = undefined
@@ -234,7 +280,7 @@ export const loadDebugWindow = (game: Game) => {
         typeof obj === 'string' ? `<json-string>${ obj }</json-string>` :
         typeof obj === 'boolean' ? `<json-boolean>${ obj }</json-boolean>` :
         typeof obj === 'symbol' ? `<json-symbol>${ obj.description }</json-symbol>` :
-        obj === null ? '<json-null />' :
+        obj === null ? '<json-null></json-null>' :
         Array.isArray(obj) ? `<json-array>${ obj
             .map((child): string => `<json-item>${ showJson(child) }</json-item>`)
             .join('') }</json-array>` :
@@ -257,10 +303,15 @@ export const loadDebugWindow = (game: Game) => {
         $entityDetailContent.innerHTML = `
             ${ e.constructor.name } <debug-button class="show-entity-detail">#${ e.id }</debug-button>
             ${ showEntityAttrs(attrs) }<br />
-            state ${ showJson(e.state) }<br />
-            providedKeys ${ showJson(Object.getOwnPropertySymbols(e.providedValues)) }<br />
-            injectableKeys ${ showJson(e.injectableKeys) }<br />
+            <b>state</b> ${ showJson(e.state) }<br />
+            <b>config</b> ${ showJson(e.config) }<br />
+            <b>providedKeys</b> ${ showJson(Object.getOwnPropertySymbols(e.providedValues)) }<br />
+            <b>injectableKeys</b> ${ showJson(e.injectableKeys) }<br />
+            <b>comps</b> ${ showJson(e.comps.map(comp => comp.constructor.name)) }<br />
+            <b>superEntity</b> ${ showJson(e.superEntity) }<br />
+            <b>attachedEntities</b> <div id="entity-detail-tree-content"></div>
         `
+        refreshEntityTree()
     }
     const $entityDetailContent = $('#entity-detail-content')!
     $('#refresh-entity-detail')!.addEventListener('click', refreshEntityDetail)
@@ -307,4 +358,32 @@ export const loadDebugWindow = (game: Game) => {
             }
         }
     }, { capture: true })
+
+    let stepCount = 0
+    const $pauseStartButton = $('#pause-start')!
+    $pauseStartButton.addEventListener('click', () => {
+        game[game.running ? 'pause' : 'start']()
+        if (game.running) {
+            $stepButton.innerHTML = 'Step'
+            stepCount = 0
+        }
+        $pauseStartButton.innerHTML = game.running ? 'Pause' : 'Start'
+        $stepButton.className = game.running ? 'disabled' : ''
+    })
+
+    const $stepButton = $('#step')!
+    $stepButton.addEventListener('click', () => {
+        if (game.running) return
+        $stepButton.innerHTML = `Step: ${ ++ stepCount }`
+        game.loop()
+    })
+
+    const $mspfInput = $<HTMLInputElement>('#mspf-input')!
+    $('#mspf-submit')!.addEventListener('click', () => {
+        const { running } = game
+        if (running) game.pause()
+        game.mspf = + $mspfInput.value
+        $mspfInput.value = game.mspf.toString()
+        if (running) game.start()
+    })
 }

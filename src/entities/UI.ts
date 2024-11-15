@@ -17,7 +17,7 @@ export interface UIState extends EntityState {}
 
 export interface UIEvents extends EntityEvents {
     'choose-plant': [ slotId: number ]
-    'use-shovel': [ shovelId: ShovelId ]
+    'choose-shovel': [ shovelId: ShovelId ]
 }
 
 export class UIEntity extends Entity<UIConfig, UIState, UIEvents> {
@@ -49,7 +49,10 @@ export class UIEntity extends Entity<UIConfig, UIState, UIEvents> {
                 },
             )
                 .withComp(HoverableComp, ({ emitter }) => {
-                    emitter.on('click', () => this.emit('choose-plant', i))
+                    emitter.on('click', ({ stop }) => {
+                        stop()
+                        this.emit('choose-plant', i)
+                    })
                 })
         ))
         this.shovelSlot = new ShovelSlotEntity(
@@ -61,8 +64,9 @@ export class UIEntity extends Entity<UIConfig, UIState, UIEvents> {
                 zIndex: zIndex + 1,
             },
         )
-            .withComp(HoverableComp, hoverable => hoverable!.emitter.on('click', () => {
-                this.emit('use-shovel', 'iron_shovel') // Not sure
+            .withComp(HoverableComp, hoverable => hoverable!.emitter.on('click', ({ stop }) => {
+                stop()
+                this.emit('choose-shovel', this.shovelSlot.config.shovelId)
             }))
         this.attach(this.sunSlot, ...this.plantSlots, this.shovelSlot)
     }

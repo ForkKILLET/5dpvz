@@ -3,17 +3,17 @@ import { Entity, EntityEvents, EntityState, injectKey } from '@/engine'
 import { LawnConfig, LawnEntity } from '@/entities/Lawn'
 import { PlantSlotsConfig, UIEntity } from '@/entities/UI'
 import { ImageEntity } from '@/entities/Image'
-import { matrix, Nullable, remove } from '@/utils'
+import { eq, matrix, Nullable, remove } from '@/utils'
 import { LawnBlockEntity } from '@/entities/LawnBlock'
 import { PlantEntity } from '@/entities/Plant'
 import { SunEntity } from '@/entities/Sun'
 import { random } from '@/utils/random'
 import { LifeComp } from '@/comps/Life'
 import { ShovelSlotConfig } from '@/entities/ShovelSlot'
-import { shovelAnimation, ShovelId } from '@/data/shovel.ts'
-import { ButtonEntity } from '@/entities/Button.ts'
-import { CursorComp } from '@/comps/Cursor.ts'
-import { placeholder } from '@/utils/any.ts'
+import { shovelAnimation, ShovelId } from '@/data/shovel'
+import { ButtonEntity } from '@/entities/Button'
+import { CursorComp } from '@/comps/Cursor'
+import { placeholder } from '@/utils/any'
 
 export interface LevelConfig {
     plantSlots: PlantSlotsConfig
@@ -50,10 +50,6 @@ export interface SunData {
     entity: SunEntity
 }
 
-// export interface ShovelSlotData {
-//     isHolding: boolean
-// }
-
 type HoldingObject =
     | { type: 'plant', slotId: number }
     | { type: 'shovel', shovelId: ShovelId }
@@ -66,7 +62,6 @@ export interface LevelUniqueState {
     plantsData: PlantData[]
     plantsOnBlocks: Nullable<PlantData>[][]
     sunsData: SunData[]
-    // shovelSlotData: ShovelSlotData
 }
 export interface LevelState extends LevelUniqueState, EntityState {}
 
@@ -84,7 +79,6 @@ export class LevelEntity extends Entity<LevelConfig, LevelState, LevelEvents> {
         plantsData: [],
         plantsOnBlocks: placeholder,
         sunsData: [],
-        // shovelSlotData: {isHolding: false},
     })
 
     ui: UIEntity
@@ -160,7 +154,12 @@ export class LevelEntity extends Entity<LevelConfig, LevelState, LevelEvents> {
                     .deactivate()
                     .attachTo(this)
             })
-            .on('use-shovel', shovelId => {
+            .on('choose-shovel', shovelId => {
+                if (this.state.holdingObject?.type === 'shovel') {
+                    this.cancelHolding()
+                    return
+                }
+
                 this.state.holdingObject = { type: 'shovel', shovelId }
                 this.holdingImage?.dispose()
                 this.holdingImage = new ImageEntity(
@@ -171,19 +170,6 @@ export class LevelEntity extends Entity<LevelConfig, LevelState, LevelEvents> {
                     },
                 )
                     .attachTo(this)
-
-                // this.phantomImage = new ImageEntity(
-                //     shovelAnimation.getImageConfig(shovelId),
-                //     {
-                //         position: { x: 0, y: 0 },
-                //         zIndex: this.lawn.state.zIndex + 2
-                //     }
-                // )
-                //     .on('before-render', () => {
-                //         this.game.ctx.globalAlpha = 0.5
-                //     })
-                //     .deactivate()
-                //     .attachTo(this)
             })
 
         this.lawn = new LawnEntity(
@@ -201,7 +187,6 @@ export class LevelEntity extends Entity<LevelConfig, LevelState, LevelEvents> {
                 if (this.state.holdingObject === null) return
 
                 const { holdingObject } = this.state
-
                 if (holdingObject?.type === 'plant') {
                     if (! target) this.phantomImage!.deactivate()
                     else if (target instanceof LawnBlockEntity) {
@@ -215,49 +200,41 @@ export class LevelEntity extends Entity<LevelConfig, LevelState, LevelEvents> {
                         this.phantomImage!.activate().state.position = { x, y }
                     }
                 }
-                // if (holdingObject.type === 'shovel') {
-                //     if (target instanceof LawnBlockEntity) {
-                //         const {i, j} = target.config
-                //         if (this.isOccupied(i, j)) {
-                //             this.state.plantsOnBlocks[i][j]!.entity.state.isHighlight = true
-                //         }
-                //     }
-                // }
             })
 
             this.game.emitter.on('click', target => {
-                if (this.state.holdingObject !== null && target instanceof LawnBlockEntity) {
-                    const { holdingObject } = this.state
+                if (this.state.holdingObject === null) return
+
+                const { holdingObject } = this.state
+                if (target instanceof LawnBlockEntity) {
                     if (holdingObject?.type === 'plant') {
                         const { i, j } = target.config
                         this.plant(holdingObject.slotId, i, j)
                     }
+                }
+                else if (target instanceof PlantEntity) {
                     if (holdingObject?.type === 'shovel') {
-                        const { i, j } = target.config
-                        if (this.isOccupied(i, j)) {
-                            this.kill(i, j)
-                        }
+                        this.kill(target.config.i, target.config.j)
                         this.cancelHolding()
                     }
                 }
+                else this.cancelHolding()
             })
 
             this.game.emitter.on('rightclick', () => {
-                if (this.state.holdingObject !== null) {
-                    this.cancelHolding()
-                }
+                if (this.state.holdingObject !== null) this.cancelHolding()
             })
 
-            const pauseButton = new ButtonEntity(
+            const pauseButton = ButtonEntity.from(new ImageEntity(
                 {
                     src: './assets/ui/pause_button.png',
                     containingMode: 'rect',
                 },
-                ButtonEntity.initState({
+                {
                     position: { x: this.width - 32, y: 5 },
-                    zIndex: 1,
-                }),
-            )
+                    zIndex: this.state.zIndex + 5,
+                },
+            ))
                 .addComp(CursorComp, 'pointer')
                 .attachTo(this)
                 .on('click', () => {
@@ -266,16 +243,16 @@ export class LevelEntity extends Entity<LevelConfig, LevelState, LevelEvents> {
                     resumeButton.activate()
                 })
 
-            const resumeButton = new ButtonEntity(
+            const resumeButton = ButtonEntity.from(new ImageEntity(
                 {
                     src: './assets/ui/resume_button.png',
                     containingMode: 'rect',
                 },
-                ButtonEntity.initState({
+                {
                     position: { x: this.width - 32, y: 5 },
-                    zIndex: 1,
-                }),
-            )
+                    zIndex: this.state.zIndex + 5,
+                },
+            ))
                 .addComp(CursorComp, 'pointer')
                 .deactivate()
                 .attachTo(this)
@@ -299,22 +276,15 @@ export class LevelEntity extends Entity<LevelConfig, LevelState, LevelEvents> {
         slot.isCooledDown = false
         this.state.sun -= cost
 
-        const newPlant = new PlantEntity(
-            { plantId },
-            PlantEntity.initState({
+        this.updatePlantSlot(false)
+
+        const newPlant = PlantEntity.create(
+            { plantId, i, j },
+            {
                 position: this.getLawnBlockPosition(i, j),
                 zIndex: this.lawn.state.zIndex + 2,
-                isHighlight: false,
-            }),
+            }
         )
-            .on('before-render', () => {
-                if (newPlant.state.isHighlight) {
-                    this.game.ctx.filter = 'brightness(1.5)'
-                }
-                else {
-                    this.game.ctx.filter = 'none'
-                }
-            }) // FIXME
 
         const newPlantData: PlantData = {
             id: plantId,
@@ -331,16 +301,13 @@ export class LevelEntity extends Entity<LevelConfig, LevelState, LevelEvents> {
 
     kill(i: number, j: number) {
         const plantData = this.state.plantsOnBlocks[i][j]
-        if (! plantData) return // maybe dont need this line
+        if (! plantData) return
+        this.state.plantsOnBlocks[i][j] = null
+
         const { entity } = plantData
         entity.dispose()
 
-        const plantIndex = this.state.plantsData.findIndex(pd => pd.id === plantData.id)
-        if (plantIndex !== - 1) {
-            this.state.plantsData.splice(plantIndex, 1)
-        }
-
-        this.state.plantsOnBlocks[i][j] = null
+        remove(this.state.plantsData, eq(plantData))
     }
 
     isOccupied(i: number, j: number) {
@@ -353,7 +320,7 @@ export class LevelEntity extends Entity<LevelConfig, LevelState, LevelEvents> {
 
     cancelHolding() {
         if (this.state.holdingObject?.type === 'shovel') {
-            this.ui.shovelSlot.attachedImageEntity?.activate()
+            this.ui.shovelSlot.shovelImage?.activate()
         }
         this.state.holdingObject = null
         this.holdingImage?.dispose()
@@ -366,19 +333,19 @@ export class LevelEntity extends Entity<LevelConfig, LevelState, LevelEvents> {
         const { x: x0, y: y0 } = this.lawn.state.position
         const x = x0 + random((this.config.lawn.width - 1) * 80)
         const y = y0 + random(1 * 80)
-        const targetY = y + random((this.config.lawn.height - 2) * 80)
-        const lifeLimit = (targetY - y) / (this.config.sun.sunDroppingVelocity * this.game.mspf / 1000) * this.game.mspf + 4000
+        const deltaY = random((this.config.lawn.height - 2) * 80)
+        const targetY = y + deltaY
+        const life = deltaY / this.config.sun.sunDroppingVelocity + 4000
 
-        const sun = new SunEntity(
+        const sun = SunEntity.create(
             {
-                // life: this.config.sun.sunLife,
-                life: lifeLimit,
+                life,
                 targetY,
             },
-            SunEntity.initState({
+            {
                 position: { x, y },
-                zIndex: this.lawn.state.zIndex + 2,
-            }),
+                zIndex: this.lawn.state.zIndex + 3,
+            }
         )
             .attachTo(this)
             .on('click', () => {
@@ -393,7 +360,7 @@ export class LevelEntity extends Entity<LevelConfig, LevelState, LevelEvents> {
                 remove(this.state.sunsData, sunData => sunData.entity === sun)
             })
         this.state.sunsData.push({
-            lifeLimit,
+            lifeLimit: life,
             targetY,
             entity: sun,
         })
@@ -407,18 +374,11 @@ export class LevelEntity extends Entity<LevelConfig, LevelState, LevelEvents> {
         super.preUpdate()
     }
 
-    update() {
-        if (this.holdingImage) {
-            const { x, y } = this.game.mouse.position
-            this.holdingImage.state.position = { x: x - 40, y: y - 40 }
-        }
-
-        if (this.frozen) return this.state
-
+    updatePlantSlot(runCoolDown = true) {
         this.state.plantSlotsData.forEach((slot, i) => {
             let { cd, isCooledDown } = slot
 
-            if (! isCooledDown) {
+            if (runCoolDown && ! isCooledDown) {
                 const { cd: maxCd } = this.plantMetadatas[i]
                 cd += this.game.mspf
                 if (cd > maxCd) {
@@ -432,10 +392,21 @@ export class LevelEntity extends Entity<LevelConfig, LevelState, LevelEvents> {
 
             slot.isPlantable = slot.isCooledDown && slot.isSunEnough
         })
+    }
+
+    update() {
+        if (this.holdingImage) {
+            const { x, y } = this.game.mouse.position
+            this.holdingImage.state.position = { x: x - 40, y: y - 40 }
+        }
+
+        if (this.frozen) return this.state
+
+        this.updatePlantSlot()
 
         this.state.sunsData.forEach(({ entity, targetY }) => {
             if (entity.state.position.y < targetY) entity.state.position.y += (
-                this.config.sun.sunDroppingVelocity * this.game.mspf / 1000
+                this.config.sun.sunDroppingVelocity * this.game.mspf
             )
         })
 
@@ -447,10 +418,10 @@ export class LevelEntity extends Entity<LevelConfig, LevelState, LevelEvents> {
     preRender() {
         if (this.frozen) this.addRenderJob(() => {
             const { ctx } = this.game
-            ctx.fillStyle = 'rgba(0, 0, 0, .3)'
+            ctx.fillStyle = 'rgba(0, 32, 255, .3)'
 
             ctx.fillRect(0, 0, 10 + this.width, this.height)
-        }, 5)
+        }, 4)
 
         super.preRender()
     }
