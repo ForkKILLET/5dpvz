@@ -41,7 +41,7 @@ export abstract class PlantEntity<
     static create<P extends PlantId, C, S extends EntityState>(plantId: P, config: C, state: S) {
         return PLANT_METADATA[plantId].from(
             new AnimationEntity(
-                plantAnimation.getAnimationConfig(plantId),
+                plantAnimation.getAnimationConfig(plantId, 'plants'),
                 AnimationEntity.initState(state)
             ),
             {
