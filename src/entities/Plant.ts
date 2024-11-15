@@ -41,7 +41,7 @@ export class PlantEntity extends ButtonEntity<PlantConfig, PlantState, PlantEven
     static create(config: PlantUniqueConfig, state: EntityState) {
         return PlantEntity.from(
             new AnimationEntity(
-                plantAnimation.getAnimationConfig(config.plantId),
+                plantAnimation.getAnimationConfig(config.plantId, 'plants'),
                 AnimationEntity.initState(state)
             ),
             {
