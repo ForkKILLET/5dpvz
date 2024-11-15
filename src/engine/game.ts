@@ -4,7 +4,7 @@ import { ShapeComp } from '@/comps/Shape'
 import { Emitter, Entity, Events, ImageManager, Mouse, Scene, useImageManager, useMouse } from '@/engine'
 import { by, remove } from '@/utils'
 import { loadDebugWindow } from '@/debug'
-import { Keyboard, useKeyboard } from '@/engine/keyboard'
+import { Keyboard, KeyboardEvents, useKeyboard } from '@/engine/keyboard'
 
 export interface GameConfig {
     ctx: CanvasRenderingContext2D
@@ -16,11 +16,10 @@ export interface RenderJob {
     renderer: () => void
 }
 
-export interface GameEvents extends Events {
+export interface GameEvents extends KeyboardEvents, Events {
     hoverTargetChange: [ Entity | null ]
-    click: [ Entity | null ]
-    rightclick: [ Entity | null ]
-    keypress: [ KeyboardEvent ]
+    click: [ Entity | null, MouseEvent ]
+    rightclick: [ Entity | null, MouseEvent ]
 
     entityStart: [ Entity ]
     entityDispose: [ Entity ]
@@ -49,11 +48,11 @@ export class Game {
 
     hoveringEntity: Entity | null = null
 
-    private get isRunning() {
+    private loopTimerId: number | null = null
+    get running() {
         return this.loopTimerId !== null
     }
 
-    private loopTimerId: number | null = null
     loop() {
         const activeScenes = this.scenes.filter(scene => scene.active)
 
@@ -103,13 +102,10 @@ export class Game {
             })
     }
 
-    running = false
     start() {
-        this.running = true
         this.loopTimerId = setInterval(() => this.loop(), this.mspf)
     }
     pause() {
-        this.running = false
         if (this.loopTimerId !== null) clearInterval(this.loopTimerId)
     }
 
@@ -129,8 +125,8 @@ export class Game {
         }
         this.addScene(floor)
 
-        this.mouse.emitter.onSome([ 'click', 'rightclick' ], event => {
-            if (! this.isRunning) return
+        this.mouse.emitter.onSome([ 'click', 'rightclick' ], (event, ev) => {
+            if (! this.running) return
 
             const target = this.hoveringEntity
             if (! target) return
@@ -141,8 +137,10 @@ export class Game {
                     stopped = true
                 },
             })
-            if (! stopped) this.emitter.emit(event, target)
+            if (! stopped) this.emitter.emit(event, target, ev)
         })
+
+        this.emitter.forward(this.keyboard.emitter, [ 'keydown', 'keyup', 'keypress' ])
 
         if (new URLSearchParams(location.search).has('debug')) {
             loadDebugWindow(this)

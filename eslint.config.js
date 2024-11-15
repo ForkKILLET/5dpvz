@@ -86,6 +86,7 @@ export default tseslint.config({
         '@stylistic/plus/type-generic-spacing': 'error',
 
         // JavaScript
+        'eqeqeq': 'error',
         'no-empty': 'off',
         'prefer-const': error({
             destructuring: 'all'

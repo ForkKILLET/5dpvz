@@ -29,7 +29,7 @@ export class Emitter<E extends Events> {
         return () => disposers.forEach(fn => fn())
     }
 
-    forward<F extends Events, const Ks extends (keyof RemoveIndex<F> & RemoveIndex<E>)[]>(
+    forward<F extends Events, const Ks extends (keyof RemoveIndex<F> & keyof RemoveIndex<E>)[]>(
         source: Emitter<F>, events: Ks,
     ) {
         events.forEach(event => {
@@ -40,8 +40,8 @@ export class Emitter<E extends Events> {
                 fn()
                 locked = false
             }
-            source.on(event, (...args) => lock(() => this.emit(event as any, ...args as any)))
-            this.on(event as any, (...args) => lock(() => source.emit(event, ...args as any)))
+            source.on(event, (...args) => lock(() => this.emit(event, ...args as any)))
+            this.on(event, (...args) => lock(() => source.emit(event, ...args as any)))
         })
     }
 }
