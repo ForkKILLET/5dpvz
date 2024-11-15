@@ -93,6 +93,7 @@ export default tseslint.config({
         }),
 
         // TypeScript
+        '@typescript-eslint/no-unused-expressions': error({}),
         '@typescript-eslint/no-explicit-any': 'off',
         '@typescript-eslint/no-empty-object-type': 'off',
         '@typescript-eslint/array-type': error({ default: 'array' }),
