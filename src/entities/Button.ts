@@ -47,11 +47,11 @@ export class ButtonEntity<
 
     static from<C extends ContainingModeConfig>(
         entity: ImageEntity | AnimationEntity,
-        config: C = { containingMode: 'strict' } as C
+        config: C = { containingMode: 'strict' } as C,
     ) {
         return new this(
             { entity, ...config },
-            ButtonEntity.initState({
+            this.initState({
                 position: entity.state.position,
                 zIndex: entity.state.zIndex,
             })

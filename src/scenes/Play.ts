@@ -7,7 +7,7 @@ export class PlayScene extends Scene {
             {
                 plantSlots: {
                     slotNum: 2,
-                    plantIds: [ 'pea_shooter', 'pea_shooter' ],
+                    plantIds: [ 'pea_shooter', 'sunflower' ],
                 },
                 lawn: {
                     width: 9,

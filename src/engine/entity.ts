@@ -29,7 +29,11 @@ export class Comp {
 
 export type CompCtor<C extends Comp = Comp> = new (...args: any[]) => C
 
-export class Entity<C = any, S extends EntityState = any, E extends EntityEvents = EntityEvents> {
+export class Entity<
+    C = any,
+    S extends EntityState = any,
+    E extends EntityEvents = EntityEvents
+> {
     static generateEntityId = createIdGenerator()
 
     readonly id = Entity.generateEntityId()

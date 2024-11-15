@@ -188,8 +188,7 @@ export class LevelEntity extends Entity<LevelConfig, LevelState, LevelEvents> {
 
                 const { holdingObject } = this.state
                 if (holdingObject?.type === 'plant') {
-                    if (! target) this.phantomImage!.deactivate()
-                    else if (target instanceof LawnBlockEntity) {
+                    if (target instanceof LawnBlockEntity) {
                         const { i, j } = target.config
                         if (this.isOccupied(i, j)) {
                             this.phantomImage!.deactivate()
@@ -199,6 +198,7 @@ export class LevelEntity extends Entity<LevelConfig, LevelState, LevelEvents> {
                         const { x, y } = target.state.position
                         this.phantomImage!.activate().state.position = { x, y }
                     }
+                    else this.phantomImage!.deactivate()
                 }
             })
 

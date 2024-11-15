@@ -6,3 +6,6 @@ dist
 # Workspace
 ideas
 .idea
+
+# Animation preview
+*.gif

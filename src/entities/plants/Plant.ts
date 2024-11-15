@@ -16,8 +16,12 @@ export interface PlantState extends ButtonState {}
 
 export interface PlantEvents extends ButtonEvents {}
 
-export abstract class PlantEntity extends ButtonEntity<PlantConfig, PlantState, PlantEvents> {
-    constructor(config: PlantConfig, state: PlantState) {
+export abstract class PlantEntity<
+    C extends PlantConfig = PlantConfig,
+    S extends PlantState = PlantState,
+    E extends PlantEvents = PlantEvents
+> extends ButtonEntity<C, S, E> {
+    constructor(config: C, state: S) {
         super(config, state)
 
         this.afterStart(() => this
