@@ -20,6 +20,7 @@ export interface GameEvents extends Events {
     hoverTargetChange: [ Entity | null ]
     click: [ Entity | null ]
     rightclick: [ Entity | null ]
+    keypress: [ KeyboardEvent ]
 
     entityStart: [ Entity ]
     entityDispose: [ Entity ]

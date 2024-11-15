@@ -1,6 +1,7 @@
 import { Emitter, Events } from '@/engine/events'
 
 export interface KeyboardEvents extends Events {
+    keypress: [ KeyboardEvent ]
     keydown: [ KeyboardEvent ]
     keyup: [ KeyboardEvent ]
 }
@@ -19,9 +20,9 @@ export const useKeyboard = (): Keyboard => {
         emitter.emit('keydown', ev)
     })
 
-    document.addEventListener('keyup', ev => {
-        keys.delete(ev.key)
-        emitter.emit('keyup', ev)
+    document.addEventListener('keypress', ev => {
+        keys.add(ev.key)
+        emitter.emit('keypress', ev)
     })
 
     return { keys, emitter }
