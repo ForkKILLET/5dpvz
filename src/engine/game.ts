@@ -4,6 +4,7 @@ import { ShapeComp } from '@/comps/Shape'
 import { Emitter, Entity, Events, ImageManager, Mouse, Scene, useImageManager, useMouse } from '@/engine'
 import { by, remove } from '@/utils'
 import { loadDebugWindow } from '@/debug'
+import { Keyboard, useKeyboard } from '@/engine/keyboard'
 
 export interface GameConfig {
     ctx: CanvasRenderingContext2D
@@ -31,6 +32,7 @@ export class Game {
     readonly ctx: CanvasRenderingContext2D
     readonly imageManager: ImageManager
     readonly mouse: Mouse
+    readonly keyboard: Keyboard
 
     mspf: number
 
@@ -114,6 +116,7 @@ export class Game {
         this.ctx = ctx
         this.imageManager = useImageManager()
         this.mouse = useMouse(ctx)
+        this.keyboard = useKeyboard()
         this.mspf = 1000 / fps
 
         const floor = new class Floor extends Scene {
