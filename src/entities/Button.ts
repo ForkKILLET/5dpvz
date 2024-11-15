@@ -5,6 +5,7 @@ import { HoverableComp, HoverableEvents } from '@/comps/Hoverable'
 import { ShapeComp } from '@/comps/Shape'
 import { BoundaryComp } from '@/comps/Boundary'
 import { placeholder } from '@/utils'
+import { BoundaryComp } from '@/comps/Boundary'
 
 export interface ContainingModeConfig {
     containingMode: 'rect' | 'strict'
