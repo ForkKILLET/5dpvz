@@ -24,7 +24,6 @@ export class PlantSlotEntity extends SlotEntity<PlantSlotConfig, PlantSlotState,
         this.plantMetadata = PLANT_METADATA[this.config.plantId]
 
         this
-            .addComp(CursorComp, 'pointer')
             .attach(new ImageEntity(
                 plantAnimation.getImageConfig(this.config.plantId),
                 {
@@ -32,6 +31,7 @@ export class PlantSlotEntity extends SlotEntity<PlantSlotConfig, PlantSlotState,
                     zIndex: zIndex + 2,
                 },
             ))
+            .addComp(CursorComp, 'pointer')
     }
 
     preRender() {

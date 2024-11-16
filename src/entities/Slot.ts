@@ -2,6 +2,7 @@
 import { Entity, EntityEvents, EntityState, isInRect } from '@/engine'
 import { HoverableComp, HoverableEvents } from '@/comps/Hoverable'
 import { ShapeComp } from '@/comps/Shape'
+import { BoundaryComp } from '@/comps/Boundary'
 
 export interface SlotConfig {}
 
@@ -25,6 +26,7 @@ export class SlotEntity<
         this
             .addComp(ShapeComp, point => isInRect(point, { x, y, width: this.width, height: this.height }))
             .addComp(HoverableComp)
+            .addComp(BoundaryComp, this.width, this.height)
     }
 
     preRender() {

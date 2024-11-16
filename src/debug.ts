@@ -1,6 +1,8 @@
 /* eslint-disable @stylistic/js/indent */
 
 import { Entity, Game, Scene } from '@/engine'
+import { BoundaryComp } from '@/comps/Boundary'
+import { by } from '@/utils'
 
 export const loadDebugWindow = (game: Game) => {
     const $debugWindow = document.querySelector('#debug-window') as HTMLDivElement
@@ -60,6 +62,9 @@ export const loadDebugWindow = (game: Game) => {
             debug-button.disabled {
                 color: #888;
             }
+            debug-button.active {
+                color: red;
+            }
             debug-button:not(.disabled):hover {
                 cursor: pointer;
                 text-decoration: underline;
@@ -104,6 +109,10 @@ export const loadDebugWindow = (game: Game) => {
             }
             #debug-window li.inactive {
                 color: #888;
+            }
+            #debug-window li.selecting {
+                border: 1px solid red;
+                background-color: rgba(255, 0, 0, 0.1);
             }
 
             entity-attr {
@@ -175,12 +184,14 @@ export const loadDebugWindow = (game: Game) => {
         <tab-header data-tab="loop">Loop</tab-header>
         <br /><br />
         <tab-content data-tab="entity-tree">
+            <debug-button id="select">@</debug-button>
             <debug-button id="refresh-entity-tree">Refresh</debug-button>
             <debug-button id="auto-refresh-entity-tree">Manual</debug-button>
             <br /><br />
             <div id="entity-tree-content"></div>
         </tab-content>
         <tab-content data-tab="entity-detail">
+            <debug-button id="back-to-entity-tree">&lt;</debug-button>
             <debug-button id="refresh-entity-detail">Refresh</debug-button>
             <br /><br />
             <div id="entity-detail-content"></div>
@@ -197,6 +208,88 @@ export const loadDebugWindow = (game: Game) => {
         $debugWindow.querySelector(selector) as E | null
     const $$ = <E extends Node = HTMLElement>(selector: string) =>
         $debugWindow.querySelectorAll(selector) as unknown as NodeListOf<E>
+
+    class DebugHandle extends Scene {
+        constructor() {
+            super([])
+            this.state.zIndex = Infinity
+            this.afterStart(() => {
+                this.game.emitter.onSome([
+                    'entityStart',
+                    'entityDispose',
+                    'entityAttach',
+                    'entityActivate',
+                    'entityDeactivate',
+                    'hoverTargetChange',
+                ], refreshEntityTree)
+
+                this.game.mouse.emitter.on('click', () => {
+                    if (selecting && selectingEntity) {
+                        watchingEntity = selectingEntity
+                        selectingEntity = null
+                        toggleSelecting()
+                        switchTab('entity-detail')
+                        refreshEntityDetail()
+                        return false
+                    }
+                }, { capture: true })
+            })
+        }
+
+        render() {
+            const { ctx } = this.game
+
+            watchingEntity?.withComp(BoundaryComp, boundaryComp => {
+                const { width, height, entity } = boundaryComp
+                if (! entity.deepActive) {
+                    watchingEntity = null
+                    return
+                }
+                const { x, y } = entity.state.position
+                ctx.strokeStyle = 'blue'
+                ctx.strokeRect(x, y, width, height)
+                ctx.fillStyle = 'rgba(0, 0, 255, 0.1)'
+                ctx.fillRect(x, y, width, height)
+            })
+
+            if (selecting) {
+                const [ selectingEntityData ] = this.game
+                    .allEntities
+                    .filter(entity => ! (entity instanceof DebugHandle)
+                        && entity.deepActive
+                        && entity.hasComp(BoundaryComp)
+                    )
+                    .map(entity => {
+                        const boundaryComp = entity.getComp(BoundaryComp)
+                        if (! boundaryComp) return null
+
+                        const { width, height } = boundaryComp
+                        const { x, y } = entity.state.position
+                        ctx.strokeStyle = 'red'
+                        ctx.strokeRect(x, y, width, height)
+                        if (boundaryComp.contains(this.game.mouse.position))
+                            return { x, y, width, height, entity }
+                        return null
+                    })
+                    .filter(data => data !== null)
+                    .sort(by(data => - data.entity.state.zIndex))
+
+                if (selectingEntityData) {
+                    const { x, y, width, height, entity } = selectingEntityData
+                    ctx.fillStyle = 'rgba(255, 0, 0, 0.1)'
+                    ctx.fillRect(x, y, width, height)
+
+                    if (selectingEntity !== entity) {
+                        if (selectingEntity) cancelSelecting()
+                        $(`li[data-id="${ entity.id }"]`)!.classList.add('selecting')
+
+                        selectingEntity = entity
+                    }
+                }
+            }
+        }
+    }
+    game.addScene(new DebugHandle())
 
     let currentTab: string | undefined = undefined
     const $currentTab = () => currentTab ? $(`tab-content[data-tab="${ currentTab }"]`)! : null
@@ -215,7 +308,21 @@ export const loadDebugWindow = (game: Game) => {
     })
     switchTab('entity-tree')
 
-    const foldState = new Map<number, boolean>()
+    let selecting = false
+    let selectingEntity: Entity | null = null
+    const $selectButton = $('#select')!
+    const toggleSelecting = () => {
+        selecting = ! selecting
+        $selectButton.className = selecting ? 'active' : ''
+    }
+    const cancelSelecting = () => {
+        if (! selectingEntity) return
+        $(`li[data-id="${ selectingEntity.id }"]`)?.classList.remove('selecting')
+        selectingEntity = null
+    }
+    $selectButton.addEventListener('click', toggleSelecting)
+
+    const entityFoldState = new Map<number, boolean>()
 
     const showEntityAttrs = (attrs: (string | boolean | null)[]) => attrs
         .filter(attr => attr)
@@ -234,7 +341,7 @@ export const loadDebugWindow = (game: Game) => {
         const className = [
             entity.active ? null : 'inactive',
         ].filter(c => c !== null).join(' ')
-        const isFolden = foldState.get(entity.id)
+        const isFolden = entityFoldState.get(entity.id)
         const hasAttached = entity.attachedEntities.length > 0
         return `<li class="${ className }" data-id="${ entity.id }">
             ${ hasAttached
@@ -258,8 +365,7 @@ export const loadDebugWindow = (game: Game) => {
         return `<ul>${ entities.map(showEntityTree).join('\n') }</ul>`
     }
 
-    let watchingEntity: Entity | undefined = undefined
-
+    let watchingEntity: Entity | null = null
     let autoRefreshEntityTree = true
     const refreshEntityTree = () => {
         if (currentTab === 'entity-detail')
@@ -314,6 +420,10 @@ export const loadDebugWindow = (game: Game) => {
         refreshEntityTree()
     }
     const $entityDetailContent = $('#entity-detail-content')!
+    $('#back-to-entity-tree')!.addEventListener('click', () => {
+        watchingEntity = null
+        switchTab('entity-tree')
+    })
     $('#refresh-entity-detail')!.addEventListener('click', refreshEntityDetail)
     const showEntityLink = (entity: Entity) => {
         const attrs = getEntityAttrs(entity)
@@ -325,27 +435,11 @@ export const loadDebugWindow = (game: Game) => {
     }
     refreshEntityDetail()
 
-    game.addScene(new class DebugTrigger extends Scene {
-        constructor() {
-            super([])
-            this.afterStart(() => {
-                this.game.emitter.onSome([
-                    'entityStart',
-                    'entityDispose',
-                    'entityAttach',
-                    'entityActivate',
-                    'entityDeactivate',
-                    'hoverTargetChange',
-                ], refreshEntityTree)
-            })
-        }
-    })
-
     $debugWindow.addEventListener('click', ({ target: $el }) => {
         if (! ($el instanceof HTMLElement) || $el.tagName !== 'DEBUG-BUTTON') return
         if ($el.classList.contains('fold-entity')) {
             const id = + $el.parentElement!.dataset.id!
-            foldState.set(id, ! foldState.get(id))
+            entityFoldState.set(id, ! entityFoldState.get(id))
             refreshEntityTree()
         }
         else if ($el.classList.contains('show-entity-detail')) {

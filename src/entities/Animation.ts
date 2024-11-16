@@ -1,3 +1,4 @@
+import { BoundaryComp } from '@/comps/Boundary'
 import { EntityEvents, EntityState, Entity, Game } from '@/engine'
 import { placeholder } from '@/utils'
 
@@ -74,6 +75,8 @@ export class AnimationEntity<
         this.frames = await Promise.all(
             this.config.srcs.map(src => game.imageManager.loadImage(src))
         )
+        const { width, height } = this.frames[0]
+        this.addComp(BoundaryComp, width, height)
     }
 
     render() {

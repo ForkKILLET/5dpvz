@@ -4,6 +4,7 @@ import { HoverableComp, HoverableEvents } from '@/comps/Hoverable'
 import { ShapeComp } from '@/comps/Shape'
 import { AnimationEntity } from './Animation'
 import { placeholder } from '@/utils'
+import { BoundaryComp } from '@/comps/Boundary'
 
 export interface ContainingModeConfig {
     containingMode: 'rect' | 'strict'
@@ -36,13 +37,16 @@ export class ButtonEntity<
 
         this
             .attach(config.entity)
-            .afterStart(() => this
-                .addComp(ShapeComp, this.contains)
-                .addComp(HoverableComp)
-                .withComp(HoverableComp, ({ emitter }) => {
-                    this.forwardEvents(emitter, [ 'click', 'rightclick' ])
-                })
-            )
+            .afterStart(() => {
+                const { width, height } = this.config.entity.getComp(BoundaryComp)!
+                this
+                    .addComp(ShapeComp, this.contains)
+                    .addComp(HoverableComp)
+                    .withComp(HoverableComp, ({ emitter }) => {
+                        this.forwardEvents(emitter, [ 'click', 'rightclick' ])
+                    })
+                    .addComp(BoundaryComp, width, height)
+            })
     }
 
     static from<C extends ContainingModeConfig>(

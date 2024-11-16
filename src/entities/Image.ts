@@ -1,3 +1,4 @@
+import { BoundaryComp } from '@/comps/Boundary'
 import { EntityEvents, EntityState, Entity, Game } from '@/engine'
 import { placeholder } from '@/utils'
 
@@ -19,6 +20,7 @@ export class ImageEntity<
     async start(game: Game) {
         await super.start(game)
         this.img = await game.imageManager.loadImage(this.config.src)
+        this.addComp(BoundaryComp, this.img.width, this.img.height)
     }
 
     render() {
