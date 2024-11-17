@@ -164,6 +164,6 @@ export class Game {
     }
 
     getEntityById(id: number) {
-        return this.allEntities.find(entity => entity.id === id)
+        return this.allEntities.find(entity => entity.id === id) ?? null
     }
 }

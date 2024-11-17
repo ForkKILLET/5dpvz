@@ -106,13 +106,18 @@ export const loadDebugWindow = (game: Game) => {
             }
             #debug-window li {
                 margin-left: -15px;
+                border: 1px solid transparent;
             }
             #debug-window li.inactive {
                 color: #888;
             }
             #debug-window li.selecting {
-                border: 1px solid red;
+                border-color: red;
                 background-color: rgba(255, 0, 0, 0.1);
+            }
+            #debug-window li.watching {
+                border-color: blue;
+                background-color: rgba(0, 0, 255, 0.1);
             }
 
             entity-attr {
@@ -257,38 +262,37 @@ export const loadDebugWindow = (game: Game) => {
                 ctx.fillRect(x, y, width, height)
             })
 
-            if (selecting) {
-                const [ selectingEntityData ] = this.game
-                    .allEntities
-                    .filter(entity => ! (entity instanceof DebugHandle)
-                        && entity.deepActive
-                        && entity.hasComp(BoundaryComp)
-                    )
-                    .map(entity => {
-                        const boundaryComp = entity.getComp(BoundaryComp)
-                        if (! boundaryComp) return null
+            const [ selectingEntityData ] = this.game
+                .allEntities
+                .filter(entity => ! (entity instanceof DebugHandle)
+                    && entity.deepActive
+                    && entity.hasComp(BoundaryComp)
+                    && (selecting || entity === reverseSelectingEntity)
+                )
+                .map(entity => {
+                    const boundaryComp = entity.getComp(BoundaryComp)
+                    if (! boundaryComp) return null
 
-                        const { x, y, width, height } = boundaryComp
-                        ctx.strokeStyle = 'red'
-                        ctx.strokeRect(x, y, width, height)
-                        if (boundaryComp.contains(this.game.mouse.position))
-                            return { x, y, width, height, entity }
-                        return null
-                    })
-                    .filter(neq(null))
-                    .sort(by(data => - data.entity.state.zIndex))
+                    const { x, y, width, height } = boundaryComp
+                    ctx.strokeStyle = 'red'
+                    ctx.strokeRect(x, y, width, height)
+                    if (boundaryComp.contains(this.game.mouse.position) || entity === reverseSelectingEntity)
+                        return { x, y, width, height, entity }
+                    return null
+                })
+                .filter(neq(null))
+                .sort(by(data => - data.entity.state.zIndex))
 
-                if (selectingEntityData) {
-                    const { x, y, width, height, entity } = selectingEntityData
-                    ctx.fillStyle = 'rgba(255, 0, 0, 0.1)'
-                    ctx.fillRect(x, y, width, height)
+            if (selectingEntityData) {
+                const { x, y, width, height, entity } = selectingEntityData
+                ctx.fillStyle = 'rgba(255, 0, 0, 0.1)'
+                ctx.fillRect(x, y, width, height)
 
-                    if (selectingEntity !== entity) {
-                        if (selectingEntity) cancelSelecting()
-                        $(`li[data-id="${ entity.id }"]`)!.classList.add('selecting')
+                if (selectingEntity !== entity) {
+                    if (selectingEntity) cancelSelecting()
+                    $(`li[data-id="${ entity.id }"]`)!.classList.add('selecting')
 
-                        selectingEntity = entity
-                    }
+                    selectingEntity = entity
                 }
             }
         }
@@ -314,6 +318,7 @@ export const loadDebugWindow = (game: Game) => {
 
     let selecting = false
     let selectingEntity: Entity | null = null
+    let reverseSelectingEntity: Entity | null = null
     const $selectButton = $('#select')!
     const toggleSelecting = () => {
         selecting = ! selecting
@@ -344,6 +349,7 @@ export const loadDebugWindow = (game: Game) => {
     const showEntityTree = (entity: Entity): string => {
         const className = [
             entity.active ? null : 'inactive',
+            entity === watchingEntity ? 'watching' : null,
         ].filter(neq(null)).join(' ')
         const isFolden = entityFoldState.get(entity.id)
         const hasAttached = entity.attachedEntities.length > 0
@@ -376,7 +382,8 @@ export const loadDebugWindow = (game: Game) => {
     }
     const setWatchingEntity = (entity: Entity) => {
         watchingEntity = entity
-        switchTab('entity-detail')
+        $('.watching')?.classList.remove('watching')
+        $<HTMLLIElement>(`li[data-id="${ entity.id }"]`)?.classList.add('watching')
         entity.on('dispose', () => {
             if (watchingEntity === entity) unsetWatchingEntity()
         })
@@ -396,6 +403,14 @@ export const loadDebugWindow = (game: Game) => {
     $autoRefresh.addEventListener('click', () => {
         $autoRefresh.innerHTML = autoRefreshEntityTree ? 'Auto' : 'Manual'
         autoRefreshEntityTree = ! autoRefreshEntityTree
+    })
+    $debugWindow.addEventListener('mouseover', ({ target: $el }) => {
+        $('.selecting')?.classList.remove('selecting')
+        if ($el instanceof HTMLElement && $el.tagName === 'LI') {
+            $el.classList.add('selecting')
+            const id = + $el.dataset.id!
+            reverseSelectingEntity = game.getEntityById(id)
+        }
     })
 
     const showJson = (obj: any) =>
@@ -451,19 +466,28 @@ export const loadDebugWindow = (game: Game) => {
     refreshEntityDetail()
 
     $debugWindow.addEventListener('click', ({ target: $el }) => {
-        if (! ($el instanceof HTMLElement) || $el.tagName !== 'DEBUG-BUTTON') return
-        if ($el.classList.contains('fold-entity')) {
-            const id = + $el.parentElement!.dataset.id!
-            entityFoldState.set(id, ! entityFoldState.get(id))
-            refreshEntityTree()
+        if (! ($el instanceof HTMLElement)) return
+        if ($el.tagName === 'DEBUG-BUTTON') {
+            if ($el.classList.contains('fold-entity')) {
+                const id = + $el.parentElement!.dataset.id!
+                entityFoldState.set(id, ! entityFoldState.get(id))
+                refreshEntityTree()
+            }
+            else if ($el.classList.contains('show-entity-detail')) {
+                const id = + $el.innerText.slice(1)
+                const entity = game.getEntityById(id)
+                if (entity) {
+                    setWatchingEntity(entity)
+                    switchTab('entity-detail')
+                    refreshEntityDetail()
+                }
+            }
         }
-        else if ($el.classList.contains('show-entity-detail')) {
-            const id = + $el.innerText.slice(1)
+        else if ($el.tagName === 'LI') {
+            const id = + $el.dataset.id!
             const entity = game.getEntityById(id)
             if (entity) {
                 setWatchingEntity(entity)
-                switchTab('entity-detail')
-                refreshEntityDetail()
             }
         }
     }, { capture: true })
