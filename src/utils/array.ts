@@ -4,13 +4,11 @@ export const by = <T, U>(cmpGetter: (item: T) => U) => (a: T, b: T) => {
     return cmpA < cmpB ? - 1 : cmpA > cmpB ? 1 : 0
 }
 
-export const matrix = <T>(width: number, height: number, cb: (x: number, y: number) => T) => {
+export const matrix = <T>(width: number, height: number, gen: (x: number, y: number) => T) => {
     const mat = []
-    for (let x = 0; x < width; x ++) {
+    for (let i = 0; i < width; i ++) {
         const row = []
-        for (let y = 0; y < height; y ++) {
-            row.push(cb(x, y))
-        }
+        for (let j = 0; j < height; j ++) row.push(gen(i, j))
         mat.push(row)
     }
     return mat
@@ -23,8 +21,8 @@ export const remove = <T>(array: T[], pred: (item: T) => boolean) => {
     if (index >= 0) array.splice(index, 1)
 }
 
-export const sum = <T>(array: T[], selector: (item: T) => number): number => {
-    return array.reduce((acc, item) => acc + selector(item), 0)
+export const sum = (array: number[]): number => {
+    return array.reduce((acc, curr) => acc + curr, 0)
 }
 
 export const rep = <T>(...args: (T | number)[]): T[] => {

@@ -397,8 +397,8 @@ export class LevelEntity extends Entity<LevelConfig, LevelState, LevelEvents> {
             .attachTo(this)
     }
 
-    getCurrentZombiesHP(): number {
-        return sum(this.state.zombiesData, zd => zd.hp)
+    get currentZombiesHP(): number {
+        return sum(this.state.zombiesData.map(data => data.hp))
     }
 
     nextWave() {
@@ -406,7 +406,7 @@ export class LevelEntity extends Entity<LevelConfig, LevelState, LevelEvents> {
         if (this.state.currentWave > this.state.waveSum) return
         this.state.zombiesData.push(...this.state.waves[this.state.currentWave].map(zombieId => {
             const metadata = ZOMBIE_METADATA[zombieId]
-            const position = this.getLawnBlockPosition(1, 9) // TODO
+            const position = this.getLawnBlockPosition(8, 0) // TODO
             const newZombie = ZombieEntity.create(
                 zombieId,
                 position,
@@ -459,7 +459,7 @@ export class LevelEntity extends Entity<LevelConfig, LevelState, LevelEvents> {
 
     updateZombie() {
         if (this.state.waveTimer <= 0
-            || (this.state.waveTimer <= 25000 && this.getCurrentZombiesHP() <= this.state.waveZombieInitHP)) {
+            || this.state.waveTimer <= 25000 && this.currentZombiesHP <= this.state.waveZombieInitHP) {
             this.nextWave()
         }
         this.state.zombiesData.forEach(zombieData => {

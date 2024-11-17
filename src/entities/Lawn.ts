@@ -8,8 +8,7 @@ export interface LawnConfig {
     width: number
 }
 
-export interface LawnUniqueState {}
-export interface LawnState extends LawnUniqueState, EntityState {}
+export interface LawnState extends EntityState {}
 
 export interface LawnEvents extends EntityEvents {}
 
