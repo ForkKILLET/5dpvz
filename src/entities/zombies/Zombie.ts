@@ -3,8 +3,8 @@ import { ButtonConfig, ButtonEntity, ButtonEvents, ButtonState } from '@/entitie
 import { EntityCtor, EntityState } from '@/engine'
 import { AnimationEntity } from '@/entities/Animation.ts'
 import { HighlightableComp } from '@/comps/Highlightable.ts'
-import { HoverableComp } from '@/comps/Hoverable.ts'
-import { kLevelState } from '@/entities/Level.ts'
+// import { HoverableComp } from '@/comps/Hoverable.ts'
+// import { kLevelState } from '@/entities/Level.ts'
 
 export interface ZombieUniqueConfig {
     x: number
@@ -27,18 +27,18 @@ export abstract class ZombieEntity<
 
         this.afterStart(() => this
             .addComp(HighlightableComp, 'brightness(1.2)')
-            .withComps([ HoverableComp, HighlightableComp ], ({ emitter }, highlightableComp) => {
-                emitter.on('mouseenter', () => {
-                    if (this.inject(kLevelState)!.holdingObject?.type === 'shovel')
-                        highlightableComp.highlighting = true
-                })
-                emitter.on('mouseleave', () => {
-                    highlightableComp.highlighting = false
-                })
-            })
-            .on('before-render', () => {
-                if (this.getComp(HighlightableComp)!.highlighting) this.game.ctx.filter = 'brightness(1.5)'
-            })
+            // .withComps([ HoverableComp, HighlightableComp ], ({ emitter }, highlightableComp) => {
+            //     emitter.on('mouseenter', () => {
+            //         if (this.inject(kLevelState)!.holdingObject?.type === 'shovel')
+            //             highlightableComp.highlighting = true
+            //     })
+            //     emitter.on('mouseleave', () => {
+            //         highlightableComp.highlighting = false
+            //     })
+            // })
+            // .on('before-render', () => {
+            //     if (this.getComp(HighlightableComp)!.highlighting) this.game.ctx.filter = 'brightness(1.5)'
+            // })
         )
     }
 

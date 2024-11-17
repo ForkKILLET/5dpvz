@@ -5,7 +5,8 @@ export interface ZombieMetadata {
     id: ZombieId
     name: string
     hp: number
-    state: ZombieState
+    speed: number
+    status: ZombieStatus
     animations: AnimationSetData
 }
 
@@ -13,7 +14,7 @@ export const ZOMBIE_MOVES = [ 'normal', 'frozen', 'cold', 'hypnotised' ] as cons
 export const ZOMBIE_PLACES = [ 'land', 'sky', 'ground', 'float', 'dive' ] as const
 export type ZombieMove = typeof ZOMBIE_MOVES[number]
 export type ZombiePlace = typeof ZOMBIE_PLACES[number]
-export type ZombieState = { move: ZombieMove, place: ZombiePlace }
+export type ZombieStatus = { move: ZombieMove, place: ZombiePlace }
 
 export const ZOMBIE_NAMES = [ 'normal_zombie' ] as const
 export type ZombieId = typeof ZOMBIE_NAMES[number]

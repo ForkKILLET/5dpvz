@@ -1,5 +1,6 @@
 import { Scene } from '@/engine'
 import { LevelEntity } from '@/entities/Level'
+import { Stage1_1 } from '@/data/stages.ts'
 
 export class PlayScene extends Scene {
     constructor() {
@@ -23,10 +24,12 @@ export class PlayScene extends Scene {
                 shovelSlot: {
                     shovelId: 'iron_shovel',
                 },
+                stage: Stage1_1,
             },
             LevelEntity.initState({
                 position: { x: 0, y: 0 },
                 zIndex: 0,
+                stage: Stage1_1,
             })
         )
 

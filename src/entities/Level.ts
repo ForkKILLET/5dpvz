@@ -10,7 +10,10 @@ import { ButtonEntity } from '@/entities/Button'
 import { plantAnimation, PLANT_METADATA, PlantId, PlantMetadata } from '@/data/plants'
 import { shovelAnimation, ShovelId } from '@/data/shovel'
 import { CursorComp } from '@/comps/Cursor'
-import { eq, matrix, Nullable, remove, placeholder, random } from '@/utils'
+import { ZOMBIE_METADATA, ZombieId, ZombieStatus } from '@/data/zombies.ts'
+import { ZombieEntity } from '@/entities/zombies/Zombie.ts'
+import { StageConfig } from '@/data/stages.ts'
+import { eq, matrix, Nullable, remove, placeholder, random, sum } from '@/utils'
 import { UpdaterComp } from '@/comps/Updater'
 
 export interface LevelConfig {
@@ -18,6 +21,7 @@ export interface LevelConfig {
     shovelSlot: ShovelSlotConfig
     lawn: LawnConfig
     sun: SunGlobalConfig
+    stage: StageConfig
 }
 
 export interface SunGlobalConfig {
@@ -42,6 +46,21 @@ export interface PlantData {
     entity: PlantEntity
 }
 
+export interface SunData {
+    lifeLimit: number
+    targetY: number
+    entity: SunEntity
+}
+
+export interface ZombieData {
+    id: ZombieId
+    hp: number
+    speed: number
+    position: { x: number, y: number }
+    status: ZombieStatus
+    entity: ZombieEntity
+}
+
 export type HoldingObject =
     | { type: 'plant', slotId: number }
     | { type: 'shovel', shovelId: ShovelId }
@@ -53,6 +72,13 @@ export interface LevelUniqueState {
     holdingObject: Nullable<HoldingObject>
     plantsData: PlantData[]
     plantsOnBlocks: Nullable<PlantData>[][]
+    sunsData: SunData[]
+    zombiesData: ZombieData[]
+    waveTimer: number
+    currentWave: number
+    waveZombieInitHP: number
+    waveSum: number
+    waves: ZombieId[][]
 }
 export interface LevelState extends LevelUniqueState, EntityState {}
 
@@ -70,6 +96,13 @@ export class LevelEntity extends Entity<LevelConfig, LevelState, LevelEvents> {
         holdingObject: null,
         plantsData: [],
         plantsOnBlocks: placeholder,
+        sunsData: [],
+        zombiesData: [],
+        waveTimer: 0,
+        currentWave: 0,
+        waveZombieInitHP: 0,
+        waveSum: 0,
+        waves: [ [] ],
     })
 
     ui: UIEntity
@@ -102,6 +135,9 @@ export class LevelEntity extends Entity<LevelConfig, LevelState, LevelEvents> {
 
         this.state.sun = config.sun.sunAtStart
         this.state.sunDropTimer = config.sun.sunDroppingInterval - config.sun.firstSunDroppingTime
+        this.state.waveTimer = 30000
+        this.state.waveSum = config.stage.waveData.waveSum
+        this.state.waves = config.stage.waveData.waves
 
         this.width = 10 + config.lawn.width * 80
         this.height = 150 + config.lawn.height * 80
@@ -129,7 +165,7 @@ export class LevelEntity extends Entity<LevelConfig, LevelState, LevelEvents> {
                     plantAnimation.getImageConfig(plantId),
                     {
                         position: { x: 5, y: 5 },
-                        zIndex: this.state.zIndex + 4,
+                        zIndex: this.lawn.state.zIndex + 3,
                     },
                 )
                     .attachTo(this)
@@ -361,6 +397,38 @@ export class LevelEntity extends Entity<LevelConfig, LevelState, LevelEvents> {
             .attachTo(this)
     }
 
+    getCurrentZombiesHP(): number {
+        return sum(this.state.zombiesData, zd => zd.hp)
+    }
+
+    nextWave() {
+        this.state.currentWave += 1
+        if (this.state.currentWave > this.state.waveSum) return
+        this.state.zombiesData.push(...this.state.waves[this.state.currentWave].map(zombieId => {
+            const metadata = ZOMBIE_METADATA[zombieId]
+            const position = this.getLawnBlockPosition(1, 9) // TODO
+            const newZombie = ZombieEntity.create(
+                zombieId,
+                position,
+                {
+                    position,
+                    zIndex: this.lawn.state.zIndex + 2,
+                }
+            )
+
+            const newZombieData: ZombieData = {
+                id: zombieId,
+                hp: metadata.hp,
+                speed: metadata.speed,
+                position,
+                status: metadata.status,
+                entity: newZombie,
+            }
+            this.attach(newZombie)
+            return newZombieData
+        }))
+    }
+
     preUpdate() {
         if (this.frozen) {
             this.update()
@@ -389,6 +457,16 @@ export class LevelEntity extends Entity<LevelConfig, LevelState, LevelEvents> {
         })
     }
 
+    updateZombie() {
+        if (this.state.waveTimer <= 0
+            || (this.state.waveTimer <= 25000 && this.getCurrentZombiesHP() <= this.state.waveZombieInitHP)) {
+            this.nextWave()
+        }
+        this.state.zombiesData.forEach(zombieData => {
+            zombieData.position.x -= zombieData.speed * this.game.mspf / 1000
+        })
+    }
+
     update() {
         if (this.holdingImage) {
             const { x, y } = this.game.mouse.position
@@ -399,11 +477,22 @@ export class LevelEntity extends Entity<LevelConfig, LevelState, LevelEvents> {
 
         this.updatePlantSlot()
 
+        this.updateZombie()
+
+        this.state.sunsData.forEach(({ entity, targetY }) => {
+            if (entity.state.position.y < targetY) entity.state.position.y += (
+                this.config.sun.sunDroppingVelocity * this.game.mspf
+            )
+        })
+
         this.updateTimer(
             'sunDropTimer',
             { interval: this.config.sun.sunDroppingInterval },
             () => this.dropSun()
         )
+        this.state.waveTimer -= this.game.mspf
+
+        return this.state
     }
 
     preRender() {
