@@ -1,4 +1,4 @@
-import { ZombieId } from '@/data/zombies.ts'
+import { ZombieId } from '@/data/zombies'
 import { rep } from '@/utils'
 
 export type StageConfig = {

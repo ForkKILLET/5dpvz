@@ -1,6 +1,6 @@
 import { Scene } from '@/engine'
 import { LevelEntity } from '@/entities/Level'
-import { Stage1_1 } from '@/data/stages.ts'
+import { Stage1_1 } from '@/data/stages'
 
 export class PlayScene extends Scene {
     constructor() {

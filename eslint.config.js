@@ -1,6 +1,8 @@
 // @ts-check
 
 import eslint from '@eslint/js'
+// @ts-ignore
+import eslintImport from 'eslint-plugin-import'
 import tseslint from 'typescript-eslint'
 import stylisticJs from '@stylistic/eslint-plugin-js'
 import stylisticTs from '@stylistic/eslint-plugin-ts'
@@ -20,6 +22,7 @@ export default tseslint.config({
         '@stylistic/js': stylisticJs,
         '@stylistic/ts': stylisticTs,
         '@stylistic/plus': stylisticPlus,
+        '@eslint-import': eslintImport,
     },
     extends: [
         eslint.configs.recommended,
@@ -84,6 +87,9 @@ export default tseslint.config({
         }),
         '@stylistic/ts/type-annotation-spacing': 'error',
         '@stylistic/plus/type-generic-spacing': 'error',
+
+        // Import
+        '@eslint-import/extensions': error('never'),
 
         // JavaScript
         'eqeqeq': 'error',

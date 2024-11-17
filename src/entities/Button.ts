@@ -1,11 +1,10 @@
 import { Game, getImagePixels, EntityEvents, Entity, EntityState, Position } from '@/engine'
 import { ImageEntity } from '@/entities/Image'
+import { AnimationEntity } from '@/entities/Animation'
 import { HoverableComp, HoverableEvents } from '@/comps/Hoverable'
 import { ShapeComp } from '@/comps/Shape'
-import { AnimationEntity } from '@/entities/Animation'
 import { BoundaryComp } from '@/comps/Boundary'
 import { placeholder } from '@/utils'
-import { BoundaryComp } from '@/comps/Boundary'
 
 export interface ContainingModeConfig {
     containingMode: 'rect' | 'strict'

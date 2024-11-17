@@ -1,5 +1,5 @@
-import { AnimationSetData, useAnimation } from '@/entities/Animation.ts'
-import { NormalZombieEntity } from '@/entities/zombies/NormalZombie.ts'
+import { AnimationSetData, useAnimation } from '@/entities/Animation'
+import { NormalZombieEntity } from '@/entities/zombies/NormalZombie'
 
 export interface ZombieMetadata {
     id: ZombieId

@@ -30,7 +30,7 @@ export class LawnEntity extends Entity<LawnConfig, LawnState, LawnEvents> {
                 {
                     position: { x: x + i * 80, y: y + j * 80 },
                     zIndex: zIndex + 1,
-                },
+                }
             )
         )
         this
