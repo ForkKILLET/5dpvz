@@ -17,8 +17,10 @@ export class BoundaryComp extends Comp {
         this._y = value
     }
 
-    constructor(entity: Entity, public width: number, public height: number) {
+    constructor(entity: Entity, public width: number, public height: number, x?: number, y?: number) {
         super(entity)
+        if (typeof x === 'number') this.x = x
+        if (typeof y === 'number') this.y = y
     }
 
     contains(point: Position) {

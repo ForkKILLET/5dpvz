@@ -38,14 +38,14 @@ export class ButtonEntity<
         this
             .attach(config.entity)
             .afterStart(() => {
-                const { width, height } = this.config.entity.getComp(BoundaryComp)!
+                const { width, height, x, y } = this.config.entity.getComp(BoundaryComp)!
                 this
                     .addComp(ShapeComp, this.contains)
                     .addComp(HoverableComp)
                     .withComp(HoverableComp, ({ emitter }) => {
                         this.forwardEvents(emitter, [ 'click', 'rightclick' ])
                     })
-                    .addComp(BoundaryComp, width, height)
+                    .addComp(BoundaryComp, width, height, x, y)
             })
     }
 
