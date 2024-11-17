@@ -2,7 +2,7 @@
 
 import { Entity, Game, Scene } from '@/engine'
 import { BoundaryComp } from '@/comps/Boundary'
-import { by } from '@/utils'
+import { by, neq } from '@/utils'
 
 export const loadDebugWindow = (game: Game) => {
     const $debugWindow = document.querySelector('#debug-window') as HTMLDivElement
@@ -177,6 +177,12 @@ export const loadDebugWindow = (game: Game) => {
             json-null {
                 color: #888;
             }
+            json-function::after {
+                content: 'function';
+            }
+            json-function {
+                color: orange;
+            }
         </style>
 
         <tab-header data-tab="entity-tree">Entity Tree</tab-header>
@@ -225,10 +231,9 @@ export const loadDebugWindow = (game: Game) => {
 
                 this.game.mouse.emitter.on('click', () => {
                     if (selecting && selectingEntity) {
-                        watchingEntity = selectingEntity
+                        setWatchingEntity(selectingEntity)
                         selectingEntity = null
                         toggleSelecting()
-                        switchTab('entity-detail')
                         refreshEntityDetail()
                         return false
                     }
@@ -242,7 +247,7 @@ export const loadDebugWindow = (game: Game) => {
             watchingEntity?.withComp(BoundaryComp, boundaryComp => {
                 const { width, height, entity } = boundaryComp
                 if (! entity.deepActive) {
-                    watchingEntity = null
+                    unsetWatchingEntity()
                     return
                 }
                 const { x, y } = entity.state.position
@@ -263,15 +268,14 @@ export const loadDebugWindow = (game: Game) => {
                         const boundaryComp = entity.getComp(BoundaryComp)
                         if (! boundaryComp) return null
 
-                        const { width, height } = boundaryComp
-                        const { x, y } = entity.state.position
+                        const { x, y, width, height } = boundaryComp
                         ctx.strokeStyle = 'red'
                         ctx.strokeRect(x, y, width, height)
                         if (boundaryComp.contains(this.game.mouse.position))
                             return { x, y, width, height, entity }
                         return null
                     })
-                    .filter(data => data !== null)
+                    .filter(neq(null))
                     .sort(by(data => - data.entity.state.zIndex))
 
                 if (selectingEntityData) {
@@ -340,7 +344,7 @@ export const loadDebugWindow = (game: Game) => {
     const showEntityTree = (entity: Entity): string => {
         const className = [
             entity.active ? null : 'inactive',
-        ].filter(c => c !== null).join(' ')
+        ].filter(neq(null)).join(' ')
         const isFolden = entityFoldState.get(entity.id)
         const hasAttached = entity.attachedEntities.length > 0
         return `<li class="${ className }" data-id="${ entity.id }">
@@ -366,10 +370,23 @@ export const loadDebugWindow = (game: Game) => {
     }
 
     let watchingEntity: Entity | null = null
+    const unsetWatchingEntity = () => {
+        watchingEntity = null
+        switchTab('entity-tree')
+    }
+    const setWatchingEntity = (entity: Entity) => {
+        watchingEntity = entity
+        switchTab('entity-detail')
+        entity.on('dispose', () => {
+            if (watchingEntity === entity) unsetWatchingEntity()
+        })
+    }
     let autoRefreshEntityTree = true
     const refreshEntityTree = () => {
-        if (currentTab === 'entity-detail')
-            $('#entity-detail-tree-content')!.innerHTML = showEntityRoot(watchingEntity!.attachedEntities)
+        if (currentTab === 'entity-detail') {
+            if (! watchingEntity) return
+            $('#entity-detail-tree-content')!.innerHTML = showEntityRoot(watchingEntity.attachedEntities)
+        }
         else
             $entityTreeContent.innerHTML = showEntityRoot(game.scenes)
     }
@@ -386,6 +403,7 @@ export const loadDebugWindow = (game: Game) => {
         typeof obj === 'string' ? `<json-string>${ obj }</json-string>` :
         typeof obj === 'boolean' ? `<json-boolean>${ obj }</json-boolean>` :
         typeof obj === 'symbol' ? `<json-symbol>${ obj.description }</json-symbol>` :
+        typeof obj === 'function' ? '<json-function></json-function>' :
         obj === null ? '<json-null></json-null>' :
         Array.isArray(obj) ? `<json-array>${ obj
             .map((child): string => `<json-item>${ showJson(child) }</json-item>`)
@@ -420,10 +438,7 @@ export const loadDebugWindow = (game: Game) => {
         refreshEntityTree()
     }
     const $entityDetailContent = $('#entity-detail-content')!
-    $('#back-to-entity-tree')!.addEventListener('click', () => {
-        watchingEntity = null
-        switchTab('entity-tree')
-    })
+    $('#back-to-entity-tree')!.addEventListener('click', unsetWatchingEntity)
     $('#refresh-entity-detail')!.addEventListener('click', refreshEntityDetail)
     const showEntityLink = (entity: Entity) => {
         const attrs = getEntityAttrs(entity)
@@ -446,7 +461,7 @@ export const loadDebugWindow = (game: Game) => {
             const id = + $el.innerText.slice(1)
             const entity = game.getEntityById(id)
             if (entity) {
-                watchingEntity = entity
+                setWatchingEntity(entity)
                 switchTab('entity-detail')
                 refreshEntityDetail()
             }

@@ -1,10 +1,10 @@
-import { Game, getImagePixels, EntityEvents, Entity, EntityState, Position, isInRect } from '@/engine'
+import { Game, getImagePixels, EntityEvents, Entity, EntityState, Position } from '@/engine'
 import { ImageEntity } from '@/entities/Image'
 import { HoverableComp, HoverableEvents } from '@/comps/Hoverable'
 import { ShapeComp } from '@/comps/Shape'
-import { AnimationEntity } from './Animation'
-import { placeholder } from '@/utils'
+import { AnimationEntity } from '@/entities/Animation'
 import { BoundaryComp } from '@/comps/Boundary'
+import { placeholder } from '@/utils'
 
 export interface ContainingModeConfig {
     containingMode: 'rect' | 'strict'
@@ -37,24 +37,24 @@ export class ButtonEntity<
 
         this
             .attach(config.entity)
-            .afterStart(() => {
-                const { width, height } = this.config.entity.getComp(BoundaryComp)!
-                this
-                    .addComp(ShapeComp, this.contains)
-                    .addComp(HoverableComp)
-                    .withComp(HoverableComp, ({ emitter }) => {
-                        this.forwardEvents(emitter, [ 'click', 'rightclick' ])
-                    })
-                    .addComp(BoundaryComp, width, height)
-            })
+            .afterStart(() => this
+                .addComp(ShapeComp, this.contains)
+                .addComp(HoverableComp)
+                .withComp(HoverableComp, ({ emitter }) => {
+                    this.forwardEvents(emitter, [ 'click', 'rightclick' ])
+                })
+            )
     }
 
     static from<C extends ContainingModeConfig>(
         entity: ImageEntity | AnimationEntity,
-        config: C = { containingMode: 'strict' } as C,
+        config: C
     ) {
         return new this(
-            { entity, ...config },
+            {
+                entity,
+                ...config,
+            },
             this.initState({
                 position: entity.state.position,
                 zIndex: entity.state.zIndex,
@@ -71,14 +71,15 @@ export class ButtonEntity<
         const isImage = entity instanceof ImageEntity
         const images = isImage ? [ entity.img ] : entity.frames
         const pixelsList = images.map(getImagePixels)
-        const [ { width, height } ] = images
+        const [ { width } ] = images
 
         const getCurrentPixels = () => isImage ? pixelsList[0] : pixelsList[entity.state.af]
 
         this.contains = point => {
-            const { x, y } = this.state.position
+            const boundaryComp = this.config.entity.getComp(BoundaryComp)!
+            const { x, y } = boundaryComp
 
-            if (! isInRect(point, { x, y, width, height })) return false
+            if (! boundaryComp.contains(point)) return false
             if (this.config.containingMode === 'rect') return true
 
             const rx = point.x - x
@@ -91,6 +92,5 @@ export class ButtonEntity<
 
     update() {
         this.state.hovering = this.getComp(HoverableComp)!.hovering
-        return this.state
     }
 }

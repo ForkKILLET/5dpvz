@@ -11,16 +11,16 @@ export class StartScene extends Scene {
             { position: { x: 0, y: 0 }, zIndex: 0 },
         )
 
-        const startButton = ButtonEntity.from(new ImageEntity(
-            {
-                src: './assets/start_button_start.png',
-                containingMode: 'strict',
-            },
-            {
-                position: { x: 450, y: 140 },
-                zIndex: 1,
-            },
-        ))
+        const startButton = ButtonEntity.from(
+            new ImageEntity(
+                { src: './assets/start_button_start.png' },
+                {
+                    position: { x: 450, y: 140 },
+                    zIndex: 1,
+                }
+            ),
+            { containingMode: 'strict' }
+        )
             .addComp(CursorComp, 'pointer')
             .on('before-render', () => {
                 this.game.ctx.filter = startButton.state.hovering ? 'brightness(1.2)' : ''
@@ -30,16 +30,16 @@ export class StartScene extends Scene {
                 this.game.selectScene(PlayScene)!.activate()
             })
 
-        const githubButton = ButtonEntity.from(new ImageEntity(
-            {
-                src: './assets/github.png',
-                containingMode: 'strict',
-            },
-            {
-                position: { x: 10, y: 10 },
-                zIndex: 1,
-            },
-        ))
+        const githubButton = ButtonEntity.from(
+            new ImageEntity(
+                { src: './assets/github.png' },
+                {
+                    position: { x: 10, y: 10 },
+                    zIndex: 1,
+                },
+            ),
+            { containingMode: 'strict' }
+        )
             .addComp(CursorComp, 'pointer')
             .on('click', () => {
                 window.open('https://github.com/ForkKILLET/5dpvz', '_blank')

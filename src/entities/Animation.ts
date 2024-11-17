@@ -85,13 +85,13 @@ export class AnimationEntity<
     }
 
     update() {
-        let { f, af, isPlaying, direction } = this.state
+        const { state } = this
+        const { isPlaying, direction } = state
         if (! isPlaying) return this.state
-        if (++ f === this.config.fpaf) {
+        if (++ state.f === this.config.fpaf) {
             this.emit('animation-finish')
-            f = 0
-            if ((af += direction) === this.frames.length) af = 0
+            state.f = 0
+            if ((state.af += direction) === this.frames.length) state.af = 0
         }
-        return { ...this.state, f, af }
     }
 }

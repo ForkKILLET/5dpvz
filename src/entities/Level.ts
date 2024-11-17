@@ -1,19 +1,17 @@
-import { plantAnimation, PLANT_METADATA, PlantId, PlantMetadata } from '@/data/plants'
 import { Entity, EntityEvents, EntityState, injectKey } from '@/engine'
 import { LawnConfig, LawnEntity } from '@/entities/Lawn'
 import { PlantSlotsConfig, UIEntity } from '@/entities/UI'
 import { ImageEntity } from '@/entities/Image'
-import { eq, matrix, Nullable, remove } from '@/utils'
 import { LawnBlockEntity } from '@/entities/LawnBlock'
 import { PlantEntity } from '@/entities/plants/Plant'
 import { SunEntity } from '@/entities/Sun'
-import { random } from '@/utils/random'
-import { LifeComp } from '@/comps/Life'
 import { ShovelSlotConfig } from '@/entities/ShovelSlot'
-import { shovelAnimation, ShovelId } from '@/data/shovel'
 import { ButtonEntity } from '@/entities/Button'
+import { plantAnimation, PLANT_METADATA, PlantId, PlantMetadata } from '@/data/plants'
+import { shovelAnimation, ShovelId } from '@/data/shovel'
 import { CursorComp } from '@/comps/Cursor'
-import { placeholder } from '@/utils/any'
+import { eq, matrix, Nullable, remove, placeholder, random } from '@/utils'
+import { UpdaterComp } from '@/comps/Updater'
 
 export interface LevelConfig {
     plantSlots: PlantSlotsConfig
@@ -44,13 +42,7 @@ export interface PlantData {
     entity: PlantEntity
 }
 
-export interface SunData {
-    lifeLimit: number
-    targetY: number
-    entity: SunEntity
-}
-
-type HoldingObject =
+export type HoldingObject =
     | { type: 'plant', slotId: number }
     | { type: 'shovel', shovelId: ShovelId }
 
@@ -61,13 +53,13 @@ export interface LevelUniqueState {
     holdingObject: Nullable<HoldingObject>
     plantsData: PlantData[]
     plantsOnBlocks: Nullable<PlantData>[][]
-    sunsData: SunData[]
 }
 export interface LevelState extends LevelUniqueState, EntityState {}
 
 export interface LevelEvents extends EntityEvents {}
 
-export const kLevelState = injectKey<LevelUniqueState>('kLevelState')
+export const kLevelState = injectKey<LevelState>('kLevelState')
+export const kAttachToLevel = injectKey<(entity: Entity) => void>('kAttachToLevel')
 
 export class LevelEntity extends Entity<LevelConfig, LevelState, LevelEvents> {
     static initState = <S>(state: S): S & LevelUniqueState => ({
@@ -78,7 +70,6 @@ export class LevelEntity extends Entity<LevelConfig, LevelState, LevelEvents> {
         holdingObject: null,
         plantsData: [],
         plantsOnBlocks: placeholder,
-        sunsData: [],
     })
 
     ui: UIEntity
@@ -115,7 +106,9 @@ export class LevelEntity extends Entity<LevelConfig, LevelState, LevelEvents> {
         this.width = 10 + config.lawn.width * 80
         this.height = 150 + config.lawn.height * 80
 
-        this.provide(kLevelState, this.state)
+        this
+            .provide(kLevelState, this.state)
+            .provide(kAttachToLevel, entity => entity.attachTo(this))
 
         this.ui = new UIEntity(
             config.plantSlots,
@@ -136,7 +129,7 @@ export class LevelEntity extends Entity<LevelConfig, LevelState, LevelEvents> {
                     plantAnimation.getImageConfig(plantId),
                     {
                         position: { x: 5, y: 5 },
-                        zIndex: this.lawn.state.zIndex + 3,
+                        zIndex: this.state.zIndex + 4,
                     },
                 )
                     .attachTo(this)
@@ -145,7 +138,7 @@ export class LevelEntity extends Entity<LevelConfig, LevelState, LevelEvents> {
                     plantAnimation.getImageConfig(plantId),
                     {
                         position: { x: 0, y: 0 },
-                        zIndex: this.lawn.state.zIndex + 2,
+                        zIndex: this.state.zIndex + 3,
                     },
                 )
                     .on('before-render', () => {
@@ -166,7 +159,7 @@ export class LevelEntity extends Entity<LevelConfig, LevelState, LevelEvents> {
                     shovelAnimation.getImageConfig(shovelId),
                     {
                         position: { x: 5, y: 5 },
-                        zIndex: this.lawn.state.zIndex + 3,
+                        zIndex: this.state.zIndex + 4,
                     },
                 )
                     .attachTo(this)
@@ -232,16 +225,18 @@ export class LevelEntity extends Entity<LevelConfig, LevelState, LevelEvents> {
                 }
             })
 
-            const pauseButton = ButtonEntity.from(new ImageEntity(
-                {
-                    src: './assets/ui/pause_button.png',
-                    containingMode: 'rect',
-                },
-                {
-                    position: { x: this.width - 32, y: 5 },
-                    zIndex: this.state.zIndex + 5,
-                },
-            ))
+            const pauseButton = ButtonEntity.from(
+                new ImageEntity(
+                    {
+                        src: './assets/ui/pause_button.png',
+                    },
+                    {
+                        position: { x: this.width - 32, y: 5 },
+                        zIndex: this.state.zIndex + 5,
+                    },
+                ),
+                { containingMode: 'rect' }
+            )
                 .addComp(CursorComp, 'pointer')
                 .attachTo(this)
                 .on('click', () => {
@@ -250,16 +245,19 @@ export class LevelEntity extends Entity<LevelConfig, LevelState, LevelEvents> {
                     resumeButton.activate()
                 })
 
-            const resumeButton = ButtonEntity.from(new ImageEntity(
-                {
-                    src: './assets/ui/resume_button.png',
-                    containingMode: 'rect',
-                },
-                {
-                    position: { x: this.width - 32, y: 5 },
-                    zIndex: this.state.zIndex + 5,
-                },
-            ))
+            const resumeButton = ButtonEntity.from(
+                new ImageEntity(
+                    {
+                        src: './assets/ui/resume_button.png',
+                    },
+                    {
+                        position: { x: this.width - 32, y: 5 },
+                        zIndex: this.state.zIndex + 5,
+                        containingMode: 'rect',
+                    },
+                ),
+                { containingMode: 'rect' }
+            )
                 .addComp(CursorComp, 'pointer')
                 .deactivate()
                 .attachTo(this)
@@ -290,7 +288,7 @@ export class LevelEntity extends Entity<LevelConfig, LevelState, LevelEvents> {
             { i, j },
             {
                 position: this.getLawnBlockPosition(i, j),
-                zIndex: this.lawn.state.zIndex + 2,
+                zIndex: this.state.zIndex + 3,
             }
         )
 
@@ -341,44 +339,32 @@ export class LevelEntity extends Entity<LevelConfig, LevelState, LevelEvents> {
         const { x: x0, y: y0 } = this.lawn.state.position
         const x = x0 + random((this.config.lawn.width - 1) * 80)
         const y = y0 + random(1 * 80)
-        const deltaY = random((this.config.lawn.height - 2) * 80)
+        const deltaY = random(1 * 80, (this.config.lawn.height - 2) * 80)
         const targetY = y + deltaY
         const life = deltaY / this.config.sun.sunDroppingVelocity + 4000
 
-        const sun = SunEntity.create(
+        SunEntity.create(
             {
                 life,
-                targetY,
+                sun: 25,
             },
             {
                 position: { x, y },
-                zIndex: this.lawn.state.zIndex + 3,
+                zIndex: this.state.zIndex + 4,
             }
         )
+            .addComp(UpdaterComp, entity => {
+                if (entity.state.position.y < targetY) entity.updatePosition({
+                    x: 0,
+                    y: this.config.sun.sunDroppingVelocity * this.game.mspf,
+                })
+            })
             .attachTo(this)
-            .on('click', () => {
-                this.state.sun += 25
-                sun.dispose()
-            })
-            .on('before-render', () => {
-                const lifeComp = sun.getComp(LifeComp)!
-                if (lifeComp.life < 3000) {
-                    this.game.ctx.globalAlpha = 0.75 + 0.25 * Math.cos(2 * Math.PI * lifeComp.life / 1000)
-                }
-            })
-            .on('dispose', () => {
-                remove(this.state.sunsData, sunData => sunData.entity === sun)
-            })
-        this.state.sunsData.push({
-            lifeLimit: life,
-            targetY,
-            entity: sun,
-        })
     }
 
     preUpdate() {
         if (this.frozen) {
-            this.state = this.update()
+            this.update()
             return
         }
         super.preUpdate()
@@ -410,19 +396,15 @@ export class LevelEntity extends Entity<LevelConfig, LevelState, LevelEvents> {
             this.holdingImage.state.position = { x: x - 40, y: y - 40 }
         }
 
-        if (this.frozen) return this.state
+        if (this.frozen) return
 
         this.updatePlantSlot()
 
-        this.state.sunsData.forEach(({ entity, targetY }) => {
-            if (entity.state.position.y < targetY) entity.state.position.y += (
-                this.config.sun.sunDroppingVelocity * this.game.mspf
-            )
-        })
-
-        this.useTimer('sunDropTimer', this.config.sun.sunDroppingInterval, () => this.dropSun())
-
-        return this.state
+        this.updateTimer(
+            'sunDropTimer',
+            { interval: this.config.sun.sunDroppingInterval },
+            () => this.dropSun()
+        )
     }
 
     preRender() {

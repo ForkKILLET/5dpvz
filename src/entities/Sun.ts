@@ -1,12 +1,14 @@
+import { EntityState } from '@/engine'
+import { ButtonConfig, ButtonEntity, ButtonEvents, ButtonState } from '@/entities/Button'
+import { ImageEntity } from '@/entities/Image'
+import { kLevelState } from '@/entities/Level'
 import { CursorComp } from '@/comps/Cursor'
 import { LifeComp } from '@/comps/Life'
-import { ButtonConfig, ButtonEntity, ButtonEvents, ButtonState } from '@/entities/Button'
-import { ImageEntity } from './Image'
-import { EntityState } from '@/engine'
 
 interface SunUniqueConfig {
     life: number
-    targetY: number
+    sun: number
+    scale?: (scale: number) => number
 }
 interface SunConfig extends SunUniqueConfig, ButtonConfig {}
 
@@ -21,13 +23,31 @@ export class SunEntity extends ButtonEntity<SunConfig, SunState, SunEvents> {
         this
             .addComp(LifeComp, config.life)
             .addComp(CursorComp, 'pointer')
+            .on('attached', () => {
+                const levelState = this.inject(kLevelState)!
+                this
+                    .on('click', () => {
+                        levelState.sun += this.config.sun
+                        this.dispose()
+                    })
+                    .on('before-render', () => {
+                        this.withComp(LifeComp, ({ life }) => {
+                            this.game.ctx.globalAlpha = life < 3000
+                                ? 0.5 + 0.25 * Math.cos(2 * Math.PI * life / 1000)
+                                : 0.75
+                        })
+                    })
+            })
     }
 
     static create(config: SunUniqueConfig, state: EntityState) {
         return SunEntity.from(
             new ImageEntity(
-                { src: './assets/sun.png', containingMode: 'strict' },
-                state
+                {
+                    src: './assets/sun.png',
+                    center: true,
+                },
+                state,
             ),
             {
                 containingMode: 'rect',

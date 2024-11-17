@@ -2,7 +2,7 @@ import { PLANT_METADATA, plantAnimation, PlantId, PlantMetadata } from '@/data/p
 import { AnimationEntity } from '@/entities/Animation'
 import { HoverableComp } from '@/comps/Hoverable'
 import { kLevelState } from '@/entities/Level'
-import { HighlightableComp } from '@/comps/Highlightable'
+import { FilterComp } from '@/comps/Filter'
 import { ButtonConfig, ButtonEntity, ButtonEvents, ButtonState } from '@/entities/Button'
 import { EntityCtor, EntityState } from '@/engine'
 
@@ -25,18 +25,15 @@ export abstract class PlantEntity<
         super(config, state)
 
         this.afterStart(() => this
-            .addComp(HighlightableComp, 'brightness(1.2)')
-            .withComps([ HoverableComp, HighlightableComp ], ({ emitter }, highlightableComp) => {
+            .addComp(FilterComp)
+            .withComps([ HoverableComp, FilterComp ], ({ emitter }, filterComp) => {
                 emitter.on('mouseenter', () => {
                     if (this.inject(kLevelState)!.holdingObject?.type === 'shovel')
-                        highlightableComp.highlighting = true
+                        filterComp.filters.onShovel = 'brightness(1.5)'
                 })
                 emitter.on('mouseleave', () => {
-                    highlightableComp.highlighting = false
+                    filterComp.filters.onShovel = null
                 })
-            })
-            .on('before-render', () => {
-                if (this.getComp(HighlightableComp)!.highlighting) this.game.ctx.filter = 'brightness(1.5)'
             })
         )
     }

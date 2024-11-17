@@ -1,4 +1,4 @@
-import { createIdGenerator, Game, Position, Emitter, Events } from '@/engine'
+import { createIdGenerator, Game, Position, Emitter, Events, add } from '@/engine'
 import { Disposer, remove, RemoveIndex } from '@/utils'
 import { placeholder } from '@/utils/any'
 
@@ -14,6 +14,7 @@ export interface EntityEvents extends Events {
     'attached': [ superEntity: Entity ]
     'unattached': []
     'dispose': []
+    'position-update': [ delta: Position ]
 }
 
 export type InjectKey<T> = symbol & { __injectType: T }
@@ -31,7 +32,7 @@ export type CompCtor<C extends Comp = Comp> = new (...args: any[]) => C
 
 export class Entity<
     C = any,
-    S extends EntityState = any,
+    S extends EntityState = EntityState,
     E extends EntityEvents = EntityEvents
 > {
     static generateEntityId = createIdGenerator()
@@ -240,13 +241,11 @@ export class Entity<
         this.preUpdate()
     }
     preUpdate() {
-        this.state = this.update()
-        this.attachedEntities.forEach(entity => entity.runUpdate())
+        this.update()
         this.comps.forEach(comp => comp.update())
+        this.attachedEntities.forEach(entity => entity.runUpdate())
     }
-    protected update() {
-        return this.state
-    }
+    protected update() {}
 
     protected emitter = new Emitter<E>()
     emit<K extends keyof RemoveIndex<E>>(event: K, ...args: E[K]) {
@@ -270,15 +269,30 @@ export class Entity<
         return this
     }
 
-    useTimer<K extends keyof {
+    updateTimer<K extends keyof {
         [K in keyof S as S[K] extends number ? K : never]: void
-    }>(timerName: K, timerInterval: number, onTimer: () => void) {
-        let timer = this.state[timerName] as number + this.game.mspf
-        if (timer > timerInterval) {
-            timer -= timerInterval
+    }>(
+        timerName: K,
+        { interval, once = false }: { interval: number, once?: boolean },
+        onTimer: () => void
+    ) {
+        let timer = this.state[timerName] as number
+        if (timer === interval && once) return 0
+
+        timer += this.game.mspf
+        if (timer > interval) {
+            if (! once) timer -= interval
+            else timer = interval
             onTimer()
         }
+
         (this.state[timerName] as number) = timer
+        return interval - timer
+    }
+    updatePosition(delta: Position) {
+        this.emit('position-update', delta)
+        this.state.position = add(this.state.position, delta)
+        this.attachedEntities.forEach(entity => entity.updatePosition(delta))
     }
 }
 
