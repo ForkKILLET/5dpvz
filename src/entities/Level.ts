@@ -125,7 +125,7 @@ export class LevelEntity extends Entity<LevelConfig, LevelState, LevelEvents> {
                 this.state.holdingObject = { type: 'plant', slotId }
 
                 this.holdingImage?.dispose()
-                this.holdingImage = new ImageEntity(
+                this.holdingImage = ImageEntity.create(
                     plantAnimation.getImageConfig(plantId),
                     {
                         position: { x: 5, y: 5 },
@@ -134,7 +134,7 @@ export class LevelEntity extends Entity<LevelConfig, LevelState, LevelEvents> {
                 )
                     .attachTo(this)
 
-                this.phantomImage = new ImageEntity(
+                this.phantomImage = ImageEntity.create(
                     plantAnimation.getImageConfig(plantId),
                     {
                         position: { x: 0, y: 0 },
@@ -155,7 +155,7 @@ export class LevelEntity extends Entity<LevelConfig, LevelState, LevelEvents> {
 
                 this.state.holdingObject = { type: 'shovel', shovelId }
                 this.holdingImage?.dispose()
-                this.holdingImage = new ImageEntity(
+                this.holdingImage = ImageEntity.create(
                     shovelAnimation.getImageConfig(shovelId),
                     {
                         position: { x: 5, y: 5 },
@@ -226,7 +226,7 @@ export class LevelEntity extends Entity<LevelConfig, LevelState, LevelEvents> {
             })
 
             const pauseButton = ButtonEntity.from(
-                new ImageEntity(
+                ImageEntity.create(
                     {
                         src: './assets/ui/pause_button.png',
                     },
@@ -246,14 +246,13 @@ export class LevelEntity extends Entity<LevelConfig, LevelState, LevelEvents> {
                 })
 
             const resumeButton = ButtonEntity.from(
-                new ImageEntity(
+                ImageEntity.create(
                     {
                         src: './assets/ui/resume_button.png',
                     },
                     {
                         position: { x: this.width - 32, y: 5 },
                         zIndex: this.state.zIndex + 5,
-                        containingMode: 'rect',
                     },
                 ),
                 { containingMode: 'rect' }

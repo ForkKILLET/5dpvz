@@ -24,7 +24,7 @@ export class ShovelSlotEntity extends SlotEntity<ShovelSlotConfig, ShovelSlotSta
         this.shovelMetadata = SHOVEL_METADATA[this.config.shovelId]
 
         this
-            .attach(this.shovelImage = new ImageEntity(
+            .attach(this.shovelImage = ImageEntity.create(
                 shovelAnimation.getImageConfig(this.config.shovelId),
                 {
                     position: { x: x + 1, y: y + 1 },

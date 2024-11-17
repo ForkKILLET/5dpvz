@@ -8,7 +8,6 @@ import { LifeComp } from '@/comps/Life'
 interface SunUniqueConfig {
     life: number
     sun: number
-    scale?: (scale: number) => number
 }
 interface SunConfig extends SunUniqueConfig, ButtonConfig {}
 
@@ -42,7 +41,7 @@ export class SunEntity extends ButtonEntity<SunConfig, SunState, SunEvents> {
 
     static create(config: SunUniqueConfig, state: EntityState) {
         return SunEntity.from(
-            new ImageEntity(
+            ImageEntity.create(
                 {
                     src: './assets/sun.png',
                     center: true,

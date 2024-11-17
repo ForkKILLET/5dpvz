@@ -5,6 +5,8 @@ import { FilterComp } from '@/comps/Filter'
 import { SunEntity } from '../Sun'
 import { random } from '@/utils'
 import { UpdaterComp } from '@/comps/Updater'
+import { ImageEntity } from '../Image'
+import { easeOutExpo } from '@/engine/easing'
 
 export interface SunflowerConfig extends PlantConfig {}
 
@@ -82,10 +84,11 @@ export const SunflowerEntity = definePlant(class SunflowerEntity extends PlantEn
                         const newX = x + stepX
                         const newY = a * newX ** 2
                         const delta = { x: symbolX * (newX - x), y: newY - y }
-                        console.log(x, y)
                         x = newX
                         y = newY
                         entity.updatePosition(delta)
+                        const image = entity.config.entity as ImageEntity
+                        image.scale = easeOutExpo(f / totalF)
                     })
                 )
             }

@@ -24,7 +24,7 @@ export class PlantSlotEntity extends SlotEntity<PlantSlotConfig, PlantSlotState,
         this.plantMetadata = PLANT_METADATA[this.config.plantId]
 
         this
-            .attach(new ImageEntity(
+            .attach(ImageEntity.create(
                 plantAnimation.getImageConfig(this.config.plantId),
                 {
                     position: { x: x + 1, y: y + 1 },

@@ -17,7 +17,7 @@ export interface LawnBlockEvents extends ButtonEvents {}
 export class LawnBlockEntity extends ButtonEntity<LawnBlockConfig, LawnBlockState, LawnBlockEvents> {
     static create(config: LawnBlockUniqueConfig, state: EntityState) {
         return LawnBlockEntity.from(
-            new ImageEntity(
+            ImageEntity.create(
                 {
                     src: `./assets/lawn/${ config.type }.png`,
                 },

@@ -6,13 +6,13 @@ import { PlayScene } from '@/scenes/Play'
 
 export class StartScene extends Scene {
     constructor() {
-        const background = new ImageEntity(
+        const background = ImageEntity.create(
             { src: './assets/start.png' },
             { position: { x: 0, y: 0 }, zIndex: 0 },
         )
 
         const startButton = ButtonEntity.from(
-            new ImageEntity(
+            ImageEntity.create(
                 { src: './assets/start_button_start.png' },
                 {
                     position: { x: 450, y: 140 },
@@ -31,7 +31,7 @@ export class StartScene extends Scene {
             })
 
         const githubButton = ButtonEntity.from(
-            new ImageEntity(
+            ImageEntity.create(
                 { src: './assets/github.png' },
                 {
                     position: { x: 10, y: 10 },

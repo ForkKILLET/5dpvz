@@ -7,7 +7,10 @@ export interface ImageConfig {
     center?: boolean
 }
 
-export interface ImageState extends EntityState {}
+export interface ImageUniqueState {
+    scale: number
+}
+export interface ImageState extends ImageUniqueState, EntityState {}
 
 export interface ImageEvents extends EntityEvents {}
 
@@ -18,14 +21,22 @@ export class ImageEntity<
 > extends Entity<C, S, E> {
     img: HTMLImageElement = placeholder
 
-    private _scale = 1
+    static initState: <S>(state: S) => S & ImageUniqueState = state => ({
+        ...state,
+        scale: 1,
+    })
+
+    static create(config: ImageConfig, state: EntityState) {
+        return new ImageEntity(config, this.initState(state))
+    }
+
     get scale() {
-        return this._scale
+        return this.state.scale
     }
     set scale(value) {
         if (! this.config.center)
             throw new Error('Cannot set scale when centerMode is false.')
-        this._scale = value
+        this.state.scale = value
         this.updateBoundary()
     }
 
@@ -49,11 +60,7 @@ export class ImageEntity<
     }
 
     render() {
-        let { x, y } = this.state.position
-        if (this.config.center) {
-            x -= this.img.width / 2
-            y -= this.img.height / 2
-        }
-        this.game.ctx.drawImage(this.img, x, y)
+        const { x, y, width, height } = this.getComp(BoundaryComp)!
+        this.game.ctx.drawImage(this.img, x, y, width, height)
     }
 }
