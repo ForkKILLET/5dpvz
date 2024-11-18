@@ -2,7 +2,7 @@ import { FilterComp } from '@/comps/Filter'
 import { ZOMBIE_METADATA, zombieAnimation, ZombieId, ZombieMetadata } from '@/data/zombies'
 import { EntityCtor, EntityState } from '@/engine'
 import { AnimationEntity } from '@/entities/Animation'
-import { ButtonConfig, ButtonEntity, ButtonEvents, ButtonState } from '@/entities/Button'
+import { ButtonConfig, ButtonEntity, ButtonEvents, ButtonState } from '@/entities/ui/Button.ts'
 
 export interface ZombieUniqueConfig {
     metadata: ZombieMetadata

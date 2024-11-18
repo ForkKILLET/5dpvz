@@ -1,8 +1,8 @@
 
 import { Entity, EntityEvents, EntityState } from '@/engine'
-import { HoverableComp, HoverableEvents } from '@/comps/Hoverable'
-import { ShapeComp } from '@/comps/Shape'
-import { BoundaryComp } from '@/comps/Boundary'
+import { HoverableComp, HoverableEvents } from '@/comps/Hoverable.ts'
+import { ShapeComp } from '@/comps/Shape.ts'
+import { BoundaryComp } from '@/comps/Boundary.ts'
 
 export interface SlotConfig {}
 

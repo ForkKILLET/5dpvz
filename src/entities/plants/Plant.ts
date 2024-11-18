@@ -1,6 +1,6 @@
 import { EntityCtor, EntityState } from '@/engine'
 import { AnimationEntity } from '@/entities/Animation'
-import { ButtonConfig, ButtonEntity, ButtonEvents, ButtonState } from '@/entities/Button'
+import { ButtonConfig, ButtonEntity, ButtonEvents, ButtonState } from '@/entities/ui/Button.ts'
 import { kLevelState } from '@/entities/Level'
 import { HoverableComp } from '@/comps/Hoverable'
 import { FilterComp } from '@/comps/Filter'

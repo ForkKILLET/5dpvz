@@ -1,7 +1,7 @@
 import { isInRect } from '@/engine'
-import { ImageEntity } from '@/entities/Image'
-import { kLevelState } from '@/entities/Level'
-import { SlotConfig, SlotEntity, SlotEvents, SlotState } from '@/entities/Slot'
+import { ImageEntity } from '@/entities/Image.ts'
+import { kLevelState } from '@/entities/Level.ts'
+import { SlotConfig, SlotEntity, SlotEvents, SlotState } from '@/entities/ui/Slot.ts'
 
 export interface SunSlotConfig extends SlotConfig {}
 

@@ -1,6 +1,6 @@
 import { CursorComp } from '@/comps/Cursor'
 import { Scene } from '@/engine'
-import { ButtonEntity } from '@/entities/Button'
+import { ButtonEntity } from '@/entities/ui/Button.ts'
 import { ImageEntity } from '@/entities/Image'
 import { PlayScene } from '@/scenes/Play'
 

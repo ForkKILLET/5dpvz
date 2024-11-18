@@ -1,8 +1,8 @@
-import { ImageEntity } from '@/entities/Image'
-import { plantAnimation, PLANT_METADATA, PlantMetadata, PlantId } from '@/data/plants'
-import { kLevelState } from '@/entities/Level'
-import { SlotConfig, SlotEntity, SlotEvents, SlotState } from '@/entities/Slot'
-import { CursorComp } from '@/comps/Cursor'
+import { ImageEntity } from '@/entities/Image.ts'
+import { plantAnimation, PLANT_METADATA, PlantMetadata, PlantId } from '@/data/plants.ts'
+import { kLevelState } from '@/entities/Level.ts'
+import { SlotConfig, SlotEntity, SlotEvents, SlotState } from '@/entities/ui/Slot.ts'
+import { CursorComp } from '@/comps/Cursor.ts'
 
 export interface PlantSlotConfig extends SlotConfig {
     slotId: number

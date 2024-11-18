@@ -1,5 +1,5 @@
 import { EntityState } from '@/engine'
-import { ButtonConfig, ButtonEntity, ButtonEvents, ButtonState } from '@/entities/Button'
+import { ButtonConfig, ButtonEntity, ButtonEvents, ButtonState } from '@/entities/ui/Button.ts'
 import { ImageEntity } from '@/entities/Image'
 import { kLevelState } from '@/entities/Level'
 import { CursorComp } from '@/comps/Cursor'

@@ -1,7 +1,7 @@
 import { easeOutExpo } from '@/engine'
 import { definePlant, PlantConfig, PlantEntity, PlantEvents, PlantState } from '@/entities/plants/Plant'
 import { kAttachToLevel, kLevelState } from '@/entities/Level'
-import { ButtonUniqueState } from '@/entities/Button'
+import { ButtonUniqueState } from '@/entities/ui/Button.ts'
 import { SunEntity } from '@/entities/Sun'
 import { ImageEntity } from '@/entities/Image'
 import { FilterComp } from '@/comps/Filter'
