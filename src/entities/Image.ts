@@ -37,30 +37,27 @@ export class ImageEntity<
         if (! this.config.center)
             throw new Error('Cannot set scale when centerMode is false.')
         this.state.scale = value
-        this.updateBoundary()
-    }
-
-    private updateBoundary() {
-        if (! this.config.center) return
-        this.withComp(BoundaryComp, boundaryComp => {
-            const { x, y } = this.state.position
-            const width = boundaryComp.width = this.img.width * this.scale
-            const height = boundaryComp.height = this.img.height * this.scale
-            boundaryComp.x = x - width / 2
-            boundaryComp.y = y - height / 2
-        })
     }
 
     async start(game: Game) {
         await super.start(game)
         this.img = await game.imageManager.loadImage(this.config.src)
-        this.addComp(BoundaryComp, this.img.width, this.img.height)
-        this.updateBoundary()
-        this.on('position-update', () => this.updateBoundary())
+        const { width, height } = this.img
+        this.addComp(BoundaryComp, () => {
+            if (! this.config.center) return { width, height }
+
+            const { x, y } = this.state.position
+            return {
+                x: x - width / 2,
+                y: y - height / 2,
+                width: width * this.scale,
+                height: height * this.scale,
+            }
+        })
     }
 
     render() {
-        const { x, y, width, height } = this.getComp(BoundaryComp)!
+        const { x, y, width, height } = this.getComp(BoundaryComp)!.rect
         this.game.ctx.drawImage(this.img, x, y, width, height)
     }
 }

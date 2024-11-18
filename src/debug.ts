@@ -250,7 +250,7 @@ export const loadDebugWindow = (game: Game) => {
             const { ctx } = this.game
 
             watchingEntity?.withComp(BoundaryComp, boundaryComp => {
-                const { width, height, entity } = boundaryComp
+                const { rect: { width, height }, entity } = boundaryComp
                 if (! entity.deepActive) {
                     unsetWatchingEntity()
                     return
@@ -273,7 +273,7 @@ export const loadDebugWindow = (game: Game) => {
                     const boundaryComp = entity.getComp(BoundaryComp)
                     if (! boundaryComp) return null
 
-                    const { x, y, width, height } = boundaryComp
+                    const { x, y, width, height } = boundaryComp.rect
                     ctx.strokeStyle = 'red'
                     ctx.strokeRect(x, y, width, height)
                     if (boundaryComp.contains(this.game.mouse.position) || entity === reverseSelectingEntity)
@@ -290,7 +290,7 @@ export const loadDebugWindow = (game: Game) => {
 
                 if (selectingEntity !== entity) {
                     if (selectingEntity) cancelSelecting()
-                    $(`li[data-id="${ entity.id }"]`)!.classList.add('selecting')
+                    $(`li[data-id="${ entity.id }"]`)?.classList.add('selecting')
 
                     selectingEntity = entity
                 }

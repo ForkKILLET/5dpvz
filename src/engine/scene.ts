@@ -9,7 +9,7 @@ export class Scene extends Entity<{}, EntityState, EntityEvents> {
             .attach(...entities)
             .afterStart(() => {
                 const { width, height } = this.game.ctx.canvas
-                this.addComp(BoundaryComp, width, height)
+                this.addComp(BoundaryComp, () => ({ width, height }))
             })
     }
 }

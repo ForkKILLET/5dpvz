@@ -83,7 +83,7 @@ export class AnimationEntity<
             this.config.srcs.map(src => game.imageManager.loadImage(src))
         )
         const { width, height } = this.frames[0]
-        this.addComp(BoundaryComp, width, height)
+        this.addComp(BoundaryComp, () => ({ width, height }))
     }
 
     render() {

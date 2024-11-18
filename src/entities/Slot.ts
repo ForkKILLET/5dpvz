@@ -1,5 +1,5 @@
 
-import { Entity, EntityEvents, EntityState, isInRect } from '@/engine'
+import { Entity, EntityEvents, EntityState } from '@/engine'
 import { HoverableComp, HoverableEvents } from '@/comps/Hoverable'
 import { ShapeComp } from '@/comps/Shape'
 import { BoundaryComp } from '@/comps/Boundary'
@@ -21,23 +21,21 @@ export class SlotEntity<
     constructor(config: C, state: S) {
         super(config, state)
 
-        const { position: { x, y } } = this.state
-
         this
-            .addComp(ShapeComp, point => isInRect(point, { x, y, width: this.width, height: this.height }))
+            .addComp(BoundaryComp, () => ({ width: this.width, height: this.height }))
+            .addComp(ShapeComp, point => this.getComp(BoundaryComp)!.contains(point))
             .addComp(HoverableComp)
-            .addComp(BoundaryComp, this.width, this.height)
     }
 
     preRender() {
         super.preRender()
 
         const { ctx } = this.game
-        const { position: { x, y } } = this.state
 
         this.addRenderJob(() => {
             ctx.strokeStyle = 'brown'
-            ctx.strokeRect(x, y, this.width, this.height)
+            const { x, y, width, height } = this.getComp(BoundaryComp)!.rect
+            ctx.strokeRect(x, y, width, height)
         }, 0)
     }
 }

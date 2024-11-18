@@ -34,6 +34,9 @@ export class LawnEntity extends Entity<LawnConfig, LawnState, LawnEvents> {
         )
         this
             .attach(...this.lawnBlocks.flat())
-            .addComp(BoundaryComp, this.config.width * 80, this.config.height * 80)
+            .addComp(BoundaryComp, () => ({
+                width: this.config.width * 80,
+                height: this.config.height * 80,
+            }))
     }
 }

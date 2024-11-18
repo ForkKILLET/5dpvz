@@ -409,9 +409,7 @@ export class LevelEntity extends Entity<LevelConfig, LevelState, LevelEvents> {
 
     nextWave() {
         if (this.state.wave === this.wavesData.waveCount) return
-        this.state.wave ++
-
-        const currentWave = this.wavesData.waves[this.state.wave]
+        const currentWave = this.wavesData.waves[this.state.wave ++]
         const zombieList: ZombieId[] = replicateBy(currentWave.zombieCount, () => {
             const probs = currentWave.zombieProbs
             const total = sum(Object.values(probs))

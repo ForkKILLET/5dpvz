@@ -43,16 +43,14 @@ export class ButtonEntity<
 
         this
             .attach(config.entity)
-            .afterStart(() => {
-                const { width, height, x, y } = this.config.entity.getComp(BoundaryComp)!
-                this
-                    .addComp(ShapeComp, this.contains)
-                    .addComp(HoverableComp)
-                    .withComp(HoverableComp, ({ emitter }) => {
-                        this.forwardEvents(emitter, [ 'click', 'rightclick' ])
-                    })
-                    .addComp(BoundaryComp, width, height, x, y)
-            })
+            .afterStart(() => this
+                .addComp(ShapeComp, this.contains)
+                .addComp(HoverableComp)
+                .withComp(HoverableComp, ({ emitter }) => {
+                    this.forwardEvents(emitter, [ 'click', 'rightclick' ])
+                })
+                .addComp(BoundaryComp, () => BoundaryComp.derive(this.config.entity))
+            )
     }
 
     static from<E extends ButtonEntity = ButtonEntity>(
@@ -87,7 +85,7 @@ export class ButtonEntity<
 
         this.contains = point => {
             const boundaryComp = this.config.entity.getComp(BoundaryComp)!
-            const { x, y } = boundaryComp
+            const { x, y } = boundaryComp.rect
 
             if (! boundaryComp.contains(point)) return false
             if (this.config.containingMode === 'rect') return true

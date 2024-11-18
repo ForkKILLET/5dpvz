@@ -20,10 +20,10 @@ export interface EntityEvents extends Events {
 export type InjectKey<T> = symbol & { __injectType: T }
 export const injectKey = <T>(description: string) => Symbol(description) as InjectKey<T>
 
-export class Comp {
+export class Comp<E extends Entity = Entity> {
     static dependencies: CompCtor[] = []
 
-    constructor(public readonly entity: Entity) {}
+    constructor(public readonly entity: E) {}
 
     update() {}
 }
