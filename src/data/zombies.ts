@@ -1,5 +1,6 @@
 import { AnimationSetData, useAnimation } from '@/entities/Animation'
 import { NormalZombieEntity } from '@/entities/zombies/NormalZombie'
+import { ZombieEntity } from '@/entities/zombies/Zombie'
 
 export interface ZombieMetadata {
     id: ZombieId
@@ -10,10 +11,8 @@ export interface ZombieMetadata {
     animations: AnimationSetData
 }
 
-export const ZOMBIE_MOVES = [ 'normal', 'frozen', 'cold', 'hypnotised' ] as const
-export const ZOMBIE_PLACES = [ 'land', 'sky', 'ground', 'float', 'dive' ] as const
-export type ZombieMove = typeof ZOMBIE_MOVES[number]
-export type ZombiePlace = typeof ZOMBIE_PLACES[number]
+export type ZombieMove = 'normal' | 'frozen' | 'cold' | 'hypnotised'
+export type ZombiePlace = 'land' | 'sky' | 'ground' | 'float' | 'dive'
 export type ZombieStatus = { move: ZombieMove, place: ZombiePlace }
 
 export const ZOMBIE_NAMES = [ 'normal_zombie' ] as const
@@ -21,6 +20,6 @@ export type ZombieId = typeof ZOMBIE_NAMES[number]
 
 export const ZOMBIE_METADATA = {
     normal_zombie: NormalZombieEntity,
-} satisfies Record<ZombieId, ZombieMetadata>
+} as Record<ZombieId, ZombieMetadata & typeof ZombieEntity>
 
 export const zombieAnimation = useAnimation('zombies', ZOMBIE_METADATA)

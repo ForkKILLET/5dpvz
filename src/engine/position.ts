@@ -17,12 +17,12 @@ export const isInRect = (point: Position, rect: Rect) => (
     point.y >= rect.y && point.y < rect.y + rect.height
 )
 
-export const subtract = (p1: Position, p2: Position): Position => ({
+export const positionSubtract = (p1: Position, p2: Position): Position => ({
     x: p1.x - p2.x,
     y: p1.y - p2.y,
 })
 
-export const add = (p1: Position, p2: Position): Position => ({
+export const positionAdd = (p1: Position, p2: Position): Position => ({
     x: p1.x + p2.x,
     y: p1.y + p2.y,
 })
@@ -38,7 +38,7 @@ export const linearWithDistance = (speed: number, angle: number, distance: numbe
     withCount(linear(speed, angle), distance / speed)
 
 export const linearTo = (speed: number, from: Position, to: Position): Movement => {
-    const delta = subtract(to, from)
+    const delta = positionSubtract(to, from)
     const angle = Math.atan2(delta.y, delta.x)
     const distance = Math.hypot(delta.x, delta.y)
     return linearWithDistance(speed, angle, distance)

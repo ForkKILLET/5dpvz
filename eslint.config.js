@@ -31,9 +31,9 @@ export default tseslint.config({
     rules: {
         // Basic style
         '@stylistic/js/max-len': error(120),
-        '@stylistic/js/indent': error(4),
         '@stylistic/js/semi': error('never'),
         '@stylistic/js/quotes': error('single'),
+        '@stylistic/ts/indent': error(4),
 
         // Style
         '@stylistic/js/array-bracket-spacing': error('always'),

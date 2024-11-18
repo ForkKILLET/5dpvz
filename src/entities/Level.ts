@@ -1,27 +1,30 @@
+import { CursorComp } from '@/comps/Cursor'
+import { UpdaterComp } from '@/comps/Updater'
+import { PLANT_METADATA, plantAnimation, PlantId, PlantMetadata } from '@/data/plants'
+import { shovelAnimation, ShovelId } from '@/data/shovels'
+import { StageData } from '@/data/stages'
+import { ZOMBIE_METADATA, ZombieId } from '@/data/zombies'
 import { Entity, EntityEvents, EntityState, injectKey } from '@/engine'
-import { LawnConfig, LawnEntity } from '@/entities/Lawn'
-import { PlantSlotsConfig, UIEntity } from '@/entities/UI'
+import { ButtonEntity } from '@/entities/Button'
 import { ImageEntity } from '@/entities/Image'
+import { LawnConfig, LawnEntity } from '@/entities/Lawn'
 import { LawnBlockEntity } from '@/entities/LawnBlock'
 import { PlantEntity } from '@/entities/plants/Plant'
-import { SunEntity } from '@/entities/Sun'
 import { ShovelSlotConfig } from '@/entities/ShovelSlot'
-import { ButtonEntity } from '@/entities/Button'
-import { plantAnimation, PLANT_METADATA, PlantId, PlantMetadata } from '@/data/plants'
-import { shovelAnimation, ShovelId } from '@/data/shovel'
-import { CursorComp } from '@/comps/Cursor'
-import { ZOMBIE_METADATA, ZombieId, ZombieStatus } from '@/data/zombies'
+import { SunEntity } from '@/entities/Sun'
+import { PlantSlotsConfig, UIEntity } from '@/entities/UI'
 import { ZombieEntity } from '@/entities/zombies/Zombie'
-import { StageConfig } from '@/data/stages'
-import { eq, matrix, Nullable, remove, placeholder, random, sum } from '@/utils'
-import { UpdaterComp } from '@/comps/Updater'
+import { eq, matrix, Nullable, placeholder, random, remove, replicateBy, sum } from '@/utils'
+
+void PLANT_METADATA
+void ZOMBIE_METADATA
 
 export interface LevelConfig {
     plantSlots: PlantSlotsConfig
     shovelSlot: ShovelSlotConfig
     lawn: LawnConfig
     sun: SunGlobalConfig
-    stage: StageConfig
+    stage: StageData
 }
 
 export interface SunGlobalConfig {
@@ -41,23 +44,16 @@ export interface PlantSlotData {
 
 export interface PlantData {
     id: PlantId
-    hp: number
     position: { i: number, j: number }
     entity: PlantEntity
 }
 
 export interface SunData {
-    lifeLimit: number
-    targetY: number
     entity: SunEntity
 }
 
 export interface ZombieData {
     id: ZombieId
-    hp: number
-    speed: number
-    position: { x: number, y: number }
-    status: ZombieStatus
     entity: ZombieEntity
 }
 
@@ -68,17 +64,18 @@ export type HoldingObject =
 export interface LevelUniqueState {
     sun: number
     sunDropTimer: number
+
     plantSlotsData: PlantSlotData[]
     holdingObject: Nullable<HoldingObject>
+
     plantsData: PlantData[]
     plantsOnBlocks: Nullable<PlantData>[][]
     sunsData: SunData[]
     zombiesData: ZombieData[]
+
     waveTimer: number
-    currentWave: number
+    wave: number
     waveZombieInitHP: number
-    waveSum: number
-    waves: ZombieId[][]
 }
 export interface LevelState extends LevelUniqueState, EntityState {}
 
@@ -99,11 +96,13 @@ export class LevelEntity extends Entity<LevelConfig, LevelState, LevelEvents> {
         sunsData: [],
         zombiesData: [],
         waveTimer: 0,
-        currentWave: 0,
+        wave: 0,
         waveZombieInitHP: 0,
-        waveSum: 0,
-        waves: [ [] ],
     })
+
+    static create<C extends LevelConfig, S extends EntityState>(config: C, state: S) {
+        return new this(config, this.initState(state))
+    }
 
     ui: UIEntity
     lawn: LawnEntity
@@ -135,9 +134,8 @@ export class LevelEntity extends Entity<LevelConfig, LevelState, LevelEvents> {
 
         this.state.sun = config.sun.sunAtStart
         this.state.sunDropTimer = config.sun.sunDroppingInterval - config.sun.firstSunDroppingTime
-        this.state.waveTimer = 30000
-        this.state.waveSum = config.stage.waveData.waveSum
-        this.state.waves = config.stage.waveData.waves
+
+        this.state.waveTimer = 30_000
 
         this.width = 10 + config.lawn.width * 80
         this.height = 150 + config.lawn.height * 80
@@ -329,7 +327,6 @@ export class LevelEntity extends Entity<LevelConfig, LevelState, LevelEvents> {
 
         const newPlantData: PlantData = {
             id: plantId,
-            hp: metadata.hp,
             position: { i, j },
             entity: newPlant,
         }
@@ -356,7 +353,7 @@ export class LevelEntity extends Entity<LevelConfig, LevelState, LevelEvents> {
     }
 
     getLawnBlockPosition(i: number, j: number) {
-        return this.lawn.lawnBlocks[i][j].state.position
+        return { ...this.lawn.lawnBlocks[i][j].state.position }
     }
 
     cancelHolding() {
@@ -398,35 +395,54 @@ export class LevelEntity extends Entity<LevelConfig, LevelState, LevelEvents> {
     }
 
     get currentZombiesHP(): number {
-        return sum(this.state.zombiesData.map(data => data.hp))
+        return sum(this.state.zombiesData.map(data => data.entity.config.metadata.hp))
+    }
+
+    get wavesData() {
+        return this.config.stage.wavesData
+    }
+
+    getZombieSpawningRow(zombieId: ZombieId) {
+        void zombieId
+        return random(this.lawn.config.height)
     }
 
     nextWave() {
-        this.state.currentWave += 1
-        if (this.state.currentWave > this.state.waveSum) return
-        this.state.zombiesData.push(...this.state.waves[this.state.currentWave].map(zombieId => {
-            const metadata = ZOMBIE_METADATA[zombieId]
-            const position = this.getLawnBlockPosition(8, 0) // TODO
+        if (this.state.wave === this.wavesData.waveCount) return
+        this.state.wave ++
+
+        const currentWave = this.wavesData.waves[this.state.wave]
+        const zombieList: ZombieId[] = replicateBy(currentWave.zombieCount, () => {
+            const probs = currentWave.zombieProbs
+            const total = sum(Object.values(probs))
+            const rand = random(total)
+            let acc = 0
+            for (const [ zombieId, prob ] of Object.entries(probs)) {
+                acc += prob
+                if (rand < acc) return zombieId as ZombieId
+            }
+            return zombieList[0]
+        })
+
+        zombieList.forEach(zombieId => {
+            const row = this.getZombieSpawningRow(zombieId)
+            const { x, y } = this.getLawnBlockPosition(this.lawn.config.width - 1, row)
+
             const newZombie = ZombieEntity.create(
                 zombieId,
-                position,
+                {},
                 {
-                    position,
+                    position: { x, y: y - 40 },
                     zIndex: this.lawn.state.zIndex + 2,
                 }
             )
+                .attachTo(this)
 
-            const newZombieData: ZombieData = {
+            this.state.zombiesData.push({
                 id: zombieId,
-                hp: metadata.hp,
-                speed: metadata.speed,
-                position,
-                status: metadata.status,
                 entity: newZombie,
-            }
-            this.attach(newZombie)
-            return newZombieData
-        }))
+            })
+        })
     }
 
     preUpdate() {
@@ -459,11 +475,17 @@ export class LevelEntity extends Entity<LevelConfig, LevelState, LevelEvents> {
 
     updateZombie() {
         if (this.state.waveTimer <= 0
-            || this.state.waveTimer <= 25000 && this.currentZombiesHP <= this.state.waveZombieInitHP) {
-            this.nextWave()
-        }
-        this.state.zombiesData.forEach(zombieData => {
-            zombieData.position.x -= zombieData.speed * this.game.mspf / 1000
+            || this.state.waveTimer <= 25000 && this.currentZombiesHP <= this.state.waveZombieInitHP
+        ) this.nextWave()
+
+        this.state.zombiesData.forEach(({ entity }) => {
+            entity.updatePosition({
+                x: entity.nextMove(),
+                y: 0,
+            })
+            if (entity.state.position.x < 0) {
+                entity.dispose() // TODO
+            }
         })
     }
 
@@ -478,12 +500,6 @@ export class LevelEntity extends Entity<LevelConfig, LevelState, LevelEvents> {
         this.updatePlantSlot()
 
         this.updateZombie()
-
-        this.state.sunsData.forEach(({ entity, targetY }) => {
-            if (entity.state.position.y < targetY) entity.state.position.y += (
-                this.config.sun.sunDroppingVelocity * this.game.mspf
-            )
-        })
 
         this.updateTimer(
             'sunDropTimer',

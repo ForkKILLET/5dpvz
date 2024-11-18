@@ -64,6 +64,10 @@ export class AnimationEntity<
         direction: 1,
     })
 
+    static create<C extends AnimationConfig, S extends EntityState>(config: C, state: S) {
+        return new this(config, this.initState(state))
+    }
+
     static getStdSrcs = (path: string, num: number): string[] => {
         const digits = Math.max(String(num).length, 2)
         return Array

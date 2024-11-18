@@ -4,7 +4,7 @@ import { Stage1_1 } from '@/data/stages'
 
 export class PlayScene extends Scene {
     constructor() {
-        const level = new LevelEntity(
+        const level = LevelEntity.create(
             {
                 plantSlots: {
                     slotNum: 2,
@@ -15,8 +15,8 @@ export class PlayScene extends Scene {
                     height: 5,
                 },
                 sun: {
-                    sunDroppingInterval: 10000,
-                    firstSunDroppingTime: 6000,
+                    sunDroppingInterval: 10_000,
+                    firstSunDroppingTime: 6_000,
                     sunDroppingVelocity: 30 / 1000,
                     sunLife: 8000,
                     sunAtStart: 200,
@@ -26,11 +26,10 @@ export class PlayScene extends Scene {
                 },
                 stage: Stage1_1,
             },
-            LevelEntity.initState({
+            {
                 position: { x: 0, y: 0 },
                 zIndex: 0,
-                stage: Stage1_1,
-            })
+            }
         )
 
         super([

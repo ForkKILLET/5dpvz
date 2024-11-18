@@ -1,3 +1,5 @@
+/* eslint-disable @stylistic/ts/indent */
+
 export type RemoveIndex<T> = {
     [ K in keyof T as
         string extends K ? never :

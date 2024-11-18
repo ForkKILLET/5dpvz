@@ -1,4 +1,4 @@
-/* eslint-disable @stylistic/js/indent */
+/* eslint-disable @stylistic/ts/indent */
 
 import { Entity, Game, Scene } from '@/engine'
 import { BoundaryComp } from '@/comps/Boundary'

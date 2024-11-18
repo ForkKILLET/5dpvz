@@ -1,4 +1,4 @@
-import { shovelAnimation, SHOVEL_METADATA, ShovelId, ShovelMetadata } from '@/data/shovel'
+import { shovelAnimation, SHOVEL_METADATA, ShovelId, ShovelMetadata } from '@/data/shovels'
 import { ImageEntity } from '@/entities/Image'
 import { SlotConfig, SlotEntity, SlotEvents, SlotState } from '@/entities/Slot'
 import { kLevelState } from '@/entities/Level'

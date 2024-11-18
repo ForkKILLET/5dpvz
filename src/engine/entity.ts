@@ -1,4 +1,4 @@
-import { createIdGenerator, Game, Position, Emitter, Events, add } from '@/engine'
+import { createIdGenerator, Game, Position, Emitter, Events, positionAdd } from '@/engine'
 import { Disposer, remove, RemoveIndex } from '@/utils'
 import { placeholder } from '@/utils/any'
 
@@ -291,7 +291,7 @@ export class Entity<
     }
     updatePosition(delta: Position) {
         this.emit('position-update', delta)
-        this.state.position = add(this.state.position, delta)
+        this.state.position = positionAdd(this.state.position, delta)
         this.attachedEntities.forEach(entity => entity.updatePosition(delta))
     }
 }

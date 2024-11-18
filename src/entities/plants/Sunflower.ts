@@ -1,22 +1,22 @@
-import { definePlant, PlantConfig, PlantEntity, PlantState } from '@/entities/plants/Plant'
+import { easeOutExpo } from '@/engine'
+import { definePlant, PlantConfig, PlantEntity, PlantEvents, PlantState } from '@/entities/plants/Plant'
 import { kAttachToLevel, kLevelState } from '@/entities/Level'
 import { ButtonUniqueState } from '@/entities/Button'
+import { SunEntity } from '@/entities/Sun'
+import { ImageEntity } from '@/entities/Image'
 import { FilterComp } from '@/comps/Filter'
-import { SunEntity } from '../Sun'
-import { random } from '@/utils'
 import { UpdaterComp } from '@/comps/Updater'
-import { ImageEntity } from '../Image'
-import { easeOutExpo } from '@/engine/easing'
-
-export interface SunflowerConfig extends PlantConfig {}
+import { random } from '@/utils'
 
 export interface SunflowerUniqueState {
     sunProduceTimer: number
 }
 export interface SunflowerState extends SunflowerUniqueState, PlantState {}
 
+export interface SunflowerEvents extends PlantEvents {}
+
 export const SunflowerEntity = definePlant(class SunflowerEntity extends PlantEntity<
-    SunflowerConfig, SunflowerState
+    SunflowerState
 > {
     static readonly id = 'sunflower'
     static readonly name = 'Sunflower'
@@ -34,7 +34,7 @@ export const SunflowerEntity = definePlant(class SunflowerEntity extends PlantEn
         sunProduceTimer: 0,
     })
 
-    constructor(config: SunflowerConfig, state: SunflowerState) {
+    constructor(config: PlantConfig, state: SunflowerState) {
         super(config, state)
     }
 

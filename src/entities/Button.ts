@@ -9,9 +9,10 @@ import { placeholder } from '@/utils'
 export interface ContainingModeConfig {
     containingMode: 'rect' | 'strict'
 }
-export interface ButtonConfig extends ContainingModeConfig {
+export interface ButtonUniqueConfig {
     entity: ImageEntity | AnimationEntity
 }
+export interface ButtonConfig extends ContainingModeConfig, ButtonUniqueConfig {}
 
 export interface ButtonUniqueState {
     hovering: boolean
@@ -19,6 +20,11 @@ export interface ButtonUniqueState {
 export interface ButtonState extends ButtonUniqueState, EntityState {}
 
 export interface ButtonEvents extends HoverableEvents, EntityEvents {}
+
+export interface ButtonStatic<E extends ButtonEntity> {
+    new (config: E['config'], state: E['state']): E
+    initState: <S>(state: S) => S & ButtonUniqueState
+}
 
 export class ButtonEntity<
     C extends ButtonConfig = ButtonConfig,
@@ -49,9 +55,10 @@ export class ButtonEntity<
             })
     }
 
-    static from<C extends ContainingModeConfig>(
+    static from<E extends ButtonEntity = ButtonEntity>(
+        this: ButtonStatic<E>,
         entity: ImageEntity | AnimationEntity,
-        config: C
+        config: Omit<E['config'], keyof ButtonUniqueConfig>
     ) {
         return new this(
             {

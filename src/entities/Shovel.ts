@@ -1,4 +1,4 @@
-import { shovelAnimation, ShovelId } from '@/data/shovel'
+import { shovelAnimation, ShovelId } from '@/data/shovels'
 import { AnimationConfig, AnimationEntity, AnimationEvents, AnimationState } from '@/entities/Animation'
 
 export interface ShovelUniqueConfig {
