@@ -182,11 +182,8 @@ export const loadDebugWindow = (game: Game) => {
             json-null {
                 color: #888;
             }
-            json-function::after {
-                content: 'function';
-            }
             json-function {
-                color: orange;
+                color: chocolate;
             }
         </style>
 
@@ -418,7 +415,7 @@ export const loadDebugWindow = (game: Game) => {
         typeof obj === 'string' ? `<json-string>${ obj }</json-string>` :
         typeof obj === 'boolean' ? `<json-boolean>${ obj }</json-boolean>` :
         typeof obj === 'symbol' ? `<json-symbol>${ obj.description }</json-symbol>` :
-        typeof obj === 'function' ? '<json-function></json-function>' :
+        typeof obj === 'function' ? `<json-function>${ obj.name }</json-function>` :
         obj === null ? '<json-null></json-null>' :
         Array.isArray(obj) ? `<json-array>${ obj
             .map((child): string => `<json-item>${ showJson(child) }</json-item>`)
@@ -446,7 +443,7 @@ export const loadDebugWindow = (game: Game) => {
             <b>config</b> ${ showJson(e.config) }<br />
             <b>providedKeys</b> ${ showJson(Object.getOwnPropertySymbols(e.providedValues)) }<br />
             <b>injectableKeys</b> ${ showJson(e.injectableKeys) }<br />
-            <b>comps</b> ${ showJson(e.comps.map(comp => comp.constructor.name)) }<br />
+            <b>comps</b> ${ showJson(e.comps.map(comp => comp.constructor)) }<br />
             <b>superEntity</b> ${ showJson(e.superEntity) }<br />
             <b>attachedEntities</b> <div id="entity-detail-tree-content"></div>
         `

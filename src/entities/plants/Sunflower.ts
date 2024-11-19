@@ -27,7 +27,7 @@ export const SunflowerEntity = definePlant(class SunflowerEntity extends PlantEn
     static readonly animations = {
         common: { fpaf: 8, frameNum: 12 },
     }
-    static readonly sunProduceInterval = 15000
+    static readonly sunProduceInterval = 3_000
 
     static initState: <S>(state: S) => S & SunflowerUniqueState & ButtonUniqueState = state => ({
         ...super.initState(state),

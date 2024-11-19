@@ -47,11 +47,13 @@ export class ImageEntity<
             if (! this.config.center) return { width, height }
 
             const { x, y } = this.state.position
+            const scaledWidth = width * this.scale
+            const scaledHeight = height * this.scale
             return {
-                x: x - width / 2,
-                y: y - height / 2,
-                width: width * this.scale,
-                height: height * this.scale,
+                x: x - scaledWidth / 2,
+                y: y - scaledHeight / 2,
+                width: scaledWidth,
+                height: scaledHeight,
             }
         })
     }
