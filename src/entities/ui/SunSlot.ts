@@ -1,7 +1,6 @@
-import { isInRect } from '@/engine'
-import { ImageEntity } from '@/entities/Image.ts'
-import { kLevelState } from '@/entities/Level.ts'
-import { SlotConfig, SlotEntity, SlotEvents, SlotState } from '@/entities/ui/Slot.ts'
+import { ImageEntity } from '@/entities/Image'
+import { kLevelState } from '@/entities/Level'
+import { SlotConfig, SlotEntity, SlotEvents, SlotState } from '@/entities/ui/Slot'
 
 export interface SunSlotConfig extends SlotConfig {}
 
@@ -27,13 +26,6 @@ export class SunSlotEntity extends SlotEntity<SunSlotConfig, SunSlotState, SunSl
             },
         )
         this.attach(this.sumImage)
-    }
-
-    get isHovering() {
-        const { x, y } = this.state.position
-        const { mouse } = this.game
-
-        return isInRect(mouse.position, { x, y, width: 80 + 2, height: 80 + 20 + 2 })
     }
 
     render() {

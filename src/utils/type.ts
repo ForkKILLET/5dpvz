@@ -12,3 +12,5 @@ export type RemoveIndex<T> = {
 export type Disposer = () => void
 
 export type Nullable<T> = T | null
+
+export type MakeOptional<T, K extends keyof T> = Omit<T, K> & Partial<Pick<T, K>>

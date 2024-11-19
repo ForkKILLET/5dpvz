@@ -1,19 +1,15 @@
 import { Game, getImagePixels, EntityEvents, Entity, EntityState, Position } from '@/engine'
-import { ImageEntity } from '@/entities/Image.ts'
-import { AnimationEntity } from '@/entities/Animation.ts'
-import { HoverableComp, HoverableEvents } from '@/comps/Hoverable.ts'
-import { ShapeComp } from '@/comps/Shape.ts'
-import { BoundaryComp } from '@/comps/Boundary.ts'
+import { ImageEntity } from '@/entities/Image'
+import { AnimationEntity } from '@/entities/Animation'
+import { HoverableComp, HoverableEvents } from '@/comps/Hoverable'
+import { AnyShape, RectShape, ShapeComp } from '@/comps/Shape'
 import { placeholder } from '@/utils'
-import { BoundaryComp } from '@/comps/Boundary.ts'
 
-export interface ContainingModeConfig {
-    containingMode: 'rect' | 'strict'
-}
 export interface ButtonUniqueConfig {
+    containingMode: 'rect' | 'strict'
     entity: ImageEntity | AnimationEntity
 }
-export interface ButtonConfig extends ContainingModeConfig, ButtonUniqueConfig {}
+export interface ButtonConfig extends ButtonUniqueConfig {}
 
 export interface ButtonUniqueState {
     hovering: boolean
@@ -45,19 +41,23 @@ export class ButtonEntity<
         this
             .attach(config.entity)
             .afterStart(() => this
-                .addComp(ShapeComp, this.contains)
+                .addComp(AnyShape, {
+                    contains: point => this.contains(point),
+                    intersects: other => this.config.entity.getComp(ShapeComp)!.intersects(other),
+                    stroke: () => this.config.entity.getComp(ShapeComp)!.stroke(),
+                    fill: () => this.config.entity.getComp(ShapeComp)!.fill(),
+                })
                 .addComp(HoverableComp)
                 .withComp(HoverableComp, ({ emitter }) => {
                     this.forwardEvents(emitter, [ 'click', 'rightclick', 'mouseenter', 'mouseleave' ])
                 })
-                .addComp(BoundaryComp, () => BoundaryComp.derive(this.config.entity))
             )
     }
 
     static from<E extends ButtonEntity = ButtonEntity>(
         this: ButtonStatic<E>,
         entity: ImageEntity | AnimationEntity,
-        config: Omit<E['config'], keyof ButtonUniqueConfig>
+        config: Omit<E['config'], 'entity'>
     ) {
         return new this(
             {
@@ -85,10 +85,10 @@ export class ButtonEntity<
         const getCurrentPixels = () => isImage ? pixelsList[0] : pixelsList[entity.state.af]
 
         this.contains = point => {
-            const boundaryComp = this.config.entity.getComp(BoundaryComp)!
-            const { x, y } = boundaryComp.rect
+            const shape = this.config.entity.getComp(RectShape)!
+            const { x, y } = shape.rect
 
-            if (! boundaryComp.contains(point)) return false
+            if (! shape.contains(point)) return false
             if (this.config.containingMode === 'rect') return true
 
             const rx = point.x - x

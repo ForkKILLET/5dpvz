@@ -1,7 +1,7 @@
 import { EntityState, Entity, EntityEvents } from '@/engine'
 import { matrix } from '@/utils'
 import { LawnBlockEntity } from '@/entities/LawnBlock'
-import { BoundaryComp } from '@/comps/Boundary'
+import { RectShape } from '@/comps/Shape'
 
 export interface LawnConfig {
     height: number
@@ -34,9 +34,10 @@ export class LawnEntity extends Entity<LawnConfig, LawnState, LawnEvents> {
         )
         this
             .attach(...this.lawnBlocks.flat())
-            .addComp(BoundaryComp, () => ({
+            .addComp(RectShape, {
                 width: this.config.width * 80,
                 height: this.config.height * 80,
-            }))
+                origin: 'top-left',
+            })
     }
 }

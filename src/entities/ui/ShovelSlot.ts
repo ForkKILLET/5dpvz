@@ -1,8 +1,8 @@
-import { shovelAnimation, SHOVEL_METADATA, ShovelId, ShovelMetadata } from '@/data/shovels.ts'
-import { ImageEntity } from '@/entities/Image.ts'
-import { SlotConfig, SlotEntity, SlotEvents, SlotState } from '@/entities/ui/Slot.ts'
-import { kLevelState } from '@/entities/Level.ts'
-import { CursorComp } from '@/comps/Cursor.ts'
+import { shovelAnimation, SHOVEL_METADATA, ShovelId, ShovelMetadata } from '@/data/shovels'
+import { ImageEntity } from '@/entities/Image'
+import { SlotConfig, SlotEntity, SlotEvents, SlotState } from '@/entities/ui/Slot'
+import { kLevelState } from '@/entities/Level'
+import { CursorComp } from '@/comps/Cursor'
 
 export interface ShovelSlotConfig extends SlotConfig {
     shovelId: ShovelId

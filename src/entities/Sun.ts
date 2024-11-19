@@ -1,5 +1,5 @@
 import { EntityState } from '@/engine'
-import { ButtonConfig, ButtonEntity, ButtonEvents, ButtonState } from '@/entities/ui/Button.ts'
+import { ButtonConfig, ButtonEntity, ButtonEvents, ButtonState } from '@/entities/ui/Button'
 import { ImageEntity } from '@/entities/Image'
 import { kLevelState } from '@/entities/Level'
 import { CursorComp } from '@/comps/Cursor'
@@ -56,7 +56,7 @@ export class SunEntity extends ButtonEntity<SunConfig, SunState, SunEvents> {
             ImageEntity.create(
                 {
                     src: './assets/sun.png',
-                    center: true,
+                    origin: 'center',
                 },
                 state,
             ),

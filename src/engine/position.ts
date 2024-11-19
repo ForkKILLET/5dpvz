@@ -5,18 +5,6 @@ export interface Position {
     y: number
 }
 
-export interface Rect {
-    x: number
-    y: number
-    width: number
-    height: number
-}
-
-export const isInRect = (point: Position, rect: Rect) => (
-    point.x >= rect.x && point.x < rect.x + rect.width &&
-    point.y >= rect.y && point.y < rect.y + rect.height
-)
-
 export const positionSubtract = (p1: Position, p2: Position): Position => ({
     x: p1.x - p2.x,
     y: p1.y - p2.y,

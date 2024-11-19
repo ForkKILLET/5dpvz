@@ -1,8 +1,7 @@
 
 import { Entity, EntityEvents, EntityState } from '@/engine'
-import { HoverableComp, HoverableEvents } from '@/comps/Hoverable.ts'
-import { ShapeComp } from '@/comps/Shape.ts'
-import { BoundaryComp } from '@/comps/Boundary.ts'
+import { HoverableComp, HoverableEvents } from '@/comps/Hoverable'
+import { RectShape } from '@/comps/Shape'
 
 export interface SlotConfig {}
 
@@ -22,8 +21,7 @@ export class SlotEntity<
         super(config, state)
 
         this
-            .addComp(BoundaryComp, () => this)
-            .addComp(ShapeComp, point => this.getComp(BoundaryComp)!.contains(point))
+            .addComp(RectShape, { width: this.width, height: this.height, origin: 'top-left' })
             .addComp(HoverableComp)
     }
 
@@ -34,7 +32,7 @@ export class SlotEntity<
 
         this.addRenderJob(() => {
             ctx.strokeStyle = 'brown'
-            const { x, y, width, height } = this.getComp(BoundaryComp)!.rect
+            const { x, y, width, height } = this.getComp(RectShape)!.rect
             ctx.strokeRect(x, y, width, height)
         }, 0)
     }

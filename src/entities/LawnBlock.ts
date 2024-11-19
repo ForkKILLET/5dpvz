@@ -1,5 +1,5 @@
 import { EntityState } from '@/engine'
-import { ButtonConfig, ButtonEntity, ButtonEvents, ButtonState } from '@/entities/ui/Button.ts'
+import { ButtonConfig, ButtonEntity, ButtonEvents, ButtonState } from '@/entities/ui/Button'
 import { ImageEntity } from '@/entities/Image'
 
 export interface LawnBlockUniqueConfig {

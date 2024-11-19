@@ -5,6 +5,7 @@ import { placeholder } from '@/utils/any'
 export interface EntityState {
     position: Position
     zIndex: number
+    scale?: number
 }
 
 export interface EntityEvents extends Events {
@@ -29,7 +30,9 @@ export class Comp<E extends Entity = Entity> {
     frozenUpdate() {}
 }
 
-export type CompCtor<C extends Comp = Comp> = new (...args: any[]) => C
+export type CompCtor<C extends Comp = Comp> =
+    | (new (...args: any[]) => C)
+    | (abstract new (...args: any[]) => C)
 
 export class Entity<
     C = any,
@@ -174,7 +177,7 @@ export class Entity<
         this.afterStart(() => {
             const { dependencies } = Comp as any as { dependencies: CompCtor[] }
             if (! this.hasComp(...dependencies))
-                throw new Error(`Missing dependencies: ${ dependencies.map(Dep => Dep.name).join(', ') }.`)
+                throw new Error(`Component missing dependencies: ${ dependencies.map(Dep => Dep.name).join(', ') }.`)
 
             this.comps.push(new Comp(this, ...args))
         })

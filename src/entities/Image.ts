@@ -1,16 +1,12 @@
-import { BoundaryComp } from '@/comps/Boundary'
+import { OriginConfig, RectShape } from '@/comps/Shape'
 import { EntityEvents, EntityState, Entity, Game } from '@/engine'
-import { placeholder } from '@/utils'
+import { MakeOptional, placeholder } from '@/utils'
 
-export interface ImageConfig {
+export interface ImageConfig extends OriginConfig {
     src: string
-    center?: boolean
 }
 
-export interface ImageUniqueState {
-    scale: number
-}
-export interface ImageState extends ImageUniqueState, EntityState {}
+export interface ImageState extends EntityState {}
 
 export interface ImageEvents extends EntityEvents {}
 
@@ -21,45 +17,22 @@ export class ImageEntity<
 > extends Entity<C, S, E> {
     img: HTMLImageElement = placeholder
 
-    static initState: <S>(state: S) => S & ImageUniqueState = state => ({
-        ...state,
-        scale: 1,
-    })
-
-    static create(config: ImageConfig, state: EntityState) {
-        return new ImageEntity(config, this.initState(state))
-    }
-
-    get scale() {
-        return this.state.scale
-    }
-    set scale(value) {
-        if (! this.config.center)
-            throw new Error('Cannot set scale when centerMode is false.')
-        this.state.scale = value
+    static create(config: MakeOptional<ImageConfig, 'origin'>, state: EntityState) {
+        return new ImageEntity(
+            { origin: 'top-left', ...config },
+            state
+        )
     }
 
     async start(game: Game) {
         await super.start(game)
         this.img = await game.imageManager.loadImage(this.config.src)
         const { width, height } = this.img
-        this.addComp(BoundaryComp, () => {
-            if (! this.config.center) return { width, height }
-
-            const { x, y } = this.state.position
-            const scaledWidth = width * this.scale
-            const scaledHeight = height * this.scale
-            return {
-                x: x - scaledWidth / 2,
-                y: y - scaledHeight / 2,
-                width: scaledWidth,
-                height: scaledHeight,
-            }
-        })
+        this.addComp(RectShape, { width, height, origin: this.config.origin })
     }
 
     render() {
-        const { x, y, width, height } = this.getComp(BoundaryComp)!.rect
+        const { x, y, width, height } = this.getComp(RectShape)!.rect
         this.game.ctx.drawImage(this.img, x, y, width, height)
     }
 }

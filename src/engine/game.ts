@@ -1,6 +1,6 @@
 import { CursorComp } from '@/comps/Cursor'
 import { HoverableComp } from '@/comps/Hoverable'
-import { ShapeComp } from '@/comps/Shape'
+import { AnyShape, ShapeComp } from '@/comps/Shape'
 import { Emitter, Entity, Events, ImageManager, Mouse, Scene, useImageManager, useMouse } from '@/engine'
 import { by, remove } from '@/utils'
 import { loadDebugWindow } from '@/debug'
@@ -129,7 +129,7 @@ export class Game {
         const floor = new class Floor extends Scene {
             constructor() {
                 super([])
-                this.addComp(ShapeComp, () => true)
+                this.addComp(AnyShape, { contains: () => true })
                     .addComp(HoverableComp)
             }
         }

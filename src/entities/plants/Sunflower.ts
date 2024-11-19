@@ -1,7 +1,7 @@
 import { easeOutExpo } from '@/engine'
 import { definePlant, PlantConfig, PlantEntity, PlantEvents, PlantState } from '@/entities/plants/Plant'
 import { kAttachToLevel, kLevelState } from '@/entities/Level'
-import { ButtonUniqueState } from '@/entities/ui/Button.ts'
+import { ButtonUniqueState } from '@/entities/ui/Button'
 import { SunEntity } from '@/entities/Sun'
 import { ImageEntity } from '@/entities/Image'
 import { FilterComp } from '@/comps/Filter'
@@ -88,7 +88,7 @@ export const SunflowerEntity = definePlant(class SunflowerEntity extends PlantEn
                         y = newY
                         entity.updatePosition(delta)
                         const image = entity.config.entity as ImageEntity
-                        image.scale = easeOutExpo(f / totalF)
+                        image.state.scale = easeOutExpo(f / totalF)
                     })
                 )
             }

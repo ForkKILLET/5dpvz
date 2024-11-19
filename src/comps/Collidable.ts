@@ -1,43 +1,48 @@
-import { Comp, Entity } from '@/engine'
+import { Comp, Emitter, Entity, Events } from '@/engine'
 import { CollidableGroup } from '@/data/collidableGroups'
-import { Shape } from '@/comps/Shape'
+import { ShapeComp } from '@/comps/Shape'
+import { eq, remove, intersect } from '@/utils'
+
+export interface CollidableEvents extends Events {
+    collide: [ Entity ]
+}
+
+export interface CollidableConfig {
+    groups: Set<CollidableGroup>
+    targetGroups: Set<CollidableGroup>
+    onCollision: (otherEntity: Entity) => void
+}
 
 export class CollidableComp<E extends Entity = Entity> extends Comp<E> {
-    static collisionComps: CollidableComp[] = []
+    static dependencies = [ ShapeComp ]
 
-    constructor(
-        entity: E,
-        public shape: Shape,
-        public groups: CollidableGroup[],
-        public collidesWith: CollidableGroup[],
-        public onCollision: (otherEntity: Entity) => void
-    ) {
+    static collidableComps: CollidableComp[] = []
+
+    shape: ShapeComp
+
+    emitter = new Emitter<CollidableEvents>()
+
+    constructor(entity: E, public config: CollidableConfig) {
         super(entity)
-        CollidableComp.collisionComps.push(this)
+
+        this.shape = entity.getComp(ShapeComp)!
+
+        CollidableComp.collidableComps.push(this)
+        entity.on('dispose', () => remove(CollidableComp.collidableComps, eq(this)))
     }
 
-    // destroy() {
-    //     const index = CollidableComp.collisionComps.indexOf(this)
-    //     if (index !== -1) {
-    //         CollidableComp.collisionComps.splice(index, 1)
-    //     }
-    //     super.destroy()
-    // }
-
     update() {
-        for (const otherComp of CollidableComp.collisionComps) {
-            if (otherComp === this) continue
+        for (const otherComp of CollidableComp.collidableComps) {
             if (! this.shouldCollideWith(otherComp)) continue
             if (this.shape.intersects(otherComp.shape)) {
-                this.onCollision(otherComp.entity)
-                if (otherComp.onCollision) {
-                    otherComp.onCollision(this.entity)
-                }
+                this.emitter.emit('collide', otherComp.entity)
+                otherComp.emitter.emit('collide', this.entity)
             }
         }
     }
 
-    shouldCollideWith(otherComp: CollidableComp): boolean {
-        return this.collidesWith.some(group => otherComp.groups.includes(group))
+    shouldCollideWith(target: CollidableComp): boolean {
+        if (target === this) return false
+        return intersect(this.config.targetGroups, target.config.groups).size > 0
     }
 }

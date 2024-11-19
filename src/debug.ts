@@ -1,8 +1,8 @@
 /* eslint-disable @stylistic/ts/indent */
 
 import { Entity, Game, Scene } from '@/engine'
-import { BoundaryComp } from '@/comps/Boundary'
 import { by, neq } from '@/utils'
+import { ShapeComp } from './comps/Shape'
 
 export const loadDebugWindow = (game: Game) => {
     const $debugWindow = document.querySelector('#debug-window') as HTMLDivElement
@@ -193,6 +193,7 @@ export const loadDebugWindow = (game: Game) => {
         <br /><br />
         <tab-content data-tab="entity-tree">
             <debug-button id="select">@</debug-button>
+            <debug-button id="show-boundary">Boundary</debug-button>
             <debug-button id="refresh-entity-tree">Refresh</debug-button>
             <debug-button id="auto-refresh-entity-tree">Manual</debug-button>
             <br /><br />
@@ -249,43 +250,41 @@ export const loadDebugWindow = (game: Game) => {
         render() {
             const { ctx } = this.game
 
-            watchingEntity?.withComp(BoundaryComp, boundaryComp => {
-                const { rect: { x, y, width, height }, entity } = boundaryComp
+            watchingEntity?.withComp(ShapeComp, shape => {
+                const { entity } = shape
                 if (! entity.deepActive) {
                     unsetWatchingEntity()
                     return
                 }
                 ctx.strokeStyle = 'blue'
-                ctx.strokeRect(x, y, width, height)
+                shape.stroke()
                 ctx.fillStyle = 'rgba(0, 0, 255, 0.1)'
-                ctx.fillRect(x, y, width, height)
+                ctx.fill()
             })
 
             const [ selectingEntityData ] = this.game
                 .allEntities
                 .filter(entity => ! (entity instanceof DebugHandle)
                     && entity.deepActive
-                    && entity.hasComp(BoundaryComp)
-                    && (selecting || entity === reverseSelectingEntity)
+                    && entity.hasComp(ShapeComp)
+                    && (selecting || showBoundary || entity === reverseSelectingEntity)
                 )
                 .map(entity => {
-                    const boundaryComp = entity.getComp(BoundaryComp)
-                    if (! boundaryComp) return null
+                    const shape = entity.getComp(ShapeComp)!
 
-                    const { x, y, width, height } = boundaryComp.rect
                     ctx.strokeStyle = 'red'
-                    ctx.strokeRect(x, y, width, height)
-                    if (boundaryComp.contains(this.game.mouse.position) || entity === reverseSelectingEntity)
-                        return { x, y, width, height, entity }
+                    shape.stroke()
+                    if (shape.contains(this.game.mouse.position) || entity === reverseSelectingEntity)
+                        return { entity, shape }
                     return null
                 })
                 .filter(neq(null))
                 .sort(by(data => - data.entity.state.zIndex))
 
             if (selectingEntityData) {
-                const { x, y, width, height, entity } = selectingEntityData
+                const { entity, shape } = selectingEntityData
                 ctx.fillStyle = 'rgba(255, 0, 0, 0.1)'
-                ctx.fillRect(x, y, width, height)
+                shape.fill()
 
                 if (selectingEntity !== entity) {
                     if (selectingEntity) cancelSelecting()
@@ -320,8 +319,10 @@ export const loadDebugWindow = (game: Game) => {
     switchTab('entity-tree')
 
     let selecting = false
+    let showBoundary = false
     let selectingEntity: Entity | null = null
     let reverseSelectingEntity: Entity | null = null
+
     const $selectButton = $('#select')!
     const toggleSelecting = () => {
         selecting = ! selecting
@@ -333,6 +334,12 @@ export const loadDebugWindow = (game: Game) => {
         selectingEntity = null
     }
     $selectButton.addEventListener('click', toggleSelecting)
+
+    const $showBoundaryButton = $('#show-boundary')!
+    $showBoundaryButton.addEventListener('click', () => {
+        showBoundary = ! showBoundary
+        $showBoundaryButton.className = showBoundary ? 'active' : ''
+    })
 
     const entityFoldState = new Map<number, boolean>()
 

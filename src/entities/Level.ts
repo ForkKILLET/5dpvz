@@ -1,4 +1,3 @@
-import { BoundaryComp } from '@/comps/Boundary'
 import { CursorComp } from '@/comps/Cursor'
 import { UpdaterComp } from '@/comps/Updater'
 import { PLANT_METADATA, plantAnimation, PlantId, PlantMetadata } from '@/data/plants'
@@ -18,6 +17,7 @@ import { ZombieEntity } from '@/entities/zombies/Zombie'
 import { eq, matrix, Nullable, placeholder, random, remove, replicateBy, sum } from '@/utils'
 import { BulletId } from '@/data/bullet'
 import { BulletEntity } from '@/entities/bullets/Bullet'
+import { RectShape } from '@/comps/Shape'
 
 export interface LevelConfig {
     plantSlots: PlantSlotsConfig
@@ -147,7 +147,7 @@ export class LevelEntity extends Entity<LevelConfig, LevelState, LevelEvents> {
 
         this.width = 10 + config.lawn.width * 80
         this.height = 150 + config.lawn.height * 80
-        this.addComp(BoundaryComp, () => this)
+        this.addComp(RectShape, { width: this.width, height: this.height, origin: 'top-left' })
 
         this
             .provide(kLevelState, this.state)

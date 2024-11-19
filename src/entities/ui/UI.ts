@@ -1,11 +1,11 @@
-import { EntityEvents, EntityState, Entity } from '@/engine'
-import { PlantSlotEntity } from '@/entities/PlantSlot'
-import { PlantId } from '@/data/plants'
-import { SunSlotEntity } from '@/entities/SunSlot'
 import { HoverableComp } from '@/comps/Hoverable'
-import { ShovelSlotEntity } from '@/entities/ShovelSlot'
+import { RectShape } from '@/comps/Shape'
+import { PlantId } from '@/data/plants'
 import { ShovelId } from '@/data/shovels'
-import { BoundaryComp } from '@/comps/Boundary'
+import { Entity, EntityEvents, EntityState } from '@/engine'
+import { PlantSlotEntity } from '@/entities/ui/PlantSlot'
+import { ShovelSlotEntity } from '@/entities/ui/ShovelSlot'
+import { SunSlotEntity } from '@/entities/ui/SunSlot'
 
 export interface PlantSlotsConfig {
     slotNum: number
@@ -36,7 +36,7 @@ export class UIEntity extends Entity<UIConfig, UIState, UIEvents> {
 
         this.width = (this.config.slotNum + 2) * (80 + 2 + 5) - 5
         this.height = 80 + 20 + 2
-        this.addComp(BoundaryComp, () => this)
+        this.addComp(RectShape, { width: this.width, height: this.height, origin: 'top-left' })
 
         this.sunSlot = new SunSlotEntity(
             {},
