@@ -236,6 +236,7 @@ export const loadDebugWindow = (game: Game) => {
                 this.game.mouse.emitter.on('click', () => {
                     if (selecting && selectingEntity) {
                         setWatchingEntity(selectingEntity)
+                        $(`li[data-id="${ selectingEntity.id }"]`)?.scrollIntoView()
                         selectingEntity = null
                         toggleSelecting()
                         refreshEntityDetail()
@@ -417,6 +418,9 @@ export const loadDebugWindow = (game: Game) => {
             reverseSelectingEntity = game.getEntityById(id)
         }
     })
+    window.addEventListener('keypress', ({ key }) => {
+        if (key === '@') toggleSelecting()
+    })
 
     const showJson = (obj: any) =>
         typeof obj === 'number' ? `<json-number>${ obj }</json-number>` :
@@ -491,9 +495,7 @@ export const loadDebugWindow = (game: Game) => {
         else if ($el.tagName === 'LI') {
             const id = + $el.dataset.id!
             const entity = game.getEntityById(id)
-            if (entity) {
-                setWatchingEntity(entity)
-            }
+            if (entity) setWatchingEntity(entity)
         }
     }, { capture: true })
 
