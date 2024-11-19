@@ -87,8 +87,11 @@ export class Game {
 
         if (! isCursorSet) this.ctx.canvas.style.cursor = ''
 
-        if (oldHoveringEntity !== this.hoveringEntity)
+        if (oldHoveringEntity !== this.hoveringEntity) {
+            oldHoveringEntity?.getComp(HoverableComp)!.emitter.emit('mouseleave')
+            this.hoveringEntity?.getComp(HoverableComp)!.emitter.emit('mouseenter')
             this.emitter.emit('hoverTargetChange', this.hoveringEntity)
+        }
 
         this.renderJobs = []
         activeScenes.forEach(scene => scene.runRender())
@@ -102,8 +105,15 @@ export class Game {
             })
     }
 
+    loopDuration = 0
+
     start() {
-        this.loopTimerId = setInterval(() => this.loop(), this.mspf)
+        this.loopTimerId = setInterval(() => {
+            const startTime = performance.now()
+            this.loop()
+            const endTime = performance.now()
+            this.loopDuration = endTime - startTime
+        }, this.mspf)
     }
     pause() {
         if (this.loopTimerId !== null) clearInterval(this.loopTimerId)

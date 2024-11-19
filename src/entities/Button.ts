@@ -47,7 +47,7 @@ export class ButtonEntity<
                 .addComp(ShapeComp, this.contains)
                 .addComp(HoverableComp)
                 .withComp(HoverableComp, ({ emitter }) => {
-                    this.forwardEvents(emitter, [ 'click', 'rightclick' ])
+                    this.forwardEvents(emitter, [ 'click', 'rightclick', 'mouseenter', 'mouseleave' ])
                 })
                 .addComp(BoundaryComp, () => BoundaryComp.derive(this.config.entity))
             )
