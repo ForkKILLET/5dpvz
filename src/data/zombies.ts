@@ -12,7 +12,7 @@ export interface ZombieMetadata {
 }
 
 export type ZombieMove = 'normal' | 'frozen' | 'cold' | 'hypnotised'
-export type ZombiePlace = 'land' | 'sky' | 'ground' | 'float' | 'dive'
+export type ZombiePlace = 'land' | 'sky' | 'underground' | 'swim' | 'dive'
 export type ZombieStatus = { move: ZombieMove, place: ZombiePlace }
 
 export const ZOMBIE_NAMES = [ 'normal_zombie' ] as const

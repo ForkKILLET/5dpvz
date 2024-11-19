@@ -6,16 +6,18 @@ import { shovelAnimation, ShovelId } from '@/data/shovels'
 import { StageData } from '@/data/stages'
 import { ZombieId } from '@/data/zombies'
 import { Entity, EntityEvents, EntityState, injectKey } from '@/engine'
-import { ButtonEntity } from '@/entities/ui/Button.ts'
+import { ButtonEntity } from '@/entities/ui/Button'
 import { ImageEntity } from '@/entities/Image'
 import { LawnConfig, LawnEntity } from '@/entities/Lawn'
 import { LawnBlockEntity } from '@/entities/LawnBlock'
 import { PlantEntity } from '@/entities/plants/Plant'
-import { ShovelSlotConfig } from '@/entities/ui/ShovelSlot.ts'
+import { ShovelSlotConfig } from '@/entities/ui/ShovelSlot'
 import { SunEntity } from '@/entities/Sun'
-import { PlantSlotsConfig, UIEntity } from '@/entities/ui/UI.ts'
+import { PlantSlotsConfig, UIEntity } from '@/entities/ui/UI'
 import { ZombieEntity } from '@/entities/zombies/Zombie'
 import { eq, matrix, Nullable, placeholder, random, remove, replicateBy, sum } from '@/utils'
+import { BulletId } from '@/data/bullet'
+import { BulletEntity } from '@/entities/bullets/Bullet'
 
 export interface LevelConfig {
     plantSlots: PlantSlotsConfig
@@ -55,6 +57,12 @@ export interface ZombieData {
     entity: ZombieEntity
 }
 
+export interface BulletData {
+    id: BulletId
+    position: { x: number, y: number }
+    entity: BulletEntity
+}
+
 export type HoldingObject =
     | { type: 'plant', slotId: number }
     | { type: 'shovel', shovelId: ShovelId }
@@ -70,6 +78,7 @@ export interface LevelUniqueState {
     plantsOnBlocks: Nullable<PlantData>[][]
     sunsData: SunData[]
     zombiesData: ZombieData[]
+    bulletsData: BulletData[]
 
     waveTimer: number
     wave: number
@@ -93,6 +102,7 @@ export class LevelEntity extends Entity<LevelConfig, LevelState, LevelEvents> {
         plantsOnBlocks: placeholder,
         sunsData: [],
         zombiesData: [],
+        bulletsData: [],
         waveTimer: 0,
         wave: 0,
         waveZombieInitHP: 0,

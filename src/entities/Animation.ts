@@ -24,7 +24,7 @@ export interface AnimationEvents extends EntityEvents {
     'animation-finish': []
 }
 
-export type AnimationCategory = 'plants' | 'zombies' | 'shovels'
+export type AnimationCategory = 'plants' | 'zombies' | 'shovels' | 'bullets'
 
 export type AnimationSetData = {
     common: AnimationData
