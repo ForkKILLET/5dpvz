@@ -4,22 +4,23 @@ export interface AudioPlayback {
     isEffectApplied: boolean
 }
 
+export interface AudioPlayOptions {
+    loop?: boolean
+    playbackRate?: number
+}
+
 export interface AudioManager {
     audioContext: AudioContext
     audios: Record<string, AudioBuffer>
+    loadingAudios: Record<string, Promise<AudioBuffer>>
     loadAudio: (src: string) => Promise<AudioBuffer>
-    playAudio: (
-        src: string,
-        options?: {
-            loop?: boolean
-            playbackRate?: number
-        }
-    ) => AudioPlayback
+    playAudio: (src: string, options?: AudioPlayOptions) => AudioPlayback
 }
 
 export const useAudioManager = (): AudioManager => {
     const audioContext = new AudioContext()
     const audios: Record<string, AudioBuffer> = {}
+    const loadingAudios: Record<string, Promise<AudioBuffer>> = {}
 
     document.addEventListener('click', () => {
         if (audioContext.state === 'suspended') {
@@ -27,27 +28,23 @@ export const useAudioManager = (): AudioManager => {
         }
     }, { once: true })
 
-    const loadAudio = async (src: string): Promise<AudioBuffer> => {
-        if (audios[src]) return audios[src]
+    const _loadAudio = async (src: string): Promise<AudioBuffer> => {
         const response = await fetch(src)
         const arrayBuffer = await response.arrayBuffer()
         const audioBuffer = await audioContext.decodeAudioData(arrayBuffer)
-        audios[src] = audioBuffer
-        return audioBuffer
+        return audios[src] = audioBuffer
     }
 
-    const playAudio = (
-        src: string,
-        options: {
-            loop?: boolean
-            playbackRate?: number
-        } = {}
-    ): AudioPlayback => {
+    const loadAudio = async (src: string): Promise<AudioBuffer> => {
+        if (src in audios) return audios[src]
+        if (src in loadingAudios) return loadingAudios[src]
+        return loadingAudios[src] = _loadAudio(src)
+    }
 
+    const playAudio = (src: string, options: AudioPlayOptions = {}): AudioPlayback => {
         const audioBuffer = audios[src]
-        if (! audioBuffer) {
+        if (! audioBuffer)
             throw new Error(`Sound not loaded: ${ src }`)
-        }
 
         const sourceNode = audioContext.createBufferSource()
         sourceNode.buffer = audioBuffer
@@ -107,6 +104,7 @@ export const useAudioManager = (): AudioManager => {
     return {
         audioContext,
         audios,
+        loadingAudios,
         loadAudio,
         playAudio,
     }

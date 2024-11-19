@@ -17,7 +17,10 @@ export class LoadingEntity extends Entity<LoadingConfig, LoadingState, LoadingEv
         super(config, state)
 
         this.afterStart(() => {
-            const tasks = Object.values(this.game.imageManager.loadingImgs)
+            const tasks = [
+                ...Object.values(this.game.imageManager.loadingImgs),
+                ...Object.values(this.game.audioManager.loadingAudios),
+            ]
             this.taskCount = tasks.length
 
             tasks.forEach(task => task.then(() => {
