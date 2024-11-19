@@ -1,3 +1,4 @@
+import { BoundaryComp } from '@/comps/Boundary'
 import { CursorComp } from '@/comps/Cursor'
 import { UpdaterComp } from '@/comps/Updater'
 import { PLANT_METADATA, plantAnimation, PlantId, PlantMetadata } from '@/data/plants'
@@ -139,6 +140,7 @@ export class LevelEntity extends Entity<LevelConfig, LevelState, LevelEvents> {
 
         this.width = 10 + config.lawn.width * 80
         this.height = 150 + config.lawn.height * 80
+        this.addComp(BoundaryComp, () => this)
 
         this
             .provide(kLevelState, this.state)

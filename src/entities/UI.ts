@@ -5,6 +5,7 @@ import { SunSlotEntity } from '@/entities/SunSlot'
 import { HoverableComp } from '@/comps/Hoverable'
 import { ShovelSlotEntity } from '@/entities/ShovelSlot'
 import { ShovelId } from '@/data/shovels'
+import { BoundaryComp } from '@/comps/Boundary'
 
 export interface PlantSlotsConfig {
     slotNum: number
@@ -25,10 +26,17 @@ export class UIEntity extends Entity<UIConfig, UIState, UIEvents> {
     plantSlots: PlantSlotEntity[]
     shovelSlot: ShovelSlotEntity
 
+    width: number
+    height: number
+
     constructor(config: UIConfig, state: UIState) {
         super(config, state)
 
         const { position: { x, y }, zIndex } = this.state
+
+        this.width = (this.config.slotNum + 2) * (80 + 2 + 5) - 5
+        this.height = 80 + 20 + 2
+        this.addComp(BoundaryComp, () => this)
 
         this.sunSlot = new SunSlotEntity(
             {},
@@ -68,6 +76,7 @@ export class UIEntity extends Entity<UIConfig, UIState, UIEvents> {
                 stop()
                 this.emit('choose-shovel', this.shovelSlot.config.shovelId)
             }))
+
         this.attach(this.sunSlot, ...this.plantSlots, this.shovelSlot)
     }
 }

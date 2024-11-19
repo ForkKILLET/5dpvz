@@ -22,7 +22,7 @@ export class SlotEntity<
         super(config, state)
 
         this
-            .addComp(BoundaryComp, () => ({ width: this.width, height: this.height }))
+            .addComp(BoundaryComp, () => this)
             .addComp(ShapeComp, point => this.getComp(BoundaryComp)!.contains(point))
             .addComp(HoverableComp)
     }
