@@ -446,14 +446,6 @@ export class LevelEntity extends Entity<LevelConfig, LevelState, LevelEvents> {
         })
     }
 
-    preUpdate() {
-        if (this.frozen) {
-            this.update()
-            return
-        }
-        super.preUpdate()
-    }
-
     updatePlantSlot(runCoolDown = true) {
         this.state.plantSlotsData.forEach((slot, i) => {
             let { cd, isCooledDown } = slot
@@ -490,14 +482,14 @@ export class LevelEntity extends Entity<LevelConfig, LevelState, LevelEvents> {
         })
     }
 
-    update() {
+    frozenUpdate() {
         if (this.holdingImage) {
             const { x, y } = this.game.mouse.position
-            this.holdingImage.state.position = { x: x - 40, y: y - 40 }
+            this.holdingImage.updatePositionTo({ x: x - 40, y: y - 40 })
         }
+    }
 
-        if (this.frozen) return
-
+    update() {
         this.updatePlantSlot()
 
         this.updateZombie()
@@ -515,9 +507,9 @@ export class LevelEntity extends Entity<LevelConfig, LevelState, LevelEvents> {
     preRender() {
         if (this.frozen) this.addRenderJob(() => {
             const { ctx } = this.game
+            const { x, y } = this.state.position
             ctx.fillStyle = 'rgba(0, 32, 255, .3)'
-
-            ctx.fillRect(0, 0, 10 + this.width, this.height)
+            ctx.fillRect(x, y, this.width, this.height)
         }, 4)
 
         super.preRender()

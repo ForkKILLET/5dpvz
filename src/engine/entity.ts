@@ -26,6 +26,7 @@ export class Comp<E extends Entity = Entity> {
     constructor(public readonly entity: E) {}
 
     update() {}
+    frozenUpdate() {}
 }
 
 export type CompCtor<C extends Comp = Comp> = new (...args: any[]) => C
@@ -219,16 +220,25 @@ export class Entity<
             },
         })
     }
-    protected preRender() {
+    preRender() {
         this.attachedEntities
             .filter(entity => entity.active && entity.autoRender)
             .forEach(entity => entity.runRender())
     }
-    protected render() {}
+    render() {}
 
     frozen = false
+    unfreezable = false
+    get deepFrozen(): boolean {
+        return ! this.unfreezable
+            && (this.frozen || (this.superEntity?.deepFrozen ?? false))
+    }
+    setUnfreezable() {
+        this.unfreezable = true
+        return this
+    }
     freeze() {
-        this.frozen = true
+        if (! this.unfreezable) this.frozen = true
         return this
     }
     unfreeze() {
@@ -238,14 +248,15 @@ export class Entity<
 
     runUpdate() {
         if (! this.active || this.disposed) return
-        this.preUpdate()
-    }
-    preUpdate() {
+        this.frozenUpdate()
+        this.comps.forEach(comp => comp.frozenUpdate())
+        this.attachedEntities.forEach(entity => entity.runUpdate())
+        if (this.deepFrozen) return
         this.update()
         this.comps.forEach(comp => comp.update())
-        this.attachedEntities.forEach(entity => entity.runUpdate())
     }
-    protected update() {}
+    update() {}
+    frozenUpdate() {}
 
     protected emitter = new Emitter<E>()
     emit<K extends keyof RemoveIndex<E>>(event: K, ...args: E[K]) {
@@ -293,6 +304,13 @@ export class Entity<
         this.emit('position-update', delta)
         this.state.position = positionAdd(this.state.position, delta)
         this.attachedEntities.forEach(entity => entity.updatePosition(delta))
+        return this
+    }
+    updatePositionTo({ x, y }: Position) {
+        return this.updatePosition({
+            x: x - this.state.position.x,
+            y: y - this.state.position.y,
+        })
     }
 }
 

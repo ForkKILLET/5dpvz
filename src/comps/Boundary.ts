@@ -11,7 +11,7 @@ export class BoundaryComp<E extends Entity = Entity> extends Comp<E> {
     }
 
     rect: Rect = placeholder
-    update() {
+    frozenUpdate() {
         this.rect = this.getRect()
     }
     getRect() {

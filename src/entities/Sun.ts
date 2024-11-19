@@ -32,7 +32,6 @@ export class SunEntity extends ButtonEntity<SunConfig, SunState, SunEvents> {
                         this.dispose()
                     })
                     .on('mouseenter', () => {
-                        console.log('mouseenter')
                         this.withComp(FilterComp, ({ filters }) => {
                             filters.hover = 'brightness(1.2)'
                         })
