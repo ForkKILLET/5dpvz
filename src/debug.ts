@@ -210,6 +210,7 @@ export const loadDebugWindow = (game: Game) => {
             <br /><br />
             <b>mspf</b>: <debug-input><input id="mspf-input" type="number" value="${ game.mspf }" /></debug-input>
             <debug-button id="mspf-submit">OK</debug-button>
+            <b>loop duration</b>: <json-number id="loop-duration">0</json-number>ms
         </tab-content>
     `
     const $ = <E extends Node = HTMLElement>(selector: string) =>
@@ -217,6 +218,7 @@ export const loadDebugWindow = (game: Game) => {
     const $$ = <E extends Node = HTMLElement>(selector: string) =>
         $debugWindow.querySelectorAll(selector) as unknown as NodeListOf<E>
 
+    const $loopDuration = $('#loop-duration')!
     class DebugHandle extends Scene {
         constructor() {
             super([])
@@ -247,12 +249,11 @@ export const loadDebugWindow = (game: Game) => {
             const { ctx } = this.game
 
             watchingEntity?.withComp(BoundaryComp, boundaryComp => {
-                const { rect: { width, height }, entity } = boundaryComp
+                const { rect: { x, y, width, height }, entity } = boundaryComp
                 if (! entity.deepActive) {
                     unsetWatchingEntity()
                     return
                 }
-                const { x, y } = entity.state.position
                 ctx.strokeStyle = 'blue'
                 ctx.strokeRect(x, y, width, height)
                 ctx.fillStyle = 'rgba(0, 0, 255, 0.1)'
@@ -292,6 +293,10 @@ export const loadDebugWindow = (game: Game) => {
                     selectingEntity = entity
                 }
             }
+        }
+
+        update() {
+            $loopDuration.innerText = this.game.loopDuration.toString()
         }
     }
     game.addScene(new DebugHandle())
@@ -379,6 +384,8 @@ export const loadDebugWindow = (game: Game) => {
     }
     const setWatchingEntity = (entity: Entity) => {
         watchingEntity = entity
+        Object.assign(window, { e: entity })
+
         $('.watching')?.classList.remove('watching')
         $<HTMLLIElement>(`li[data-id="${ entity.id }"]`)?.classList.add('watching')
         entity.on('dispose', () => {
