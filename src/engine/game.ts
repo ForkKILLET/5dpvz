@@ -1,7 +1,10 @@
 import { CursorComp } from '@/comps/Cursor'
 import { HoverableComp } from '@/comps/Hoverable'
 import { AnyShape, ShapeComp } from '@/comps/Shape'
-import { Emitter, Entity, Events, ImageManager, Mouse, Scene, useImageManager, useMouse } from '@/engine'
+import {
+    Emitter, Entity, Scene, Events,
+    AudioManager, useAudioManager, ImageManager, useImageManager, Mouse, useMouse
+} from '@/engine'
 import { by, remove } from '@/utils'
 import { loadDebugWindow } from '@/debug'
 import { Keyboard, KeyboardEvents, useKeyboard } from '@/engine/keyboard'
@@ -31,6 +34,7 @@ export interface GameEvents extends KeyboardEvents, Events {
 export class Game {
     readonly ctx: CanvasRenderingContext2D
     readonly imageManager: ImageManager
+    readonly audioManager: AudioManager
     readonly mouse: Mouse
     readonly keyboard: Keyboard
 
@@ -122,10 +126,10 @@ export class Game {
     constructor({ ctx, fps }: GameConfig) {
         this.ctx = ctx
         this.imageManager = useImageManager()
+        this.audioManager = useAudioManager()
         this.mouse = useMouse(ctx)
         this.keyboard = useKeyboard()
         this.mspf = 1000 / fps
-
         const floor = new class Floor extends Scene {
             constructor() {
                 super([])

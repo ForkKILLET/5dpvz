@@ -25,6 +25,7 @@ export class PlayScene extends Scene {
                     shovelId: 'iron_shovel',
                 },
                 stage: Stage1_1,
+                bgm: 'day',
             },
             {
                 position: { x: 0, y: 0 },

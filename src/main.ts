@@ -36,7 +36,12 @@ void async function() {
         ...shovelAnimation.getAllSrcs(),
     ]
 
+    const preloadAudioSrcs: string[] = [
+        './assets/audio/day.mp3',
+    ]
+
     preloadImgSrcs.forEach(game.imageManager.loadImage)
+    preloadAudioSrcs.forEach(game.audioManager.loadAudio)
 
     game.addScene(new LoadingScene())
 

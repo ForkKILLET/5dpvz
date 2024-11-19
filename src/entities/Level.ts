@@ -4,7 +4,7 @@ import { PLANT_METADATA, plantAnimation, PlantId, PlantMetadata } from '@/data/p
 import { shovelAnimation, ShovelId } from '@/data/shovels'
 import { StageData } from '@/data/stages'
 import { ZombieId } from '@/data/zombies'
-import { Entity, EntityEvents, EntityState, injectKey } from '@/engine'
+import { AudioPlayback, Entity, EntityEvents, EntityState, injectKey } from '@/engine'
 import { ButtonEntity } from '@/entities/ui/Button'
 import { ImageEntity } from '@/entities/Image'
 import { LawnConfig, LawnEntity } from '@/entities/Lawn'
@@ -25,6 +25,7 @@ export interface LevelConfig {
     lawn: LawnConfig
     sun: SunGlobalConfig
     stage: StageData
+    bgm: string // TODO
 }
 
 export interface SunGlobalConfig {
@@ -107,6 +108,7 @@ export class LevelEntity extends Entity<LevelConfig, LevelState, LevelEvents> {
         wave: 0,
         waveZombieInitHP: 0,
     })
+    private bgm: AudioPlayback = placeholder
 
     static create<C extends LevelConfig, S extends EntityState>(config: C, state: S) {
         return new this(config, this.initState(state))
@@ -219,6 +221,8 @@ export class LevelEntity extends Entity<LevelConfig, LevelState, LevelEvents> {
         this.attach(this.ui, this.lawn)
 
         this.afterStart(() => {
+            this.bgm = this.game.audioManager.playAudio(`./assets/audio/${ this.config.bgm }.mp3`)
+
             this.game.emitter.on('hoverTargetChange', target => {
                 if (this.state.holdingObject === null) return
 
@@ -263,12 +267,14 @@ export class LevelEntity extends Entity<LevelConfig, LevelState, LevelEvents> {
 
             const pause = () => {
                 this.freeze()
+                this.bgm.toggleEffect()
                 pauseButton.deactivate()
                 resumeButton.activate()
             }
 
             const resume = () => {
                 this.unfreeze()
+                this.bgm.toggleEffect()
                 resumeButton.deactivate()
                 pauseButton.activate()
             }
