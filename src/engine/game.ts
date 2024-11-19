@@ -147,7 +147,7 @@ export class Game {
         }
     }
 
-    async addScene(scene: Scene) {
+    addScene(scene: Scene) {
         scene.runStart(this).afterStart(() => {
             this.scenes.push(scene)
         })

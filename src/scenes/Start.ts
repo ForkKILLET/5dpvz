@@ -27,7 +27,7 @@ export class StartScene extends Scene {
             })
             .on('click', () => {
                 this.deactivate()
-                this.game.selectScene(PlayScene)!.activate()
+                this.game.addScene(new PlayScene())
             })
 
         const githubButton = ButtonEntity.from(

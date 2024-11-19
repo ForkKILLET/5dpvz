@@ -24,8 +24,7 @@ export interface AnimationEvents extends EntityEvents {
     'animation-finish': []
 }
 
-export const ANIMATION_TYPES = [ 'plants', 'shovels', 'zombies' ] as const
-export type AnimationType = typeof ANIMATION_TYPES[number];
+export type AnimationCategory = 'plants' | 'zombies' | 'shovels'
 
 export type AnimationSetData = {
     common: AnimationData
@@ -34,19 +33,23 @@ export type AnimationSetData = {
 
 export type MetadataWithAnimationSet = Record<string, { animations: AnimationSetData }>
 
-export const useAnimation = <M extends MetadataWithAnimationSet>(category: string, metadata: M) => {
+export const useAnimation = <M extends MetadataWithAnimationSet>(category: AnimationCategory, metadata: M) => {
     type Id = keyof M & string
     const animation = {
         getImageSrc: (id: Id) => `./assets/${ category }/${ id }/common/01.png`,
         getImageConfig: (id: Id) => ({ src: animation.getImageSrc(id) }),
-        getAnimationConfig: (id: Id, type: AnimationType, name = 'common'): AnimationConfig => {
+        getAnimationConfig: (id: Id, name = 'common'): AnimationConfig => {
             const { frameNum, fpaf: fpaf } = metadata[id].animations[name]
             const srcs = Array.from(
                 { length: frameNum },
-                (_, i) => `./assets/${ type }/${ id }/${ name }/${ String(i + 1).padStart(2, '0') }.png`,
+                (_, i) => `./assets/${ category }/${ id }/${ name }/${ String(i + 1).padStart(2, '0') }.png`,
             )
             return { srcs, fpaf }
         },
+        getAllSrcs: () => Object
+            .keys(metadata)
+            .map(id => animation.getAnimationConfig(id).srcs)
+            .flat(),
     }
     return animation
 }

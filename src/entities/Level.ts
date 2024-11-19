@@ -4,7 +4,7 @@ import { UpdaterComp } from '@/comps/Updater'
 import { PLANT_METADATA, plantAnimation, PlantId, PlantMetadata } from '@/data/plants'
 import { shovelAnimation, ShovelId } from '@/data/shovels'
 import { StageData } from '@/data/stages'
-import { ZOMBIE_METADATA, ZombieId } from '@/data/zombies'
+import { ZombieId } from '@/data/zombies'
 import { Entity, EntityEvents, EntityState, injectKey } from '@/engine'
 import { ButtonEntity } from '@/entities/Button'
 import { ImageEntity } from '@/entities/Image'
@@ -16,9 +16,6 @@ import { SunEntity } from '@/entities/Sun'
 import { PlantSlotsConfig, UIEntity } from '@/entities/UI'
 import { ZombieEntity } from '@/entities/zombies/Zombie'
 import { eq, matrix, Nullable, placeholder, random, remove, replicateBy, sum } from '@/utils'
-
-void PLANT_METADATA
-void ZOMBIE_METADATA
 
 export interface LevelConfig {
     plantSlots: PlantSlotsConfig

@@ -14,7 +14,7 @@ export class ShovelEntity extends AnimationEntity<ShovelConfig, ShovelState, Sho
     constructor(config: ShovelUniqueConfig, state: ShovelState) {
         super({
             ...config,
-            ...shovelAnimation.getAnimationConfig(config.shovelId, 'shovels'),
+            ...shovelAnimation.getAnimationConfig(config.shovelId),
         }, state)
     }
 }

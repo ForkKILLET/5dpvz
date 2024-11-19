@@ -43,9 +43,9 @@ export class SunSlotEntity extends SlotEntity<SunSlotConfig, SunSlotState, SunSl
         const { position: { x, y } } = this.state
 
         ctx.fillStyle = 'black'
+        ctx.textAlign = 'center'
         ctx.font = '20px Sans'
         const sunString = String(sun)
-        const { width } = ctx.measureText(sunString)
-        ctx.fillText(sunString, x + 1 + (80 - width) / 2, y + 1 + 80 + 20 - 2)
+        ctx.fillText(sunString, x + 1 + 80 / 2, y + 1 + 80 + 20 - 2)
     }
 }

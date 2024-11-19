@@ -1,5 +1,6 @@
 export interface ImageManager {
     imgs: Record<string, HTMLImageElement>
+    loadingImgs: Record<string, Promise<HTMLImageElement>>
     loadImage: (src: string) => Promise<HTMLImageElement>
 }
 
@@ -11,6 +12,7 @@ export const useImageManager = (): ImageManager => {
 
     return {
         imgs,
+        loadingImgs,
         loadImage: async (src: string) => {
             if (src in imgs) return imgs[src]
             if (src in loadingImgs) return loadingImgs[src]

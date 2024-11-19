@@ -46,7 +46,7 @@ export class PlantEntity<
         const metadata = PLANT_METADATA[plantId]
         return metadata.from<PlantEntity>(
             AnimationEntity.create(
-                plantAnimation.getAnimationConfig(plantId, 'plants'),
+                plantAnimation.getAnimationConfig(plantId),
                 state
             ),
             {

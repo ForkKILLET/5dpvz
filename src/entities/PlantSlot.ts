@@ -45,10 +45,10 @@ export class PlantSlotEntity extends SlotEntity<PlantSlotConfig, PlantSlotState,
 
         this.addRenderJob(() => {
             ctx.fillStyle = slot.isSunEnough ? 'black' : 'red'
+            ctx.textAlign = 'center'
             ctx.font = '20px Sans'
             const costString = String(this.plantMetadata.cost)
-            const { width } = ctx.measureText(costString)
-            ctx.fillText(costString, x + 1 + (80 - width) / 2, y + 1 + 80 + 20 - 2)
+            ctx.fillText(costString, x + 1 + 80 / 2, y + 1 + 80 + 20 - 2)
         }, 0)
 
         if (! slot.isPlantable) {

@@ -30,7 +30,7 @@ export class ZombieEntity<
         const metadata = ZOMBIE_METADATA[zombieId]
         return metadata.from<ZombieEntity>(
             AnimationEntity.create(
-                zombieAnimation.getAnimationConfig(zombieId, 'zombies'),
+                zombieAnimation.getAnimationConfig(zombieId),
                 state
             ),
             {
