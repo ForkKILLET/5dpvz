@@ -401,7 +401,8 @@ export const loadDebugWindow = (game: Game) => {
         $autoRefresh.innerHTML = autoRefreshEntityTree ? 'Auto' : 'Manual'
         autoRefreshEntityTree = ! autoRefreshEntityTree
     })
-    $debugWindow.addEventListener('mouseover', ({ target: $el }) => {
+    window.addEventListener('mouseover', ({ target: $el }) => {
+        reverseSelectingEntity = null
         $('.selecting')?.classList.remove('selecting')
         if ($el instanceof HTMLElement && $el.tagName === 'LI') {
             $el.classList.add('selecting')
