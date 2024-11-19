@@ -252,10 +252,22 @@ export class LevelEntity extends Entity<LevelConfig, LevelState, LevelEvents> {
                 if (this.state.holdingObject !== null) this.cancelHolding()
             })
 
+            const pause = () => {
+                this.freeze()
+                pauseButton.deactivate()
+                resumeButton.activate()
+            }
+
+            const resume = () => {
+                this.unfreeze()
+                resumeButton.deactivate()
+                pauseButton.activate()
+            }
+
             this.game.emitter.on('keydown', (ev: KeyboardEvent) => {
                 if (ev.key === 'Escape') {
-                    if (this.frozen) this.unfreeze()
-                    else this.freeze()
+                    if (this.frozen) resume()
+                    else pause()
                 }
             })
 
@@ -273,11 +285,7 @@ export class LevelEntity extends Entity<LevelConfig, LevelState, LevelEvents> {
             )
                 .addComp(CursorComp, 'pointer')
                 .attachTo(this)
-                .on('click', () => {
-                    this.freeze()
-                    pauseButton.deactivate()
-                    resumeButton.activate()
-                })
+                .on('click', pause)
 
             const resumeButton = ButtonEntity.from(
                 ImageEntity.create(
@@ -294,11 +302,7 @@ export class LevelEntity extends Entity<LevelConfig, LevelState, LevelEvents> {
                 .addComp(CursorComp, 'pointer')
                 .deactivate()
                 .attachTo(this)
-                .on('click', () => {
-                    this.unfreeze()
-                    resumeButton.deactivate()
-                    pauseButton.activate()
-                })
+                .on('click', resume)
         })
     }
 
