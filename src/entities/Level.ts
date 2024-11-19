@@ -434,7 +434,7 @@ export class LevelEntity extends Entity<LevelConfig, LevelState, LevelEvents> {
                 {},
                 {
                     position: { x, y: y - 40 },
-                    zIndex: this.lawn.state.zIndex + 2,
+                    zIndex: this.lawn.state.zIndex + 2 + row * 0.1,
                 }
             )
                 .attachTo(this)
