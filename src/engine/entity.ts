@@ -1,6 +1,5 @@
 import { createIdGenerator, Game, Position, Emitter, Events, positionAdd } from '@/engine'
 import { Disposer, remove, RemoveIndex } from '@/utils'
-import { placeholder } from '@/utils/any'
 
 export interface EntityState {
     position: Position
@@ -43,7 +42,7 @@ export class Entity<
 
     readonly id = Entity.generateEntityId()
 
-    started = false
+    readonly game = Game.defaultGame
 
     constructor(public config: C, public state: S) {}
 
@@ -53,24 +52,23 @@ export class Entity<
     }
     activate() {
         this.active = true
-        this.afterStart(() => this.game.emitter.emit('entityActivate', this))
+        this.game.emitter.emit('entityActivate', this)
         return this
     }
     deactivate() {
         this.active = false
-        this.afterStart(() => this.game.emitter.emit('entityDeactivate', this))
+        this.game.emitter.emit('entityDeactivate', this)
         return this
     }
 
-    game: Game = placeholder
+    started = false
     starters: (() => void)[] = []
-    async start(game: Game): Promise<void> {
-        this.game = game
-        game.allEntities.push(this)
+    async start(): Promise<void> {
+        this.game.allEntities.push(this)
         await Promise.all(this.starters.map(fn => fn()))
     }
-    runStart(game: Game) {
-        this.start(game).then(() => {
+    runStart() {
+        this.start().then(() => {
             this.started = true
             this.emit('start')
             this.game.emitter.emit('entityStart', this)
@@ -91,6 +89,11 @@ export class Entity<
         return new Promise(res => this.afterStart(res))
     }
 
+    with(fn: (entity: this) => void) {
+        fn(this)
+        return this
+    }
+
     autoRender = true
     setAutoRender(autoRender: boolean) {
         this.autoRender = autoRender
@@ -102,7 +105,7 @@ export class Entity<
     attach(...entities: Entity[]) {
         entities.forEach(entity => this.beforeStart(() => new Promise<void>(res => {
             entity
-                .runStart(this.game)
+                .runStart()
                 .afterStart(() => {
                     entity.superEntity = this
                     this.attachedEntities.push(entity)
@@ -170,22 +173,22 @@ export class Entity<
     hasComp(...Comps: CompCtor[]) {
         return Comps.every(Comp => this.comps.some(comp => comp instanceof Comp))
     }
-    addComp<A extends any[], C extends Comp>(
-        Comp: new (entity: this, ...args: A) => C,
-        ...args: A
-    ) {
-        this.afterStart(() => {
-            const { dependencies } = Comp as any as { dependencies: CompCtor[] }
+    addCompRaw(comp: Comp) {
+        return this.afterStart(() => {
+            const { dependencies } = comp.constructor as any as { dependencies: CompCtor[] }
             if (! this.hasComp(...dependencies))
                 throw new Error(`Component missing dependencies: ${ dependencies.map(Dep => Dep.name).join(', ') }.`)
 
-            this.comps.push(new Comp(this, ...args))
+            this.comps.push(comp)
         })
-        return this
     }
-    removeComp(comp: Comp) {
-        remove(this.comps, c => c === comp)
-        return this
+    addComp<A extends any[], C extends Comp>(Comp: new (entity: this, ...args: A) => C, ...args: A) {
+        return this.addCompRaw(new Comp(this, ...args))
+    }
+    removeComp<C extends Comp>(Comp: CompCtor<C>) {
+        return this.afterStart(() => {
+            this.comps = this.comps.filter(c => ! (c instanceof Comp))
+        })
     }
     getComp<C extends Comp>(Comp: CompCtor<C>): C | undefined {
         return this.comps.find((comp): comp is C => comp instanceof Comp)
@@ -283,9 +286,7 @@ export class Entity<
         return this
     }
 
-    updateTimer<K extends keyof {
-        [K in keyof S as S[K] extends number ? K : never]: void
-    }>(
+    updateTimer<K extends keyof S>(
         timerName: K,
         { interval, once = false }: { interval: number, once?: boolean },
         onTimer: () => void
@@ -317,4 +318,7 @@ export class Entity<
     }
 }
 
-export type EntityCtor<E extends Entity = Entity> = new (...args: any[]) => E
+export interface EntityCtor<E extends Entity = Entity> {
+    new (config: E['config'], state: E['state']): E
+}
+

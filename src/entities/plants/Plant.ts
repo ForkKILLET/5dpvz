@@ -1,19 +1,24 @@
 import { EntityCtor, EntityState } from '@/engine'
 import { AnimationEntity } from '@/entities/Animation'
 import { ButtonConfig, ButtonEntity, ButtonEvents, ButtonState } from '@/entities/ui/Button'
-import { kLevelState } from '@/entities/Level'
+import { kAttachToLevel, kLevelState } from '@/entities/Level'
 import { HoverableComp } from '@/comps/Hoverable'
 import { FilterComp } from '@/comps/Filter'
 import { PLANT_METADATA, plantAnimation, PlantId, PlantMetadata } from '@/data/plants'
+import { BulletEntity } from '@/entities/bullets/Bullet'
+import { MakeOptional, remove } from '@/utils'
 
 export interface PlantUniqueConfig {
-    i: number
-    j: number
     metadata: PlantMetadata
 }
 export interface PlantConfig extends PlantUniqueConfig, ButtonConfig {}
 
-export interface PlantState extends ButtonState {}
+export interface PlantUniqueState {
+    hp: number
+    i: number
+    j: number
+}
+export interface PlantState extends PlantUniqueState, ButtonState {}
 
 export interface PlantEvents extends ButtonEvents {}
 
@@ -24,7 +29,7 @@ export class PlantEntity<
     constructor(config: PlantConfig, state: S) {
         super(config, state)
 
-        this.afterStart(() => this
+        this
             .addComp(FilterComp)
             .withComps([ HoverableComp, FilterComp ], ({ emitter }, filterComp) => {
                 emitter.on('mouseenter', () => {
@@ -35,27 +40,55 @@ export class PlantEntity<
                     filterComp.filters.onShovel = null
                 })
             })
-        )
     }
 
     static create<
         P extends PlantId,
         C extends Omit<PlantUniqueConfig, 'metadata'>,
-        S extends EntityState
-    >(plantId: P, config: C, state: S) {
+        S extends PlantUniqueState & EntityState
+    >(plantId: P, config: C, state: MakeOptional<S, 'hp'>) {
         const metadata = PLANT_METADATA[plantId]
         return metadata.from<PlantEntity>(
             AnimationEntity.create(
                 plantAnimation.getAnimationConfig(plantId),
-                state
+                {
+                    position: state.position,
+                    zIndex: state.zIndex,
+                }
             ),
             {
                 metadata,
                 containingMode: 'strict',
                 ...config,
             },
+            {
+                hp: metadata.hp,
+                ...state,
+            }
         )
+    }
+
+    seekZombies(rows: number[], direction: 'front' | 'back') {
+        const { zombiesData } = this.inject(kLevelState)!
+        const { x } = this.state.position
+
+        return zombiesData.filter(({ entity: { state } }) => (
+            rows.includes(state.j) &&
+            (state.position.x >= x === (direction === 'front'))
+        )).length > 0
+    }
+
+    shootBullet(bullet: BulletEntity) {
+        const { bulletsData } = this.inject(kLevelState)!
+        const attachToLevel = this.inject(kAttachToLevel)!
+
+        bullet.on('dispose', () => {
+            remove(bulletsData, ({ entity }) => bullet.id === entity.id)
+        })
+
+        bulletsData.push({ id: bullet.config.metadata.id, entity: bullet })
+        attachToLevel(bullet)
     }
 }
 
-export const definePlant = (metadata: PlantMetadata & EntityCtor<PlantEntity>) => metadata
+export const definePlant = <E extends PlantEntity>(metadata: PlantMetadata & EntityCtor<E>) => metadata

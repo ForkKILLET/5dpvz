@@ -223,28 +223,28 @@ export const loadDebugWindow = (game: Game) => {
     class DebugHandle extends Scene {
         constructor() {
             super([])
-            this.state.zIndex = Infinity
-            this.afterStart(() => {
-                this.game.emitter.onSome([
-                    'entityStart',
-                    'entityDispose',
-                    'entityAttach',
-                    'entityActivate',
-                    'entityDeactivate',
-                    'hoverTargetChange',
-                ], refreshEntityTree)
 
-                this.game.mouse.emitter.on('click', () => {
-                    if (selecting && selectingEntity) {
-                        setWatchingEntity(selectingEntity)
-                        $(`li[data-id="${ selectingEntity.id }"]`)?.scrollIntoView()
-                        selectingEntity = null
-                        toggleSelecting()
-                        refreshEntityDetail()
-                        return false
-                    }
-                }, { capture: true })
-            })
+            this.state.zIndex = Infinity
+
+            this.game.emitter.onSome([
+                'entityStart',
+                'entityDispose',
+                'entityAttach',
+                'entityActivate',
+                'entityDeactivate',
+                'hoverTargetChange',
+            ], () => refreshEntityTree())
+
+            this.game.mouse.emitter.on('click', () => {
+                if (selecting && selectingEntity) {
+                    setWatchingEntity(selectingEntity)
+                    $(`li[data-id="${ selectingEntity.id }"]`)?.scrollIntoView()
+                    selectingEntity = null
+                    toggleSelecting()
+                    refreshEntityDetail()
+                    return false
+                }
+            }, { capture: true })
         }
 
         render() {
@@ -271,10 +271,9 @@ export const loadDebugWindow = (game: Game) => {
                 )
                 .map(entity => {
                     const shape = entity.getComp(ShapeComp)!
-
                     ctx.strokeStyle = 'red'
                     shape.stroke()
-                    if (shape.contains(this.game.mouse.position) || entity === reverseSelectingEntity)
+                    if (selecting && shape.contains(this.game.mouse.position) || entity === reverseSelectingEntity)
                         return { entity, shape }
                     return null
                 })

@@ -1,7 +1,6 @@
 import { easeOutExpo } from '@/engine'
 import { definePlant, PlantConfig, PlantEntity, PlantEvents, PlantState } from '@/entities/plants/Plant'
 import { kAttachToLevel, kLevelState } from '@/entities/Level'
-import { ButtonUniqueState } from '@/entities/ui/Button'
 import { SunEntity } from '@/entities/Sun'
 import { ImageEntity } from '@/entities/Image'
 import { FilterComp } from '@/comps/Filter'
@@ -15,24 +14,17 @@ export interface SunflowerState extends SunflowerUniqueState, PlantState {}
 
 export interface SunflowerEvents extends PlantEvents {}
 
-export const SunflowerEntity = definePlant(class SunflowerEntity extends PlantEntity<
-    SunflowerState
-> {
+export const SunflowerEntity = definePlant(class SunflowerEntity extends PlantEntity<SunflowerState> {
     static readonly id = 'sunflower'
     static readonly name = 'Sunflower'
     static readonly cost = 50
-    static readonly cd = 7500
+    static readonly cd = 7_500
     static readonly hp = 300
     static readonly isPlantableAtStart = true
     static readonly animations = {
         common: { fpaf: 8, frameNum: 12 },
     }
     static readonly sunProduceInterval = 15_000
-
-    static initState: <S>(state: S) => S & SunflowerUniqueState & ButtonUniqueState = state => ({
-        ...super.initState(state),
-        sunProduceTimer: 0,
-    })
 
     constructor(config: PlantConfig, state: SunflowerState) {
         super(config, state)
@@ -93,8 +85,8 @@ export const SunflowerEntity = definePlant(class SunflowerEntity extends PlantEn
                 )
             }
         )
-        this.withComp(FilterComp, filterComp => {
-            filterComp.filters['nearProduce'] = sunProduceEta < 1000
+        this.withComp(FilterComp, filter => {
+            filter.filters['nearProduce'] = sunProduceEta < 1000
                 ? `brightness(${ 1.5 - 0.5 * sunProduceEta / 1000 })`
                 : null
         })

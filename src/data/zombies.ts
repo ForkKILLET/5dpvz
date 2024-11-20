@@ -1,19 +1,19 @@
 import { AnimationSetData, useAnimation } from '@/entities/Animation'
 import { NormalZombieEntity } from '@/entities/zombies/NormalZombie'
 import { ZombieEntity } from '@/entities/zombies/Zombie'
+import { ShapeComp } from '@/comps/Shape'
 
 export interface ZombieMetadata {
     id: ZombieId
     name: string
     hp: number
     speed: number
-    status: ZombieStatus
     animations: AnimationSetData
+    shapeFactory?: (entity: ZombieEntity) => ShapeComp
 }
 
-export type ZombieMove = 'normal' | 'frozen' | 'cold' | 'hypnotised'
+export type ZombieMovingState = 'normal' | 'frozen' | 'cold' | 'hypnotised'
 export type ZombiePlace = 'land' | 'sky' | 'underground' | 'swim' | 'dive'
-export type ZombieStatus = { move: ZombieMove, place: ZombiePlace }
 
 export const ZOMBIE_NAMES = [ 'normal_zombie' ] as const
 export type ZombieId = typeof ZOMBIE_NAMES[number]

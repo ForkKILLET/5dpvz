@@ -1,13 +1,13 @@
-import { RectShape } from '@/comps/Shape'
-import { EntityEvents, EntityState, Entity, Game } from '@/engine'
-import { placeholder } from '@/utils'
+import { OriginConfig, RectShape } from '@/comps/Shape'
+import { EntityEvents, EntityState, Entity } from '@/engine'
+import { MakeOptional, placeholder, StrictOmit } from '@/utils'
 
 export interface AnimationData {
     fpaf: number
     frameNum: number
 }
 
-export interface AnimationConfig {
+export interface AnimationConfig extends OriginConfig {
     srcs: string[]
     fpaf: number
 }
@@ -38,7 +38,7 @@ export const useAnimation = <M extends MetadataWithAnimationSet>(category: Anima
     const animation = {
         getImageSrc: (id: Id) => `./assets/${ category }/${ id }/common/01.png`,
         getImageConfig: (id: Id) => ({ src: animation.getImageSrc(id) }),
-        getAnimationConfig: (id: Id, name = 'common'): AnimationConfig => {
+        getAnimationConfig: (id: Id, name = 'common'): StrictOmit<AnimationConfig, 'origin'> => {
             const { frameNum, fpaf: fpaf } = metadata[id].animations[name]
             const srcs = Array.from(
                 { length: frameNum },
@@ -59,16 +59,23 @@ export class AnimationEntity<
     S extends AnimationState = AnimationState,
     E extends AnimationEvents = AnimationEvents
 > extends Entity<C, S, E> {
-    static initState = <S>(state: S): S & AnimationUniqueState => ({
-        ...state,
-        f: 0,
-        af: 0,
-        isPlaying: true,
-        direction: 1,
-    })
-
-    static create<C extends AnimationConfig, S extends EntityState>(config: C, state: S) {
-        return new this(config, this.initState(state))
+    static create<
+        C extends MakeOptional<AnimationConfig, 'origin'>,
+        S extends AnimationState
+    >(config: C, state: MakeOptional<S, 'f' | 'af' | 'isPlaying' | 'direction'>) {
+        return new this(
+            {
+                origin: 'top-left',
+                ...config,
+            },
+            {
+                ...state,
+                f: 0,
+                af: 0,
+                direction: + 1,
+                isPlaying: true,
+            }
+        )
     }
 
     static getStdSrcs = (path: string, num: number): string[] => {
@@ -80,18 +87,19 @@ export class AnimationEntity<
 
     frames: HTMLImageElement[] = placeholder
 
-    async start(game: Game) {
-        await super.start(game)
+    async start() {
+        await super.start()
         this.frames = await Promise.all(
-            this.config.srcs.map(src => game.imageManager.loadImage(src))
+            this.config.srcs.map(src => this.game.imageManager.loadImage(src))
         )
         const { width, height } = this.frames[0]
-        this.addComp(RectShape, { width, height, origin: 'top-left' })
+        this.addComp(RectShape, { width, height, origin: this.config.origin })
     }
 
     render() {
-        const { position: { x, y }, af } = this.state
-        this.game.ctx.drawImage(this.frames[af], x, y)
+        const { af } = this.state
+        const { x, y, width, height } = this.getComp(RectShape)!.rect
+        this.game.ctx.drawImage(this.frames[af], x, y, width, height)
     }
 
     update() {

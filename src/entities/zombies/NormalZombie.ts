@@ -11,7 +11,7 @@ export const NormalZombieEntity = defineZombie(class NormalZombieEntity extends 
     static readonly id = 'normal_zombie'
     static readonly name = 'Zombie'
     static readonly hp = 100
-    static readonly speed = 40 / 1000
+    static readonly speed = 25 / 1000
     static readonly status = { move: 'normal', place: 'land' } as const
     static readonly animations = {
         common: { fpaf: 8, frameNum: 1 },

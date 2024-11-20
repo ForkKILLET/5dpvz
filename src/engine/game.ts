@@ -5,13 +5,14 @@ import {
     Emitter, Entity, Scene, Events,
     AudioManager, useAudioManager, ImageManager, useImageManager, Mouse, useMouse
 } from '@/engine'
-import { by, remove } from '@/utils'
+import { by, placeholder, remove } from '@/utils'
 import { loadDebugWindow } from '@/debug'
 import { Keyboard, KeyboardEvents, useKeyboard } from '@/engine/keyboard'
 
 export interface GameConfig {
     ctx: CanvasRenderingContext2D
     fps: number
+    isDefault: boolean
 }
 
 export interface RenderJob {
@@ -77,8 +78,8 @@ export class Game {
             const hovering = ! this.hoveringEntity && shapeComp.contains(this.mouse.position)
             if (hovering) {
                 this.hoveringEntity = entity
-                entity.withComp(CursorComp, cursorComp => {
-                    this.ctx.canvas.style.cursor = cursorComp.cursor
+                entity.withComp(CursorComp, cursor => {
+                    this.ctx.canvas.style.cursor = cursor.cursor
                     isCursorSet = true
                 })
             }
@@ -123,17 +124,24 @@ export class Game {
         if (this.loopTimerId !== null) clearInterval(this.loopTimerId)
     }
 
-    constructor({ ctx, fps }: GameConfig) {
+    static defaultGame: Game = placeholder
+
+    constructor({ ctx, fps, isDefault }: GameConfig) {
+        if (isDefault) Game.defaultGame = this
+
         this.ctx = ctx
         this.imageManager = useImageManager()
         this.audioManager = useAudioManager()
         this.mouse = useMouse(ctx)
         this.keyboard = useKeyboard()
         this.mspf = 1000 / fps
+
         const floor = new class Floor extends Scene {
             constructor() {
                 super([])
-                this.addComp(AnyShape, { contains: () => true })
+
+                this
+                    .addComp(AnyShape, { contains: () => true })
                     .addComp(HoverableComp)
             }
         }
@@ -162,7 +170,7 @@ export class Game {
     }
 
     addScene(scene: Scene) {
-        scene.runStart(this).afterStart(() => {
+        scene.runStart().afterStart(() => {
             this.scenes.push(scene)
         })
     }

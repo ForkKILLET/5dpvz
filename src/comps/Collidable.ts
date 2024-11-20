@@ -1,7 +1,7 @@
 import { Comp, Emitter, Entity, Events } from '@/engine'
 import { CollidableGroup } from '@/data/collidableGroups'
 import { ShapeComp } from '@/comps/Shape'
-import { eq, remove, intersect } from '@/utils'
+import { eq, remove, intersect, placeholder } from '@/utils'
 
 export interface CollidableEvents extends Events {
     collide: [ Entity ]
@@ -10,7 +10,7 @@ export interface CollidableEvents extends Events {
 export interface CollidableConfig {
     groups: Set<CollidableGroup>
     targetGroups: Set<CollidableGroup>
-    onCollision: (otherEntity: Entity) => void
+    onCollide?: (otherEntity: Entity) => void
 }
 
 export class CollidableComp<E extends Entity = Entity> extends Comp<E> {
@@ -18,17 +18,20 @@ export class CollidableComp<E extends Entity = Entity> extends Comp<E> {
 
     static collidableComps: CollidableComp[] = []
 
-    shape: ShapeComp
+    shape: ShapeComp = placeholder
 
     emitter = new Emitter<CollidableEvents>()
 
     constructor(entity: E, public config: CollidableConfig) {
         super(entity)
 
-        this.shape = entity.getComp(ShapeComp)!
+        this.entity.afterStart(() => {
+            this.shape = entity.getComp(ShapeComp)!
+        })
 
         CollidableComp.collidableComps.push(this)
         entity.on('dispose', () => remove(CollidableComp.collidableComps, eq(this)))
+        if (config.onCollide) this.emitter.on('collide', config.onCollide)
     }
 
     update() {

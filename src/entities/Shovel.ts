@@ -15,6 +15,7 @@ export class ShovelEntity extends AnimationEntity<ShovelConfig, ShovelState, Sho
         super({
             ...config,
             ...shovelAnimation.getAnimationConfig(config.shovelId),
+            origin: 'top-left',
         }, state)
     }
 }

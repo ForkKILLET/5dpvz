@@ -7,6 +7,6 @@ export class Scene extends Entity<{}, EntityState, EntityEvents> {
 
         this
             .attach(...entities)
-            .afterStart(() => this.addComp(FullscreenShape))
+            .addComp(FullscreenShape)
     }
 }

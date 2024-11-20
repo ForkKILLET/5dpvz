@@ -16,21 +16,19 @@ export class LoadingEntity extends Entity<LoadingConfig, LoadingState, LoadingEv
     constructor(config: LoadingConfig, state: LoadingState) {
         super(config, state)
 
-        this.afterStart(() => {
-            const tasks = [
-                ...Object.values(this.game.imageManager.loadingImgs),
-                ...Object.values(this.game.audioManager.loadingAudios),
-            ]
-            this.taskCount = tasks.length
+        const tasks = [
+            ...Object.values(this.game.imageManager.loadingImgs),
+            ...Object.values(this.game.audioManager.loadingAudios),
+        ]
+        this.taskCount = tasks.length
 
-            tasks.forEach(task => task.then(() => {
-                if (++ this.fulfilledTaskCount === this.taskCount) {
-                    setTimeout(() => {
-                        this.emit('loaded').dispose()
-                    }, 500)
-                }
-            }))
-        })
+        tasks.forEach(task => task.then(() => {
+            if (++ this.fulfilledTaskCount === this.taskCount) {
+                setTimeout(() => {
+                    this.emit('loaded').dispose()
+                }, 500)
+            }
+        }))
     }
 
     render() {

@@ -1,9 +1,9 @@
-import { Game, getImagePixels, EntityEvents, Entity, EntityState, Position } from '@/engine'
+import { getImagePixels, EntityEvents, Entity, EntityState, Position, EntityCtor } from '@/engine'
 import { ImageEntity } from '@/entities/Image'
 import { AnimationEntity } from '@/entities/Animation'
 import { HoverableComp, HoverableEvents } from '@/comps/Hoverable'
 import { AnyShape, RectShape, ShapeComp } from '@/comps/Shape'
-import { placeholder } from '@/utils'
+import { placeholder, StrictOmit } from '@/utils'
 
 export interface ButtonUniqueConfig {
     containingMode: 'rect' | 'strict'
@@ -18,21 +18,11 @@ export interface ButtonState extends ButtonUniqueState, EntityState {}
 
 export interface ButtonEvents extends HoverableEvents, EntityEvents {}
 
-export interface ButtonStatic<E extends ButtonEntity> {
-    new (config: E['config'], state: E['state']): E
-    initState: <S>(state: S) => S & ButtonUniqueState
-}
-
 export class ButtonEntity<
     C extends ButtonConfig = ButtonConfig,
     S extends ButtonState = ButtonState,
     E extends ButtonEvents = ButtonEvents
 > extends Entity<C, S, E> {
-    static initState = <S>(state: S): S & ButtonUniqueState => ({
-        ...state,
-        hovering: false,
-    })
-
     contains: (point: Position) => boolean = placeholder
 
     constructor(config: C, state: S) {
@@ -40,39 +30,40 @@ export class ButtonEntity<
 
         this
             .attach(config.entity)
-            .afterStart(() => this
-                .addComp(AnyShape, {
-                    contains: point => this.contains(point),
-                    intersects: other => this.config.entity.getComp(ShapeComp)!.intersects(other),
-                    stroke: () => this.config.entity.getComp(ShapeComp)!.stroke(),
-                    fill: () => this.config.entity.getComp(ShapeComp)!.fill(),
-                })
-                .addComp(HoverableComp)
-                .withComp(HoverableComp, ({ emitter }) => {
-                    this.forwardEvents(emitter, [ 'click', 'rightclick', 'mouseenter', 'mouseleave' ])
-                })
-            )
+            .addComp(AnyShape, {
+                contains: point => this.contains(point),
+                intersects: other => this.config.entity.getComp(ShapeComp)!.intersects(other),
+                stroke: () => this.config.entity.getComp(ShapeComp)!.stroke(),
+                fill: () => this.config.entity.getComp(ShapeComp)!.fill(),
+            })
+            .addComp(HoverableComp)
+            .withComp(HoverableComp, ({ emitter }) => {
+                this.forwardEvents(emitter, [ 'click', 'rightclick', 'mouseenter', 'mouseleave' ])
+            })
     }
 
     static from<E extends ButtonEntity = ButtonEntity>(
-        this: ButtonStatic<E>,
+        this: EntityCtor<E>,
         entity: ImageEntity | AnimationEntity,
-        config: Omit<E['config'], 'entity'>
+        config: StrictOmit<E['config'], 'entity'>,
+        state: StrictOmit<E['state'], keyof EntityState | 'hovering'> = {} as any
     ) {
         return new this(
             {
                 entity,
                 ...config,
             },
-            this.initState({
+            {
                 position: entity.state.position,
                 zIndex: entity.state.zIndex,
-            })
+                hovering: false,
+                ...state,
+            }
         )
     }
 
-    async start(game: Game) {
-        await super.start(game)
+    async start() {
+        await super.start()
 
         const { entity } = this.config
         await entity.toStart()

@@ -1,5 +1,5 @@
 import { OriginConfig, RectShape } from '@/comps/Shape'
-import { EntityEvents, EntityState, Entity, Game } from '@/engine'
+import { EntityEvents, EntityState, Entity } from '@/engine'
 import { MakeOptional, placeholder } from '@/utils'
 
 export interface ImageConfig extends OriginConfig {
@@ -24,9 +24,9 @@ export class ImageEntity<
         )
     }
 
-    async start(game: Game) {
-        await super.start(game)
-        this.img = await game.imageManager.loadImage(this.config.src)
+    async start() {
+        await super.start()
+        this.img = await this.game.imageManager.loadImage(this.config.src)
         const { width, height } = this.img
         this.addComp(RectShape, { width, height, origin: this.config.origin })
     }

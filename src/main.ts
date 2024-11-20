@@ -1,12 +1,14 @@
 import { Game } from '@/engine'
 
 import { ZOMBIE_METADATA, zombieAnimation } from '@/data/zombies'
+import { BULLET_METADATA, bulletAnimation } from '@/data/bullets'
 import { PLANT_METADATA, plantAnimation } from '@/data/plants'
 import { shovelAnimation } from '@/data/shovels'
 
 import { LoadingScene } from '@/scenes/Loading'
 
 void ZOMBIE_METADATA
+void BULLET_METADATA
 void PLANT_METADATA
 
 void async function() {
@@ -16,6 +18,7 @@ void async function() {
     const game = new Game({
         ctx,
         fps: 60,
+        isDefault: true,
     })
 
     const preloadImgSrcs: string[] = [
@@ -33,6 +36,7 @@ void async function() {
 
         ...zombieAnimation.getAllSrcs(),
         ...plantAnimation.getAllSrcs(),
+        ...bulletAnimation.getAllSrcs(),
         ...shovelAnimation.getAllSrcs(),
     ]
 

@@ -15,7 +15,7 @@ import { SunEntity } from '@/entities/Sun'
 import { PlantSlotsConfig, UIEntity } from '@/entities/ui/UI'
 import { ZombieEntity } from '@/entities/zombies/Zombie'
 import { eq, matrix, Nullable, placeholder, random, remove, replicateBy, sum } from '@/utils'
-import { BulletId } from '@/data/bullet'
+import { BulletId } from '@/data/bullets'
 import { BulletEntity } from '@/entities/bullets/Bullet'
 import { RectShape } from '@/comps/Shape'
 
@@ -60,7 +60,6 @@ export interface ZombieData {
 
 export interface BulletData {
     id: BulletId
-    position: { x: number, y: number }
     entity: BulletEntity
 }
 
@@ -220,105 +219,103 @@ export class LevelEntity extends Entity<LevelConfig, LevelState, LevelEvents> {
 
         this.attach(this.ui, this.lawn)
 
-        this.afterStart(() => {
-            this.bgm = this.game.audioManager.playAudio(`./assets/audio/${ this.config.bgm }.mp3`)
+        this.bgm = this.game.audioManager.playAudio(`./assets/audio/${ this.config.bgm }.mp3`)
 
-            this.game.emitter.on('hoverTargetChange', target => {
-                if (this.state.holdingObject === null) return
+        this.game.emitter.on('hoverTargetChange', target => {
+            if (this.state.holdingObject === null) return
 
-                const { holdingObject } = this.state
-                if (holdingObject?.type === 'plant') {
-                    if (target instanceof LawnBlockEntity) {
-                        const { i, j } = target.config
-                        if (this.isOccupied(i, j)) {
-                            this.phantomImage!.deactivate()
-                            return
-                        }
-
-                        const { x, y } = target.state.position
-                        this.phantomImage!.activate().state.position = { x, y }
-                    }
-                    else this.phantomImage!.deactivate()
-                }
-            })
-
-            this.game.emitter.on('click', target => {
-                if (this.state.holdingObject === null) return
-
-                const { holdingObject } = this.state
+            const { holdingObject } = this.state
+            if (holdingObject?.type === 'plant') {
                 if (target instanceof LawnBlockEntity) {
-                    if (holdingObject?.type === 'plant') {
-                        const { i, j } = target.config
-                        this.plant(holdingObject.slotId, i, j)
+                    const { i, j } = target.config
+                    if (this.isOccupied(i, j)) {
+                        this.phantomImage!.deactivate()
+                        return
                     }
-                }
-                else if (target instanceof PlantEntity) {
-                    if (holdingObject?.type === 'shovel') {
-                        this.kill(target.config.i, target.config.j)
-                        this.cancelHolding()
-                    }
-                }
-                else this.cancelHolding()
-            })
 
-            this.game.emitter.on('rightclick', () => {
-                if (this.state.holdingObject !== null) this.cancelHolding()
-            })
-
-            const pause = () => {
-                this.freeze()
-                this.bgm.toggleEffect()
-                pauseButton.deactivate()
-                resumeButton.activate()
+                    const { x, y } = target.state.position
+                    this.phantomImage!.activate().state.position = { x, y }
+                }
+                else this.phantomImage!.deactivate()
             }
-
-            const resume = () => {
-                this.unfreeze()
-                this.bgm.toggleEffect()
-                resumeButton.deactivate()
-                pauseButton.activate()
-            }
-
-            this.game.emitter.on('keydown', (ev: KeyboardEvent) => {
-                if (ev.key === 'Escape') {
-                    if (this.frozen) resume()
-                    else pause()
-                }
-            })
-
-            const pauseButton = ButtonEntity.from(
-                ImageEntity.create(
-                    {
-                        src: './assets/ui/pause_button.png',
-                    },
-                    {
-                        position: { x: this.width - 32, y: 5 },
-                        zIndex: this.state.zIndex + 5,
-                    },
-                ),
-                { containingMode: 'rect' }
-            )
-                .addComp(CursorComp, 'pointer')
-                .attachTo(this)
-                .on('click', pause)
-
-            const resumeButton = ButtonEntity.from(
-                ImageEntity.create(
-                    {
-                        src: './assets/ui/resume_button.png',
-                    },
-                    {
-                        position: { x: this.width - 32, y: 5 },
-                        zIndex: this.state.zIndex + 5,
-                    },
-                ),
-                { containingMode: 'rect' }
-            )
-                .addComp(CursorComp, 'pointer')
-                .deactivate()
-                .attachTo(this)
-                .on('click', resume)
         })
+
+        this.game.emitter.on('click', target => {
+            if (this.state.holdingObject === null) return
+
+            const { holdingObject } = this.state
+            if (target instanceof LawnBlockEntity) {
+                if (holdingObject?.type === 'plant') {
+                    const { i, j } = target.config
+                    this.plant(holdingObject.slotId, i, j)
+                }
+            }
+            else if (target instanceof PlantEntity) {
+                if (holdingObject?.type === 'shovel') {
+                    this.kill(target.state.i, target.state.j)
+                    this.cancelHolding()
+                }
+            }
+            else this.cancelHolding()
+        })
+
+        this.game.emitter.on('rightclick', () => {
+            if (this.state.holdingObject !== null) this.cancelHolding()
+        })
+
+        const pause = () => {
+            this.freeze()
+            this.bgm.toggleEffect()
+            pauseButton.deactivate()
+            resumeButton.activate()
+        }
+
+        const resume = () => {
+            this.unfreeze()
+            this.bgm.toggleEffect()
+            resumeButton.deactivate()
+            pauseButton.activate()
+        }
+
+        this.game.emitter.on('keydown', (ev: KeyboardEvent) => {
+            if (ev.key === 'Escape') {
+                if (this.frozen) resume()
+                else pause()
+            }
+        })
+
+        const pauseButton = ButtonEntity.from(
+            ImageEntity.create(
+                {
+                    src: './assets/ui/pause_button.png',
+                },
+                {
+                    position: { x: this.width - 32, y: 5 },
+                    zIndex: this.state.zIndex + 5,
+                },
+            ),
+            { containingMode: 'rect' },
+        )
+            .addComp(CursorComp, 'pointer')
+            .attachTo(this)
+            .on('click', pause)
+
+        const resumeButton = ButtonEntity.from(
+            ImageEntity.create(
+                {
+                    src: './assets/ui/resume_button.png',
+                },
+                {
+                    position: { x: this.width - 32, y: 5 },
+                    zIndex: this.state.zIndex + 5,
+                },
+            ),
+            { containingMode: 'rect' }
+        )
+            .addComp(CursorComp, 'pointer')
+            .deactivate()
+            .attachTo(this)
+            .on('click', resume)
     }
 
     plant(slotId: number, i: number, j: number) {
@@ -337,8 +334,9 @@ export class LevelEntity extends Entity<LevelConfig, LevelState, LevelEvents> {
 
         const newPlant = PlantEntity.create(
             plantId,
-            { i, j },
+            {},
             {
+                i, j,
                 position: this.getLawnBlockPosition(i, j),
                 zIndex: this.state.zIndex + 3,
             }
@@ -427,6 +425,8 @@ export class LevelEntity extends Entity<LevelConfig, LevelState, LevelEvents> {
     }
 
     nextWave() {
+        console.log('nextWave')
+
         if (this.state.wave === this.wavesData.waveCount) return
         const currentWave = this.wavesData.waves[this.state.wave ++]
         const zombieList: ZombieId[] = replicateBy(currentWave.zombieCount, () => {
@@ -445,19 +445,23 @@ export class LevelEntity extends Entity<LevelConfig, LevelState, LevelEvents> {
             const row = this.getZombieSpawningRow(zombieId)
             const { x, y } = this.getLawnBlockPosition(this.lawn.config.width - 1, row)
 
-            const newZombie = ZombieEntity.create(
+            const zombie = ZombieEntity.create(
                 zombieId,
                 {},
                 {
+                    j: row,
                     position: { x, y: y - 40 },
                     zIndex: this.lawn.state.zIndex + 2 + row * 0.1,
                 }
             )
                 .attachTo(this)
+                .on('dispose', () => {
+                    remove(this.state.zombiesData, ({ entity }) => entity.id === zombie.id)
+                })
 
             this.state.zombiesData.push({
                 id: zombieId,
-                entity: newZombie,
+                entity: zombie,
             })
         })
     }
@@ -482,22 +486,6 @@ export class LevelEntity extends Entity<LevelConfig, LevelState, LevelEvents> {
         })
     }
 
-    updateZombie() {
-        if (this.state.waveTimer <= 0
-            || this.state.waveTimer <= 25000 && this.currentZombiesHP <= this.state.waveZombieInitHP
-        ) this.nextWave()
-
-        this.state.zombiesData.forEach(({ entity }) => {
-            entity.updatePosition({
-                x: entity.nextMove(),
-                y: 0,
-            })
-            if (entity.state.position.x < 0) {
-                entity.dispose() // TODO
-            }
-        })
-    }
-
     frozenUpdate() {
         if (this.holdingImage) {
             const { x, y } = this.game.mouse.position
@@ -508,14 +496,13 @@ export class LevelEntity extends Entity<LevelConfig, LevelState, LevelEvents> {
     update() {
         this.updatePlantSlot()
 
-        this.updateZombie()
+        this.updateTimer('waveTimer', { interval: 25_000 }, () => this.nextWave())
 
         this.updateTimer(
             'sunDropTimer',
             { interval: this.config.sun.sunDroppingInterval },
             () => this.dropSun()
         )
-        this.state.waveTimer -= this.game.mspf
 
         return this.state
     }
