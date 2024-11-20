@@ -1,6 +1,6 @@
 import { OriginConfig, RectShape } from '@/comps/Shape'
 import { EntityEvents, EntityState, Entity } from '@/engine'
-import { MakeOptional, placeholder, StrictOmit } from '@/utils'
+import { MakeOptional, StrictOmit } from '@/utils'
 
 export interface AnimationData {
     fpaf: number
@@ -8,8 +8,10 @@ export interface AnimationData {
 }
 
 export interface AnimationConfig extends OriginConfig {
-    srcs: string[]
-    fpaf: number
+    animations: Record<string, {
+        srcs: string[]
+        fpaf: number
+    }>
 }
 
 export interface AnimationUniqueState {
@@ -18,7 +20,9 @@ export interface AnimationUniqueState {
     isPlaying: boolean
     direction: 1 | - 1
 }
-export interface AnimationState extends EntityState, AnimationUniqueState {}
+export interface AnimationState extends EntityState, AnimationUniqueState {
+    currentAnimationName: string
+}
 
 export interface AnimationEvents extends EntityEvents {
     'animation-finish': []
@@ -38,18 +42,29 @@ export const useAnimation = <M extends MetadataWithAnimationSet>(category: Anima
     const animation = {
         getImageSrc: (id: Id) => `./assets/${ category }/${ id }/common/01.png`,
         getImageConfig: (id: Id) => ({ src: animation.getImageSrc(id) }),
-        getAnimationConfig: (id: Id, name = 'common'): StrictOmit<AnimationConfig, 'origin'> => {
-            const { frameNum, fpaf: fpaf } = metadata[id].animations[name]
-            const srcs = Array.from(
-                { length: frameNum },
-                (_, i) => `./assets/${ category }/${ id }/${ name }/${ String(i + 1).padStart(2, '0') }.png`,
-            )
-            return { srcs, fpaf }
+        getAnimationConfig: (id: Id): StrictOmit<AnimationConfig, 'origin'> => {
+            const animations: AnimationConfig['animations'] = {}
+
+            for (const [ name, data ] of Object.entries(metadata[id].animations)) {
+                const { frameNum, fpaf } = data
+                const srcs = Array.from(
+                    { length: frameNum },
+                    (_, i) =>
+                        `./assets/${ category }/${ id }/${ name }/${ String(i + 1).padStart(2, '0') }.png`
+                )
+                animations[name] = { srcs, fpaf }
+            }
+
+            return { animations }
         },
-        getAllSrcs: () => Object
-            .keys(metadata)
-            .map(id => animation.getAnimationConfig(id).srcs)
-            .flat(),
+        getAllSrcs: () =>
+            Object.keys(metadata)
+                .map(id =>
+                    Object.values(animation.getAnimationConfig(id).animations)
+                        .map(anim => anim.srcs)
+                        .flat()
+                )
+                .flat(),
     }
     return animation
 }
@@ -62,7 +77,7 @@ export class AnimationEntity<
     static create<
         C extends MakeOptional<AnimationConfig, 'origin'>,
         S extends AnimationState
-    >(config: C, state: MakeOptional<S, 'f' | 'af' | 'isPlaying' | 'direction'>) {
+    >(config: C, state: MakeOptional<S, 'f' | 'af' | 'isPlaying' | 'direction' | 'currentAnimationName'>) {
         return new this(
             {
                 origin: 'top-left',
@@ -74,42 +89,64 @@ export class AnimationEntity<
                 af: 0,
                 direction: + 1,
                 isPlaying: true,
+                currentAnimationName: state.currentAnimationName || Object.keys(config.animations)[0],
             }
         )
     }
 
-    static getStdSrcs = (path: string, num: number): string[] => {
-        const digits = Math.max(String(num).length, 2)
-        return Array
-            .from({ length: num })
-            .map((_, i) => `${ path }/${ String(i + 1).padStart(digits, '0') }.png`)
-    }
+    // static getStdSrcs = (path: string, num: number): string[] => {
+    //     const digits = Math.max(String(num).length, 2)
+    //     return Array
+    //         .from({ length: num })
+    //         .map((_, i) => `${ path }/${ String(i + 1).padStart(digits, '0') }.png`)
+    // }
 
-    frames: HTMLImageElement[] = placeholder
+    frames: Record<string, HTMLImageElement[]> = {}
+    currentFrames: HTMLImageElement[] = []
+    fpaf: number = 1
 
     async start() {
         await super.start()
-        this.frames = await Promise.all(
-            this.config.srcs.map(src => this.game.imageManager.loadImage(src))
-        )
-        const { width, height } = this.frames[0]
+        const animationNames = Object.keys(this.config.animations)
+        for (const name of animationNames) {
+            const { srcs } = this.config.animations[name]
+            this.frames[name] = await Promise.all(
+                srcs.map(src => this.game.imageManager.loadImage(src))
+            )
+        }
+        this.switchAnimation(this.state.currentAnimationName)
+        const { width, height } = this.currentFrames[0]
         this.addComp(RectShape, { width, height, origin: this.config.origin })
+    }
+
+    switchAnimation(name: string) {
+        if (! this.frames[name]) {
+            throw new Error(`Animation ${ name } does not exist`)
+        }
+        this.state.currentAnimationName = name
+        this.currentFrames = this.frames[name]
+        this.fpaf = this.config.animations[name].fpaf
+        this.state.f = 0
+        this.state.af = 0
     }
 
     render() {
         const { af } = this.state
         const { x, y, width, height } = this.getComp(RectShape)!.rect
-        this.game.ctx.drawImage(this.frames[af], x, y, width, height)
+        this.game.ctx.drawImage(this.currentFrames[af], x, y, width, height)
     }
 
     update() {
         const { state } = this
         const { isPlaying, direction } = state
-        if (! isPlaying) return this.state
-        if (++ state.f === this.config.fpaf) {
+        if (! isPlaying) return
+        if (++ state.f === this.fpaf) {
             this.emit('animation-finish')
             state.f = 0
-            if ((state.af += direction) === this.frames.length) state.af = 0
+            state.af += direction
+            if (state.af >= this.currentFrames.length || state.af < 0) {
+                state.af = 0
+            }
         }
     }
 }

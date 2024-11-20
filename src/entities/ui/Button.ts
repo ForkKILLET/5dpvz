@@ -69,7 +69,7 @@ export class ButtonEntity<
         await entity.toStart()
 
         const isImage = entity instanceof ImageEntity
-        const images = isImage ? [ entity.img ] : entity.frames
+        const images = isImage ? [ entity.img ] : entity.frames['common']
         const pixelsList = images.map(getImagePixels)
         const [ { width } ] = images
 
