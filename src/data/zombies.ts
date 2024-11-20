@@ -7,6 +7,7 @@ export interface ZombieMetadata {
     id: ZombieId
     name: string
     hp: number
+    atk: number
     speed: number
     damage: number
     shapeFactory?: (entity: ZombieEntity) => ShapeComp
