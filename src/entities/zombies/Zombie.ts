@@ -4,9 +4,10 @@ import {
     ZOMBIES, ZombieMetadata, zombieTextures,
     ZombieId, ZombieMovingState, ZombiePlace
 } from '@/data/zombies'
-import { EntityCtor, EntityState, Position } from '@/engine'
+import { Entity, EntityCtor, EntityState, Position } from '@/engine'
 import { TextureConfig, TextureEntity, TextureEvents, TextureState } from '@/entities/Texture'
 import { PartialBy } from '@/utils'
+import { HealthAtkComp, HealthComp } from '@/comps/Health'
 
 export interface ZombieUniqueConfig {
     metadata: ZombieMetadata
@@ -15,7 +16,7 @@ export interface ZombieConfig extends ZombieUniqueConfig, TextureConfig {}
 
 export interface ZombieUniqueState {
     j: number
-    hp: number
+    // hp: number
     movingState: ZombieMovingState
     place: ZombiePlace
     damageFilterTimer: number
@@ -23,13 +24,15 @@ export interface ZombieUniqueState {
 export interface ZombieState extends ZombieUniqueState, TextureState {}
 
 export interface ZombieEvents extends TextureEvents {
-    'damage': [ number ]
+    // 'damage': [ number ]
 }
 
 export class ZombieEntity<
     S extends ZombieState = ZombieState,
     V extends ZombieEvents = ZombieEvents
 > extends TextureEntity<ZombieConfig, S, V> {
+    currentAttacking: Entity | null = null
+
     constructor(config: ZombieConfig, state: S) {
         super(config, state)
 
@@ -38,14 +41,31 @@ export class ZombieEntity<
 
         this
             .addComp(FilterComp)
+            .addComp(HealthAtkComp, {
+                hp: this.config.metadata.hp,
+                atk: this.config.metadata.atk,
+                canInstantAttack: true,
+                instantAttackTimer: 0,
+                attackInterval: 500,
+            })
             .addComp(CollidableComp, {
                 groups: new Set([ 'zombies' ] as const),
-                targetGroups: new Set([ 'bullets' ] as const),
+                targetGroups: new Set([ 'bullets', 'plants' ] as const),
+                onCollide: (target: Entity) => {
+                    // TODO: type check here!!!!!
+                    console.log(target)
+                    if (! this.currentAttacking) {
+                        this.currentAttacking = target
+                        target.on('dispose', () => this.currentAttacking = null)
+                    }
+                    // if (target instanceof PlantEntity) this.getComp(HealthAtkComp)!.attack(target)
+                    this.getComp(HealthAtkComp)!.attack(target)
+                },
             })
             .withComp(FilterComp, filter => {
-                this.on('damage', () => {
+                this.getComp(HealthComp)!.emitter.on('takeDamage', () => {
                     filter.filters.damage = 'brightness(1.2)'
-                    this.state.damageFilterTimer = 1000
+                    this.state.damageFilterTimer = 500
                 })
             })
     }
@@ -54,7 +74,7 @@ export class ZombieEntity<
         Z extends ZombieId,
         C extends Omit<ZombieUniqueConfig, 'metadata'>,
         S extends ZombieUniqueState & EntityState
-    >(zombieId: Z, config: C, state: PartialBy<S, 'hp' | 'movingState' | 'place' | 'damageFilterTimer'>) {
+    >(zombieId: Z, config: C, state: PartialBy<S, 'movingState' | 'place' | 'damageFilterTimer'>) {
         const Zombie = ZOMBIES[zombieId]
         return Zombie.createTexture(
             {
@@ -63,7 +83,7 @@ export class ZombieEntity<
                 ...config,
             },
             {
-                hp: Zombie.hp,
+                // hp: Zombie.hp,
                 movingState: 'moving',
                 place: 'front',
                 damageFilterTimer: 0,
@@ -74,7 +94,7 @@ export class ZombieEntity<
 
     nextMove(): Position {
         return {
-            x: - this.config.metadata.speed * this.game.mspf,
+            x: this.currentAttacking ? 0 : - this.config.metadata.speed * this.game.mspf,
             y: 0,
         }
     }
@@ -85,12 +105,6 @@ export class ZombieEntity<
         this.updateTimer('damageFilterTimer', { interval: 500 }, () => {
             this.getComp(FilterComp)!.filters.damage = null
         })
-        if (this.state.hp <= 0) this.dispose()
-    }
-
-    damage(damage: number) {
-        this.state.hp -= damage
-        this.emit('damage', damage)
     }
 }
 

@@ -6,7 +6,8 @@ import { PLANTS, PlantId, PlantMetadata, plantTextures } from '@/data/plants'
 import { EntityCtor, EntityState } from '@/engine'
 import { kLevel } from '@/entities/Level'
 import { TextureConfig, TextureEntity, TextureEvents, TextureState } from '@/entities/Texture'
-import { PartialBy, StrictOmit } from '@/utils'
+import { StrictOmit } from '@/utils'
+import { HealthComp } from '@/comps/Health'
 
 export interface PlantUniqueConfig {
     metadata: PlantMetadata
@@ -14,7 +15,7 @@ export interface PlantUniqueConfig {
 export interface PlantConfig extends PlantUniqueConfig, TextureConfig {}
 
 export interface PlantUniqueState {
-    hp: number
+    // hp: number
     i: number
     j: number
 }
@@ -40,6 +41,7 @@ export class PlantEntity<
         this
             .addComp(HoverableComp)
             .addComp(FilterComp)
+            .addComp(HealthComp, { hp: this.config.metadata.hp })
             .withComps([ HoverableComp, FilterComp ], ({ emitter }, filterComp) => {
                 emitter.on('mouseenter', () => {
                     if (this.inject(kLevel)!.state.holdingObject?.type === 'shovel')
@@ -55,7 +57,7 @@ export class PlantEntity<
         I extends PlantId,
         C extends StrictOmit<PlantUniqueConfig, 'metadata'>,
         S extends PlantUniqueState & EntityState
-    >(plantId: I, config: C, state: PartialBy<S, 'hp'>) {
+    >(plantId: I, config: C, state: S) {
         const Plant = PLANTS[plantId]
         return Plant.createTexture(
             {
@@ -65,7 +67,7 @@ export class PlantEntity<
                 ...config,
             },
             {
-                hp: Plant.hp,
+                // hp: Plant.hp,
                 ...state,
             },
         )
