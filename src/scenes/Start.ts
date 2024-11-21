@@ -34,7 +34,9 @@ export class StartScene extends Scene {
         const githubButton = TextureEntity
             .createButtonFromImage(
                 './assets/github.png',
-                {},
+                {
+                    strictShape: true,
+                },
                 {
                     position: { x: 10, y: 10 },
                     zIndex: 1,

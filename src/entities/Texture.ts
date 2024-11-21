@@ -2,8 +2,11 @@ import { ButtonComp, ButtonEvents } from '@/comps/Button'
 import { HoverableComp } from '@/comps/Hoverable'
 import { AnyShape, OriginConfig, RectShape, ShapeComp } from '@/comps/Shape'
 import { TextureSet } from '@/data/textures'
-import { Entity, EntityCtor, EntityEvents, EntityState, getImagePixels } from '@/engine'
-import { elem, mapk, PartialBy, pick, placeholder, StrictOmit } from '@/utils'
+import {
+    Entity, EntityCtor, EntityEvents, EntityState,
+    getImageOutline, getImagePixels, Outline
+} from '@/engine'
+import { elem, PartialBy, pick, placeholder, StrictOmit } from '@/utils'
 
 export type TextureInnerState =
     | {
@@ -118,6 +121,7 @@ export class TextureEntity<
     }
 
     pixels: Record<string, Uint8ClampedArray[]> = {}
+    outlines: Record<string, Outline[]> = {}
 
     async start() {
         await super.start()
@@ -128,7 +132,11 @@ export class TextureEntity<
                 case 'image': {
                     const img = await this.game.imageManager.loadImage(texture.src)
                     this.frames[name] = [ img ]
-                    if (strictShape) this.pixels[name] = [ getImagePixels(img) ]
+                    if (strictShape) {
+                        const pixels = getImagePixels(img)
+                        this.pixels[name] = [ pixels ]
+                        this.outlines[name] = [ getImageOutline(img, pixels) ]
+                    }
                     break
                 }
                 case 'anime': {
@@ -136,7 +144,10 @@ export class TextureEntity<
                         texture.srcs.map(src => this.game.imageManager.loadImage(src))
                     )
                     this.frames[name] = frames
-                    if (strictShape) this.pixels[name] = frames.map(getImagePixels)
+                    if (strictShape) {
+                        this.pixels[name] = frames.map(getImagePixels)
+                        this.outlines[name] = frames.map((frame, i) => getImageOutline(frame, this.pixels[name][i]))
+                    }
                     break
                 }
             }
@@ -194,7 +205,7 @@ export class TextureEntity<
                     ...pick(this.config, [ 'origin' ]),
                 }
                 this
-                    .removeComp([ ShapeComp, mapk('tag', elem('boundary', 'texture')) ])
+                    .removeComp(ShapeComp.withTag(elem('texture', 'boundary')))
                     .addComp(RectShape, {
                         tag: 'texture',
                         ...shapeConfig,
@@ -210,13 +221,20 @@ export class TextureEntity<
                             const pixels = this.pixels[this.textureName][this.f]
                             const rx = point.x - x
                             const ry = point.y - y
-                            const i = ry * width * 4 + rx * 4
-                            const [ r, g, b, a ] = pixels.slice(i, i + 4)
-                            return ! (r === 0 && g === 0 && b === 0 && a === 0)
+                            const alpha = pixels[ry * width * 4 + rx * 4 + 3]
+                            return alpha > 0
                         },
                         intersects: () => false,
-                        stroke: () => {},
-                        fill: () => {},
+                        stroke: () => {
+                            const outline = this.outlines[this.textureName][this.f]
+                            const { x, y } = this.getComp(RectShape)!.rect
+                            outline.outline.forEach(dot => this.game.ctx.strokeRect(dot.x + x, dot.y + y, 1, 1))
+                        },
+                        fill: () => {
+                            const outline = this.outlines[this.textureName][this.f]
+                            const { x, y } = this.getComp(RectShape)!.rect
+                            outline.inner.forEach(dot => this.game.ctx.fillRect(dot.x + x, dot.y + y, 1, 1))
+                        },
                     })
                 else
                     this.addComp(RectShape, shapeConfig)

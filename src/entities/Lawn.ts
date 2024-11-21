@@ -1,12 +1,9 @@
 import { EntityState, Entity, EntityEvents } from '@/engine'
 import { matrix } from '@/utils'
 import { LawnBlockEntity } from '@/entities/LawnBlock'
-import { RectShape } from '@/comps/Shape'
+import { RectShape, Size } from '@/comps/Shape'
 
-export interface LawnConfig {
-    height: number
-    width: number
-}
+export interface LawnConfig extends Size {}
 
 export interface LawnState extends EntityState {}
 

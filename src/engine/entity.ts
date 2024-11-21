@@ -46,7 +46,7 @@ export class Comp<E extends Entity = Entity> {
 export type CompCtor<C extends Comp = Comp> =
     | (new (...args: any[]) => C)
     | (abstract new (...args: any[]) => C)
-export type CompSelector<C extends Comp = Comp> =
+export type CompSelector<C extends Comp = any> =
     | CompCtor<C>
     | [ Comp: CompCtor<C>, filter: (comp: C) => boolean ]
 

@@ -1,6 +1,6 @@
 import { Comp, Emitter, Events, Stopable } from '@/engine'
 import { ShapeComp } from '@/comps/Shape'
-import { eq, mapk } from '@/utils'
+import { eq } from '@/utils'
 
 export interface HoverableEvents extends Events {
     mouseenter: []
@@ -10,7 +10,7 @@ export interface HoverableEvents extends Events {
 }
 
 export class HoverableComp extends Comp {
-    static readonly dependencies = [ Comp.selector(ShapeComp, mapk('tag', eq('boundary'))) ]
+    static readonly dependencies = [ ShapeComp.withTag(eq('boundary')) ]
 
     hovering = false
 

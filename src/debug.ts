@@ -1,8 +1,8 @@
 /* eslint-disable @stylistic/ts/indent */
 
 import { Entity, Game, Scene } from '@/engine'
-import { by, neq } from '@/utils'
-import { ShapeComp } from './comps/Shape'
+import { by, eq, neq } from '@/utils'
+import { ShapeComp } from '@/comps/Shape'
 
 export const loadDebugWindow = (game: Game) => {
     const $debugWindow = document.querySelector('#debug-window') as HTMLDivElement
@@ -250,7 +250,7 @@ export const loadDebugWindow = (game: Game) => {
         render() {
             const { ctx } = this.game
 
-            watchingEntity?.withComp(ShapeComp, shape => {
+            watchingEntity?.withComp(ShapeComp.withTag(eq('boundary')), shape => {
                 const { entity } = shape
                 if (! entity.deepActive) {
                     unsetWatchingEntity()
@@ -266,11 +266,11 @@ export const loadDebugWindow = (game: Game) => {
                 .allEntities
                 .filter(entity => ! (entity instanceof DebugHandle)
                     && entity.deepActive
-                    && entity.hasComp(ShapeComp)
+                    && entity.hasComp(ShapeComp.withTag(eq('boundary')))
                     && (selecting || showBoundary || entity === reverseSelectingEntity)
                 )
                 .map(entity => {
-                    const shape = entity.getComp(ShapeComp)!
+                    const shape = entity.getComp(ShapeComp.withTag(eq('boundary')))!
                     ctx.strokeStyle = 'red'
                     shape.stroke()
                     if (selecting && shape.contains(this.game.mouse.position) || entity === reverseSelectingEntity)

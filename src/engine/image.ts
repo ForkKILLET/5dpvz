@@ -1,3 +1,7 @@
+import { Size } from '@/comps/Shape'
+import { Position } from '@/engine'
+import { matrix } from '@/utils'
+
 export interface ImageManager {
     imgs: Record<string, HTMLImageElement>
     loadingImgs: Record<string, Promise<HTMLImageElement>>
@@ -30,11 +34,32 @@ export const useImageManager = (): ImageManager => {
     }
 }
 
-export const getImagePixels = (img: HTMLImageElement) => {
+export const getImagePixels = (img: HTMLImageElement): Uint8ClampedArray => {
     const canvas = document.createElement('canvas')
     canvas.width = img.width
     canvas.height = img.height
     const ctx = canvas.getContext('2d')!
     ctx.drawImage(img, 0, 0)
     return ctx.getImageData(0, 0, img.width, img.height).data
+}
+
+export type Outline = {
+    outline: Position[]
+    inner: Position[]
+}
+
+export const getImageOutline = ({ width, height }: Size, pixels: Uint8ClampedArray): Outline => {
+    const outline: Position[] = []
+    const inner: Position[] = []
+    const dots = matrix(width, height, (x, y) => pixels[(y * width + x) * 4 + 3] > 0)
+    matrix(width, height, (x, y) => {
+        if (! dots[x][y]) return
+        if (x === 0 || ! dots[x - 1][y] ||
+            x === width - 1 || ! dots[x + 1][y] ||
+            y === 0 || ! dots[x][y - 1] ||
+            y === height - 1 || ! dots[x][y + 1]
+        ) outline.push({ x, y })
+        else inner.push({ x, y })
+    })
+    return { outline, inner }
 }

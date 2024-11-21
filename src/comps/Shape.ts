@@ -1,5 +1,5 @@
-import { Position, Comp, Entity } from '@/engine'
-import { clamp } from '@/utils'
+import { Position, Comp, Entity, CompSelector, CompCtor } from '@/engine'
+import { clamp, mapk, Pred } from '@/utils'
 
 export type ShapeTag = 'boundary' | 'texture' | 'hitbox'
 export interface ShapeConfig {
@@ -14,6 +14,10 @@ export abstract class ShapeComp<E extends Entity = Entity> extends Comp<E> {
     setTag(tag: ShapeTag) {
         this.tag = tag
         return this
+    }
+
+    static withTag<C extends ShapeComp>(this: CompCtor<C>, tagPred: Pred<ShapeTag>): CompSelector<C> {
+        return [ this, mapk('tag', tagPred) ]
     }
 
     constructor(entity: E, config: ShapeConfig) {
@@ -90,10 +94,12 @@ export interface OriginConfig {
     origin: 'center' | 'top-left'
 }
 
-export interface Rect extends Position {
+export interface Size {
     width: number
     height: number
 }
+
+export interface Rect extends Position, Size {}
 
 export interface RectP {
     x1: number
@@ -102,10 +108,7 @@ export interface RectP {
     y2: number
 }
 
-export interface RectShapeConfig extends OriginConfig, ShapeConfig {
-    width: number
-    height: number
-}
+export interface RectShapeConfig extends Size, OriginConfig, ShapeConfig {}
 
 export class RectShape extends ShapeComp {
     constructor(entity: Entity, public config: RectShapeConfig) {
