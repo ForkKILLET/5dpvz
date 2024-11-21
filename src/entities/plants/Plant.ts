@@ -1,31 +1,30 @@
-import { EntityCtor, EntityState } from '@/engine'
-import { AnimationEntity } from '@/entities/Animation'
-import { ButtonConfig, ButtonEntity, ButtonEvents, ButtonState } from '@/entities/ui/Button'
-import { kAttachToLevel, kLevelState } from '@/entities/Level'
-import { HoverableComp } from '@/comps/Hoverable'
+import { ButtonEvents } from '@/comps/Button'
 import { FilterComp } from '@/comps/Filter'
-import { PLANT_METADATA, plantAnimation, PlantId, PlantMetadata } from '@/data/plants'
-import { BulletEntity } from '@/entities/bullets/Bullet'
-import { MakeOptional, remove } from '@/utils'
+import { HoverableComp } from '@/comps/Hoverable'
+import { PLANTS, PlantId, PlantMetadata, plantTextures } from '@/data/plants'
+import { EntityCtor, EntityState } from '@/engine'
+import { kLevelState } from '@/entities/Level'
+import { TextureConfig, TextureEntity, TextureEvents, TextureState } from '@/entities/Texture'
+import { PartialBy, StrictOmit } from '@/utils'
 
 export interface PlantUniqueConfig {
     metadata: PlantMetadata
 }
-export interface PlantConfig extends PlantUniqueConfig, ButtonConfig {}
+export interface PlantConfig extends PlantUniqueConfig, TextureConfig {}
 
 export interface PlantUniqueState {
     hp: number
     i: number
     j: number
 }
-export interface PlantState extends PlantUniqueState, ButtonState {}
+export interface PlantState extends PlantUniqueState, TextureState {}
 
-export interface PlantEvents extends ButtonEvents {}
+export interface PlantEvents extends TextureEvents, ButtonEvents {}
 
 export class PlantEntity<
     S extends PlantState = PlantState,
-    E extends PlantEvents = PlantEvents
-> extends ButtonEntity<PlantConfig, S, E> {
+    V extends PlantEvents = PlantEvents
+> extends TextureEntity<PlantConfig, S, V> {
     constructor(config: PlantConfig, state: S) {
         super(config, state)
 
@@ -42,52 +41,23 @@ export class PlantEntity<
             })
     }
 
-    static create<
-        P extends PlantId,
-        C extends Omit<PlantUniqueConfig, 'metadata'>,
+    static createPlant<
+        I extends PlantId,
+        C extends StrictOmit<PlantUniqueConfig, 'metadata'>,
         S extends PlantUniqueState & EntityState
-    >(plantId: P, config: C, state: MakeOptional<S, 'hp'>) {
-        const metadata = PLANT_METADATA[plantId]
-        return metadata.from<PlantEntity>(
-            AnimationEntity.create(
-                plantAnimation.getAnimationConfig(plantId),
-                {
-                    position: state.position,
-                    zIndex: state.zIndex,
-                }
-            ),
+    >(plantId: I, config: C, state: PartialBy<S, 'hp'>) {
+        const Plant = PLANTS[plantId]
+        return Plant.createTexture(
             {
-                metadata,
-                containingMode: 'strict',
+                metadata: Plant,
+                textures: plantTextures.getAnimeTextureSet(plantId),
                 ...config,
             },
             {
-                hp: metadata.hp,
+                hp: Plant.hp,
                 ...state,
-            }
+            },
         )
-    }
-
-    seekZombies(rows: number[], direction: 'front' | 'back') {
-        const { zombiesData } = this.inject(kLevelState)!
-        const { x } = this.state.position
-
-        return zombiesData.filter(({ entity: { state } }) => (
-            rows.includes(state.j) &&
-            (state.position.x >= x === (direction === 'front'))
-        )).length > 0
-    }
-
-    shootBullet(bullet: BulletEntity) {
-        const { bulletsData } = this.inject(kLevelState)!
-        const attachToLevel = this.inject(kAttachToLevel)!
-
-        bullet.on('dispose', () => {
-            remove(bulletsData, ({ entity }) => bullet.id === entity.id)
-        })
-
-        bulletsData.push({ id: bullet.config.metadata.id, entity: bullet })
-        attachToLevel(bullet)
     }
 }
 

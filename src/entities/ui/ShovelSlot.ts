@@ -1,8 +1,8 @@
-import { shovelAnimation, SHOVEL_METADATA, ShovelId, ShovelMetadata } from '@/data/shovels'
-import { ImageEntity } from '@/entities/Image'
+import { shovelTextures, SHOVELS, ShovelId, ShovelMetadata } from '@/data/shovels'
 import { SlotConfig, SlotEntity, SlotEvents, SlotState } from '@/entities/ui/Slot'
 import { kLevelState } from '@/entities/Level'
 import { CursorComp } from '@/comps/Cursor'
+import { TextureEntity } from '../Texture'
 
 export interface ShovelSlotConfig extends SlotConfig {
     shovelId: ShovelId
@@ -14,18 +14,19 @@ export interface ShovelSlotEvents extends SlotEvents {}
 
 export class ShovelSlotEntity extends SlotEntity<ShovelSlotConfig, ShovelSlotState, ShovelSlotEvents> {
     shovelMetadata: ShovelMetadata
-    shovelImage?: ImageEntity
+    shovelImage?: TextureEntity
 
     constructor(config: ShovelSlotConfig, state: ShovelSlotState) {
         super(config, state)
 
         const { position: { x, y }, zIndex } = this.state
 
-        this.shovelMetadata = SHOVEL_METADATA[this.config.shovelId]
+        this.shovelMetadata = SHOVELS[this.config.shovelId]
 
         this
-            .attach(this.shovelImage = ImageEntity.create(
-                shovelAnimation.getImageConfig(this.config.shovelId),
+            .attach(this.shovelImage = TextureEntity.createTextureFromImage(
+                shovelTextures.getImageSrc(this.config.shovelId),
+                {},
                 {
                     position: { x: x + 1, y: y + 1 },
                     zIndex: zIndex + 2,

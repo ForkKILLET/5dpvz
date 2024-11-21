@@ -1,8 +1,8 @@
-import { ImageEntity } from '@/entities/Image'
-import { plantAnimation, PLANT_METADATA, PlantMetadata, PlantId } from '@/data/plants'
+import { plantTextures, PLANTS, PlantMetadata, PlantId } from '@/data/plants'
 import { kLevelState } from '@/entities/Level'
 import { SlotConfig, SlotEntity, SlotEvents, SlotState } from '@/entities/ui/Slot'
 import { CursorComp } from '@/comps/Cursor'
+import { TextureEntity } from '../Texture'
 
 export interface PlantSlotConfig extends SlotConfig {
     slotId: number
@@ -21,11 +21,12 @@ export class PlantSlotEntity extends SlotEntity<PlantSlotConfig, PlantSlotState,
 
         const { position: { x, y }, zIndex } = this.state
 
-        this.plantMetadata = PLANT_METADATA[this.config.plantId]
+        this.plantMetadata = PLANTS[this.config.plantId]
 
         this
-            .attach(ImageEntity.create(
-                plantAnimation.getImageConfig(this.config.plantId),
+            .attach(TextureEntity.createTextureFromImage(
+                plantTextures.getImageSrc(this.config.plantId),
+                {},
                 {
                     position: { x: x + 1, y: y + 1 },
                     zIndex: zIndex + 2,

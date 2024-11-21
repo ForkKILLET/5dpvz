@@ -2,17 +2,21 @@ import { Disposer, eq, remove, RemoveIndex } from '@/utils'
 
 export type Events = Record<string, any[]>
 
-export type Listener<E extends Events, K extends keyof E> = (...args: E[K]) => boolean | void
+export type Listener<V extends Events, K extends keyof V> = (...args: V[K]) => boolean | void
 
-export class Emitter<E extends Events> {
+export interface ListenerOptions {
+    capture?: boolean
+}
+
+export class Emitter<V extends Events> {
     listeners: Partial<{
-        [K in keyof E]: {
-            normal: Listener<E, K>[]
-            capture: Listener<E, K>[]
+        [K in keyof V]: {
+            normal: Listener<V, K>[]
+            capture: Listener<V, K>[]
         }
     }> = {}
 
-    emit<K extends keyof RemoveIndex<E>>(event: K, ...args: E[K]) {
+    emit<K extends keyof RemoveIndex<V>>(event: K, ...args: V[K]) {
         const listeners = this.listeners[event]
         if (! listeners) return
         for (const listener of listeners.capture)
@@ -21,10 +25,10 @@ export class Emitter<E extends Events> {
             listener(...args)
     }
 
-    on<K extends keyof RemoveIndex<E>>(
+    on<K extends keyof RemoveIndex<V>>(
         event: K,
-        listener: Listener<E, K>,
-        { capture = false }: { capture?: boolean } = {}
+        listener: Listener<V, K>,
+        { capture = false }: ListenerOptions = {}
     ) {
         const currentListeners = this.listeners[event] ??= {
             normal: [],
@@ -35,15 +39,15 @@ export class Emitter<E extends Events> {
         return () => remove(concreteListeners, eq(listener))
     }
 
-    onSome<const Ks extends (keyof RemoveIndex<E>)[]>(
-        events: Ks, listener: (...args: [ Ks[number], ...E[Ks[number]] ]) => void,
+    onSome<const Ks extends (keyof RemoveIndex<V>)[]>(
+        events: Ks, listener: (...args: [ Ks[number], ...V[Ks[number]] ]) => void,
     ) {
         const disposers: Disposer[] = events
             .map(event => this.on(event, (...args) => listener(event, ...args)))
         return () => disposers.forEach(fn => fn())
     }
 
-    forward<F extends Events, const Ks extends (keyof RemoveIndex<F> & keyof RemoveIndex<E>)[]>(
+    forward<F extends Events, const Ks extends (keyof RemoveIndex<F> & keyof RemoveIndex<V>)[]>(
         source: Emitter<F>, events: Ks,
     ) {
         events.forEach(event => {

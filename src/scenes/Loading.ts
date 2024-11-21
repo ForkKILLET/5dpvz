@@ -12,7 +12,7 @@ export class LoadingScene extends Scene {
 
         super([ loading ])
 
-        loading.on('loaded', () => {
+        loading.on('load', () => {
             this.game.addScene(new StartScene())
         })
     }

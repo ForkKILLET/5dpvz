@@ -1,12 +1,25 @@
 import { Position, Comp, Entity } from '@/engine'
 import { clamp } from '@/utils'
 
+export type ShapeTag = 'boundary' | 'hitbox'
+export interface ShapeConfig {
+    tag?: ShapeTag
+}
+
 export abstract class ShapeComp<E extends Entity = Entity> extends Comp<E> {
     public ctx: CanvasRenderingContext2D
 
-    constructor(entity: E) {
+    tag: ShapeTag
+
+    setTag(tag: ShapeTag) {
+        this.tag = tag
+        return this
+    }
+
+    constructor(entity: E, config: ShapeConfig) {
         super(entity)
         this.ctx = entity.game.ctx
+        this.tag = config.tag ?? 'boundary'
     }
 
     get position() {
@@ -23,7 +36,7 @@ export abstract class ShapeComp<E extends Entity = Entity> extends Comp<E> {
     abstract fill(): void
 }
 
-export interface AnyShapeConfig<E extends Entity> {
+export interface AnyShapeConfig<E extends Entity> extends ShapeConfig {
     contains: (this: E, point: Position) => boolean
     intersects: (this: E, other: ShapeComp) => boolean
     stroke: (this: E, ctx: CanvasRenderingContext2D) => void
@@ -34,7 +47,7 @@ export class AnyShape<E extends Entity = Entity> extends ShapeComp<E> {
     config: AnyShapeConfig<E>
 
     constructor(entity: E, preConfig: Partial<AnyShapeConfig<E>>) {
-        super(entity)
+        super(entity, preConfig)
         preConfig.contains ??= () => false
         preConfig.intersects ??= () => false
         this.config = preConfig as AnyShapeConfig<E>
@@ -89,14 +102,14 @@ export interface RectP {
     y2: number
 }
 
-export interface RectShapeConfig extends OriginConfig {
+export interface RectShapeConfig extends OriginConfig, ShapeConfig {
     width: number
     height: number
 }
 
 export class RectShape extends ShapeComp {
     constructor(entity: Entity, public config: RectShapeConfig) {
-        super(entity)
+        super(entity, config)
     }
 
     get rect(): Rect {
@@ -164,13 +177,13 @@ export interface Circle extends Position {
     radius: number
 }
 
-export interface CircleConfig {
+export interface CircleConfig extends ShapeConfig {
     radius: number
 }
 
 export class CircleShape extends ShapeComp {
     constructor(entity: Entity, public config: CircleConfig) {
-        super(entity)
+        super(entity, config)
     }
 
     get circle(): Circle {

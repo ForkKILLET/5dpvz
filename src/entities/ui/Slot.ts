@@ -12,8 +12,8 @@ export interface SlotEvents extends HoverableEvents, EntityEvents {}
 export class SlotEntity<
     C extends SlotConfig = SlotConfig,
     S extends SlotState = SlotState,
-    E extends SlotEvents = SlotEvents
-> extends Entity<C, S, E> {
+    V extends SlotEvents = SlotEvents
+> extends Entity<C, S, V> {
     readonly width = 80 + 2
     readonly height = 80 + 20 + 2
 

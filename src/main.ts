@@ -1,24 +1,28 @@
 import { Game } from '@/engine'
-
-import { ZOMBIE_METADATA, zombieAnimation } from '@/data/zombies'
-import { BULLET_METADATA, bulletAnimation } from '@/data/bullets'
-import { PLANT_METADATA, plantAnimation } from '@/data/plants'
-import { shovelAnimation } from '@/data/shovels'
-
+import { ZOMBIES, zombieTextures } from '@/data/zombies'
+import { BULLETS, bulletTextures } from '@/data/bullets'
+import { PLANTS, plantTextures } from '@/data/plants'
+import { shovelTextures } from '@/data/shovels'
 import { LoadingScene } from '@/scenes/Loading'
 
-void ZOMBIE_METADATA
-void BULLET_METADATA
-void PLANT_METADATA
+void ZOMBIES
+void BULLETS
+void PLANTS
 
 void async function() {
     const canvas = document.querySelector<HTMLCanvasElement>('#game')!
     const ctx = canvas.getContext('2d')!
 
+    const searchParams = new URLSearchParams(location.search)
+    const isDebug = searchParams.has('debug')
+    const noAudio = searchParams.has('noaudio')
+
     const game = new Game({
         ctx,
         fps: 60,
         isDefault: true,
+        isDebug,
+        noAudio,
     })
 
     const preloadImgSrcs: string[] = [
@@ -34,13 +38,13 @@ void async function() {
         './assets/lawn/light.png',
         './assets/lawn/dark.png',
 
-        ...zombieAnimation.getAllSrcs(),
-        ...plantAnimation.getAllSrcs(),
-        ...bulletAnimation.getAllSrcs(),
-        ...shovelAnimation.getAllSrcs(),
+        ...zombieTextures.getAllSrcs(),
+        ...plantTextures.getAllSrcs(),
+        ...bulletTextures.getAllSrcs(),
+        ...shovelTextures.getAllSrcs(),
     ]
 
-    const preloadAudioSrcs: string[] = [
+    const preloadAudioSrcs: string[] = noAudio ? [] : [
         './assets/audio/day.mp3',
     ]
 

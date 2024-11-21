@@ -1,12 +1,10 @@
 import { CursorComp } from '@/comps/Cursor'
 import { UpdaterComp } from '@/comps/Updater'
-import { PLANT_METADATA, plantAnimation, PlantId, PlantMetadata } from '@/data/plants'
-import { shovelAnimation, ShovelId } from '@/data/shovels'
+import { PLANTS, plantTextures, PlantId, PlantMetadata } from '@/data/plants'
+import { shovelTextures, ShovelId } from '@/data/shovels'
 import { StageData } from '@/data/stages'
 import { ZombieId } from '@/data/zombies'
 import { AudioPlayback, Entity, EntityEvents, EntityState, injectKey } from '@/engine'
-import { ButtonEntity } from '@/entities/ui/Button'
-import { ImageEntity } from '@/entities/Image'
 import { LawnConfig, LawnEntity } from '@/entities/Lawn'
 import { LawnBlockEntity } from '@/entities/LawnBlock'
 import { PlantEntity } from '@/entities/plants/Plant'
@@ -18,6 +16,7 @@ import { eq, matrix, Nullable, placeholder, random, remove, replicateBy, sum } f
 import { BulletId } from '@/data/bullets'
 import { BulletEntity } from '@/entities/bullets/Bullet'
 import { RectShape } from '@/comps/Shape'
+import { TextureEntity } from './Texture'
 
 export interface LevelConfig {
     plantSlots: PlantSlotsConfig
@@ -25,7 +24,7 @@ export interface LevelConfig {
     lawn: LawnConfig
     sun: SunGlobalConfig
     stage: StageData
-    bgm: string // TODO
+    bgm: string
 }
 
 export interface SunGlobalConfig {
@@ -107,7 +106,7 @@ export class LevelEntity extends Entity<LevelConfig, LevelState, LevelEvents> {
         wave: 0,
         waveZombieInitHP: 0,
     })
-    private bgm: AudioPlayback = placeholder
+    private bgmPlayBack: AudioPlayback = placeholder
 
     static create<C extends LevelConfig, S extends EntityState>(config: C, state: S) {
         return new this(config, this.initState(state))
@@ -115,8 +114,8 @@ export class LevelEntity extends Entity<LevelConfig, LevelState, LevelEvents> {
 
     ui: UIEntity
     lawn: LawnEntity
-    phantomImage: Nullable<ImageEntity> = null
-    holdingImage: Nullable<ImageEntity> = null
+    phantomImage: Nullable<TextureEntity> = null
+    holdingImage: Nullable<TextureEntity> = null
 
     width: number
     height: number
@@ -131,7 +130,7 @@ export class LevelEntity extends Entity<LevelConfig, LevelState, LevelEvents> {
         super(config, state)
 
         this.state.plantSlotsData = this.config.plantSlots.plantIds.map((plantName, i) => {
-            const metadata = this.plantMetadatas[i] = PLANT_METADATA[plantName]
+            const metadata = this.plantMetadatas[i] = PLANTS[plantName]
             return {
                 cd: 0,
                 isSunEnough: metadata.cost <= this.state.sun,
@@ -144,7 +143,7 @@ export class LevelEntity extends Entity<LevelConfig, LevelState, LevelEvents> {
         this.state.sun = config.sun.sunAtStart
         this.state.sunDropTimer = config.sun.sunDroppingInterval - config.sun.firstSunDroppingTime
 
-        this.state.waveTimer = 30_000
+        this.state.waveTimer = 30000
 
         this.width = 10 + config.lawn.width * 80
         this.height = 150 + config.lawn.height * 80
@@ -169,22 +168,26 @@ export class LevelEntity extends Entity<LevelConfig, LevelState, LevelEvents> {
                 this.state.holdingObject = { type: 'plant', slotId }
 
                 this.holdingImage?.dispose()
-                this.holdingImage = ImageEntity.create(
-                    plantAnimation.getImageConfig(plantId),
-                    {
-                        position: { x: 5, y: 5 },
-                        zIndex: this.lawn.state.zIndex + 3,
-                    },
-                )
+                this.holdingImage = TextureEntity
+                    .createTextureFromImage(
+                        plantTextures.getImageSrc(plantId),
+                        {},
+                        {
+                            position: { x: 5, y: 5 },
+                            zIndex: this.lawn.state.zIndex + 3,
+                        },
+                    )
                     .attachTo(this)
 
-                this.phantomImage = ImageEntity.create(
-                    plantAnimation.getImageConfig(plantId),
-                    {
-                        position: { x: 0, y: 0 },
-                        zIndex: this.state.zIndex + 3,
-                    },
-                )
+                this.phantomImage = TextureEntity
+                    .createTextureFromImage(
+                        plantTextures.getImageSrc(plantId),
+                        {},
+                        {
+                            position: { x: 0, y: 0 },
+                            zIndex: this.state.zIndex + 3,
+                        },
+                    )
                     .on('before-render', () => {
                         this.game.ctx.globalAlpha = 0.5
                     })
@@ -199,13 +202,15 @@ export class LevelEntity extends Entity<LevelConfig, LevelState, LevelEvents> {
 
                 this.state.holdingObject = { type: 'shovel', shovelId }
                 this.holdingImage?.dispose()
-                this.holdingImage = ImageEntity.create(
-                    shovelAnimation.getImageConfig(shovelId),
-                    {
-                        position: { x: 5, y: 5 },
-                        zIndex: this.state.zIndex + 4,
-                    },
-                )
+                this.holdingImage = TextureEntity
+                    .createTextureFromImage(
+                        shovelTextures.getImageSrc(shovelId),
+                        {},
+                        {
+                            position: { x: 5, y: 5 },
+                            zIndex: this.state.zIndex + 4,
+                        },
+                    )
                     .attachTo(this)
             })
 
@@ -219,7 +224,9 @@ export class LevelEntity extends Entity<LevelConfig, LevelState, LevelEvents> {
 
         this.attach(this.ui, this.lawn)
 
-        this.bgm = this.game.audioManager.playAudio(`./assets/audio/${ this.config.bgm }.mp3`)
+        if (! this.game.config.noAudio) this.afterStart(() => {
+            this.bgmPlayBack = this.game.audioManager.playAudio(`./assets/audio/${ this.config.bgm }.mp3`)
+        })
 
         this.game.emitter.on('hoverTargetChange', target => {
             if (this.state.holdingObject === null) return
@@ -265,14 +272,14 @@ export class LevelEntity extends Entity<LevelConfig, LevelState, LevelEvents> {
 
         const pause = () => {
             this.freeze()
-            this.bgm.toggleEffect()
+            this.bgmPlayBack?.toggleEffect()
             pauseButton.deactivate()
             resumeButton.activate()
         }
 
         const resume = () => {
             this.unfreeze()
-            this.bgm.toggleEffect()
+            this.bgmPlayBack?.toggleEffect()
             resumeButton.deactivate()
             pauseButton.activate()
         }
@@ -284,34 +291,28 @@ export class LevelEntity extends Entity<LevelConfig, LevelState, LevelEvents> {
             }
         })
 
-        const pauseButton = ButtonEntity.from(
-            ImageEntity.create(
-                {
-                    src: './assets/ui/pause_button.png',
-                },
+        const pauseButton = TextureEntity
+            .createButtonFromImage(
+                './assets/ui/pause_button.png',
+                {},
                 {
                     position: { x: this.width - 32, y: 5 },
                     zIndex: this.state.zIndex + 5,
                 },
-            ),
-            { containingMode: 'rect' },
-        )
+            )
             .addComp(CursorComp, 'pointer')
             .attachTo(this)
             .on('click', pause)
 
-        const resumeButton = ButtonEntity.from(
-            ImageEntity.create(
-                {
-                    src: './assets/ui/resume_button.png',
-                },
+        const resumeButton = TextureEntity
+            .createButtonFromImage(
+                './assets/ui/resume_button.png',
+                {},
                 {
                     position: { x: this.width - 32, y: 5 },
                     zIndex: this.state.zIndex + 5,
                 },
-            ),
-            { containingMode: 'rect' }
-        )
+            )
             .addComp(CursorComp, 'pointer')
             .deactivate()
             .attachTo(this)
@@ -323,7 +324,7 @@ export class LevelEntity extends Entity<LevelConfig, LevelState, LevelEvents> {
         if (! slot.isPlantable || this.isOccupied(i, j)) return
 
         const plantId = this.getPlantIdBySlotId(slotId)
-        const metadata = PLANT_METADATA[plantId]
+        const metadata = PLANTS[plantId]
         const cost = metadata.cost
 
         slot.cd = 0
@@ -332,7 +333,7 @@ export class LevelEntity extends Entity<LevelConfig, LevelState, LevelEvents> {
 
         this.updatePlantSlot(false)
 
-        const newPlant = PlantEntity.create(
+        const newPlant = PlantEntity.createPlant(
             plantId,
             {},
             {
@@ -352,6 +353,12 @@ export class LevelEntity extends Entity<LevelConfig, LevelState, LevelEvents> {
         this.state.plantsOnBlocks[i][j] = newPlantData
 
         this.cancelHolding()
+    }
+
+    async start() {
+        await super.start()
+        if (! this.game.config.noAudio)
+            await this.game.audioManager.loadAudio(`./assets/audio/${ this.config.bgm }.mp3`)
     }
 
     kill(i: number, j: number) {
@@ -425,8 +432,6 @@ export class LevelEntity extends Entity<LevelConfig, LevelState, LevelEvents> {
     }
 
     nextWave() {
-        console.log('nextWave')
-
         if (this.state.wave === this.wavesData.waveCount) return
         const currentWave = this.wavesData.waves[this.state.wave ++]
         const zombieList: ZombieId[] = replicateBy(currentWave.zombieCount, () => {
@@ -445,7 +450,7 @@ export class LevelEntity extends Entity<LevelConfig, LevelState, LevelEvents> {
             const row = this.getZombieSpawningRow(zombieId)
             const { x, y } = this.getLawnBlockPosition(this.lawn.config.width - 1, row)
 
-            const zombie = ZombieEntity.create(
+            const zombie = ZombieEntity.createZombie(
                 zombieId,
                 {},
                 {
@@ -496,7 +501,7 @@ export class LevelEntity extends Entity<LevelConfig, LevelState, LevelEvents> {
     update() {
         this.updatePlantSlot()
 
-        this.updateTimer('waveTimer', { interval: 25_000 }, () => this.nextWave())
+        this.updateTimer('waveTimer', { interval: 25000 }, () => this.nextWave())
 
         this.updateTimer(
             'sunDropTimer',

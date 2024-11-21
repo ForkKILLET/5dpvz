@@ -6,13 +6,15 @@ import {
     AudioManager, useAudioManager, ImageManager, useImageManager, Mouse, useMouse
 } from '@/engine'
 import { by, placeholder, remove } from '@/utils'
-import { loadDebugWindow } from '@/debug'
 import { Keyboard, KeyboardEvents, useKeyboard } from '@/engine/keyboard'
+import { loadDebugWindow } from '@/debug'
 
 export interface GameConfig {
     ctx: CanvasRenderingContext2D
     fps: number
     isDefault: boolean
+    isDebug?: boolean
+    noAudio?: boolean
 }
 
 export interface RenderJob {
@@ -126,15 +128,15 @@ export class Game {
 
     static defaultGame: Game = placeholder
 
-    constructor({ ctx, fps, isDefault }: GameConfig) {
-        if (isDefault) Game.defaultGame = this
+    constructor(public config: GameConfig) {
+        if (config.isDefault) Game.defaultGame = this
 
-        this.ctx = ctx
+        this.ctx = config.ctx
         this.imageManager = useImageManager()
-        this.audioManager = useAudioManager()
-        this.mouse = useMouse(ctx)
+        this.audioManager = useAudioManager(this.config)
+        this.mouse = useMouse(this.config)
         this.keyboard = useKeyboard()
-        this.mspf = 1000 / fps
+        this.mspf = 1000 / config.fps
 
         const floor = new class Floor extends Scene {
             constructor() {
@@ -164,9 +166,7 @@ export class Game {
 
         this.emitter.forward(this.keyboard.emitter, [ 'keydown', 'keyup', 'keypress' ])
 
-        if (new URLSearchParams(location.search).has('debug')) {
-            loadDebugWindow(this)
-        }
+        if (config.isDebug) loadDebugWindow(this)
     }
 
     addScene(scene: Scene) {

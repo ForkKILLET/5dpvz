@@ -1,33 +1,29 @@
-import { BULLET_METADATA, bulletAnimation, BulletId, BulletMetadata } from '@/data/bullets'
-import { ButtonConfig, ButtonEntity, ButtonEvents, ButtonState } from '@/entities/ui/Button'
+import { BULLETS, bulletTextures, BulletId, BulletMetadata } from '@/data/bullets'
 import { FilterComp } from '@/comps/Filter'
-import { AnimationEntity } from '@/entities/Animation'
 import { Entity, EntityCtor, EntityState, Position } from '@/engine'
 import { ZombieEntity } from '@/entities/zombies/Zombie'
 import { CollidableComp } from '@/comps/Collidable'
-import { ShapeComp } from '@/comps/Shape'
+import { TextureConfig, TextureState, TextureEvents, TextureEntity } from '@/entities/Texture'
 
 export interface BulletUniqueConfig {
     metadata: BulletMetadata
 }
 
-export interface BulletConfig extends BulletUniqueConfig, ButtonConfig {}
+export interface BulletConfig extends BulletUniqueConfig, TextureConfig {}
 
-export interface BulletState extends ButtonState {}
+export interface BulletState extends TextureState {}
 
-export interface BulletEvents extends ButtonEvents {}
+export interface BulletEvents extends TextureEvents {}
 
 export class BulletEntity<
     S extends BulletState = BulletState,
-    E extends BulletEvents = BulletEvents
-> extends ButtonEntity<BulletConfig, S, E> {
+    V extends BulletEvents = BulletEvents
+> extends TextureEntity<BulletConfig, S, V> {
     constructor(config: BulletConfig, state: S) {
         super(config, state)
 
         const { shapeFactory } = this.config.metadata
-        if (shapeFactory) this
-            .removeComp(ShapeComp)
-            .addCompRaw(shapeFactory(this))
+        if (shapeFactory) this.addCompRaw(shapeFactory(this).setTag('hitbox'))
 
         this
             .addComp(CollidableComp, {
@@ -40,25 +36,22 @@ export class BulletEntity<
             .addComp(FilterComp)
     }
 
-    static create<
+    static createBullet<
         B extends BulletId,
         C extends Omit<BulletUniqueConfig, 'metadata'>,
         S extends EntityState
     >(bulletId: B, config: C, state: S) {
-        const metadata = BULLET_METADATA[bulletId]
-        return metadata.from<BulletEntity>(
-            AnimationEntity.create(
-                {
-                    ...bulletAnimation.getAnimationConfig(bulletId, 'common'),
-                    origin: 'center',
-                },
-                state
-            ),
+        const Bullet = BULLETS[bulletId]
+        return Bullet.createTexture(
             {
-                metadata,
-                containingMode: 'strict',
+                metadata: Bullet,
+                textures: bulletTextures.getAnimeTextureSet(bulletId),
+                origin: 'center',
                 ...config,
-            }
+            },
+            {
+                ...state,
+            },
         )
     }
 

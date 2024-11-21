@@ -1,19 +1,17 @@
 import { CollidableComp } from '@/comps/Collidable'
 import { FilterComp } from '@/comps/Filter'
-import { AnyShape } from '@/comps/Shape'
 import {
-    ZOMBIE_METADATA, ZombieMetadata, zombieAnimation,
+    ZOMBIES, ZombieMetadata, zombieTextures,
     ZombieId, ZombieMovingState, ZombiePlace
 } from '@/data/zombies'
 import { EntityCtor, EntityState, Position } from '@/engine'
-import { AnimationEntity } from '@/entities/Animation'
-import { ButtonConfig, ButtonEntity, ButtonEvents, ButtonState } from '@/entities/ui/Button'
-import { MakeOptional } from '@/utils'
+import { TextureConfig, TextureEntity, TextureEvents, TextureState } from '@/entities/Texture'
+import { PartialBy } from '@/utils'
 
 export interface ZombieUniqueConfig {
     metadata: ZombieMetadata
 }
-export interface ZombieConfig extends ZombieUniqueConfig, ButtonConfig {}
+export interface ZombieConfig extends ZombieUniqueConfig, TextureConfig {}
 
 export interface ZombieUniqueState {
     j: number
@@ -22,23 +20,21 @@ export interface ZombieUniqueState {
     place: ZombiePlace
     damageFilterTimer: number
 }
-export interface ZombieState extends ZombieUniqueState, ButtonState {}
+export interface ZombieState extends ZombieUniqueState, TextureState {}
 
-export interface ZombieEvents extends ButtonEvents {
+export interface ZombieEvents extends TextureEvents {
     'damage': [ number ]
 }
 
 export class ZombieEntity<
     S extends ZombieState = ZombieState,
-    E extends ZombieEvents = ZombieEvents
-> extends ButtonEntity<ZombieConfig, S, E> {
+    V extends ZombieEvents = ZombieEvents
+> extends TextureEntity<ZombieConfig, S, V> {
     constructor(config: ZombieConfig, state: S) {
         super(config, state)
 
         const { shapeFactory } = this.config.metadata
-        if (shapeFactory) this
-            .removeComp(AnyShape)
-            .addCompRaw(shapeFactory(this))
+        if (shapeFactory) this.addCompRaw(shapeFactory(this).setTag('hitbox'))
 
         this
             .addComp(FilterComp)
@@ -49,32 +45,26 @@ export class ZombieEntity<
             .withComp(FilterComp, filter => {
                 this.on('damage', () => {
                     filter.filters.damage = 'brightness(1.2)'
-                    this.state.damageFilterTimer = 1_000
+                    this.state.damageFilterTimer = 1000
                 })
             })
     }
 
-    static create<
+    static createZombie<
         Z extends ZombieId,
         C extends Omit<ZombieUniqueConfig, 'metadata'>,
         S extends ZombieUniqueState & EntityState
-    >(zombieId: Z, config: C, state: MakeOptional<S, 'hp' | 'movingState' | 'place' | 'damageFilterTimer'>) {
-        const metadata = ZOMBIE_METADATA[zombieId]
-        return metadata.from<ZombieEntity>(
-            AnimationEntity.create(
-                zombieAnimation.getAnimationConfig(zombieId),
-                {
-                    position: state.position,
-                    zIndex: state.zIndex,
-                }
-            ),
+    >(zombieId: Z, config: C, state: PartialBy<S, 'hp' | 'movingState' | 'place' | 'damageFilterTimer'>) {
+        const Zombie = ZOMBIES[zombieId]
+        return Zombie.createTexture(
             {
-                metadata,
+                textures: zombieTextures.getAnimeTextureSet(zombieId),
+                metadata: Zombie,
                 containingMode: 'strict',
                 ...config,
             },
             {
-                hp: metadata.hp,
+                hp: Zombie.hp,
                 movingState: 'moving',
                 place: 'front',
                 damageFilterTimer: 0,

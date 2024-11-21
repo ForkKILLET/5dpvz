@@ -2,10 +2,9 @@ import { easeOutExpo } from '@/engine'
 import { definePlant, PlantConfig, PlantEntity, PlantEvents, PlantState } from '@/entities/plants/Plant'
 import { kAttachToLevel, kLevelState } from '@/entities/Level'
 import { SunEntity } from '@/entities/Sun'
-import { ImageEntity } from '@/entities/Image'
 import { FilterComp } from '@/comps/Filter'
 import { UpdaterComp } from '@/comps/Updater'
-import { random } from '@/utils'
+import { random, StrictOmit } from '@/utils'
 
 export interface SunflowerUniqueState {
     sunProduceTimer: number
@@ -16,21 +15,26 @@ export interface SunflowerEvents extends PlantEvents {}
 
 export const SunflowerEntity = definePlant(class SunflowerEntity extends PlantEntity<SunflowerState> {
     static readonly id = 'sunflower'
-    static readonly name = 'Sunflower'
+    static readonly desc = 'Sunflower'
     static readonly cost = 50
-    static readonly cd = 7_500
+    static readonly cd = 7500
     static readonly hp = 300
     static readonly isPlantableAtStart = true
-    static readonly animations = {
+    static readonly animes = {
         common: { fpaf: 8, frameNum: 12 },
     }
-    static readonly sunProduceInterval = 15_000
+    static readonly sunProduceInterval = 15000
 
-    constructor(config: PlantConfig, state: SunflowerState) {
-        super(config, state)
+    constructor(config: PlantConfig, state: StrictOmit<SunflowerState, 'sunProduceTimer'>) {
+        super(config, {
+            sunProduceTimer: 0,
+            ...state,
+        })
     }
 
     update() {
+        super.update()
+
         const sunProduceEta = this.updateTimer(
             'sunProduceTimer',
             { interval: SunflowerEntity.sunProduceInterval },
@@ -79,8 +83,7 @@ export const SunflowerEntity = definePlant(class SunflowerEntity extends PlantEn
                         x = newX
                         y = newY
                         entity.updatePosition(delta)
-                        const image = entity.config.entity as ImageEntity
-                        image.state.scale = easeOutExpo(f / totalF)
+                        entity.state.scale = easeOutExpo(f / totalF)
                     })
                 )
             }

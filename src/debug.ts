@@ -428,24 +428,30 @@ export const loadDebugWindow = (game: Game) => {
         if (key === '@') toggleSelecting()
     })
 
+    const showFunction = (fn: Function) => (fn.name as string)?.replace(/(^_)|(\d+$)/, '') ?? '<fn>'
+
     const showJson = (obj: any) =>
         typeof obj === 'number' ? `<json-number>${ obj }</json-number>` :
         typeof obj === 'string' ? `<json-string>${ obj }</json-string>` :
         typeof obj === 'boolean' ? `<json-boolean>${ obj }</json-boolean>` :
         typeof obj === 'symbol' ? `<json-symbol>${ obj.description }</json-symbol>` :
-        typeof obj === 'function' ? `<json-function>${ obj.name }</json-function>` :
+        typeof obj === 'function' ? `<json-function>${ showFunction(obj) }</json-function>` :
         obj === null ? '<json-null></json-null>' :
-        Array.isArray(obj) ? `<json-array>${ obj
-            .map((child): string => `<json-item>${ showJson(child) }</json-item>`)
-            .join('') }</json-array>` :
-        obj instanceof Entity ? showEntityLink(obj) :
-        `<json-object>${ Object
-            .entries(obj)
-            .map(([ key, value ]): string => `
-                <json-item><json-key>${ key }</json-key><json-value>${ showJson(value) }</json-value></json-item>
-            `)
-            .join('')
-        }</json-object>`
+        Array.isArray(obj) ? `
+            <json-array>${ obj
+                .map((child): string => `<json-item>${ showJson(child) }</json-item>`)
+                .join('')
+            }</json-array>
+        `.trim() :
+        obj instanceof Entity ? showEntityLink(obj) : `
+            <json-object>${ Object
+                .entries(obj)
+                .map(([ key, value ]): string => `
+                    <json-item><json-key>${ key }</json-key><json-value>${ showJson(value) }</json-value></json-item>
+                `)
+                .join('')
+            }</json-object>
+        `.trim()
 
     const refreshEntityDetail = () => {
         const e = watchingEntity
@@ -454,6 +460,12 @@ export const loadDebugWindow = (game: Game) => {
             e.deepActive ? 'active' : 'inactive',
             ...getEntityAttrs(e),
         ]
+
+        const protoChain = []
+        for (let proto = e.constructor; proto !== Function.prototype; proto = Object.getPrototypeOf(proto)) {
+            protoChain.push(proto)
+        }
+
         $entityDetailContent.innerHTML = `
             ${ e.constructor.name } <debug-button class="show-entity-detail">#${ e.id }</debug-button>
             ${ showEntityAttrs(attrs) }<br />
@@ -463,6 +475,7 @@ export const loadDebugWindow = (game: Game) => {
             <b>injectableKeys</b> ${ showJson(e.injectableKeys) }<br />
             <b>comps</b> ${ showJson(e.comps.map(comp => comp.constructor)) }<br />
             <b>superEntity</b> ${ showJson(e.superEntity) }<br />
+            <b>protoChain</b> ${ showJson(protoChain) }<br />
             <b>attachedEntities</b> <div id="entity-detail-tree-content"></div>
         `
         refreshEntityTree()
@@ -473,7 +486,7 @@ export const loadDebugWindow = (game: Game) => {
     const showEntityLink = (entity: Entity) => {
         const attrs = getEntityAttrs(entity)
         return `
-            ${ entity.constructor.name }
+            ${ showFunction(entity.constructor) }
             ${ showEntityAttrs(attrs) }
             <debug-button class="show-entity-detail">#${ entity.id }</debug-button>
         `

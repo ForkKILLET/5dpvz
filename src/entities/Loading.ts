@@ -6,7 +6,7 @@ export interface LoadingConfig {}
 export interface LoadingState extends EntityState {}
 
 export interface LoadingEvents extends EntityEvents {
-    'loaded': []
+    'load': []
 }
 
 export class LoadingEntity extends Entity<LoadingConfig, LoadingState, LoadingEvents> {
@@ -25,7 +25,7 @@ export class LoadingEntity extends Entity<LoadingConfig, LoadingState, LoadingEv
         tasks.forEach(task => task.then(() => {
             if (++ this.fulfilledTaskCount === this.taskCount) {
                 setTimeout(() => {
-                    this.emit('loaded').dispose()
+                    this.emit('load').dispose()
                 }, 500)
             }
         }))

@@ -1,30 +1,32 @@
 import { EntityState } from '@/engine'
-import { ButtonConfig, ButtonEntity, ButtonEvents, ButtonState } from '@/entities/ui/Button'
-import { ImageEntity } from '@/entities/Image'
 import { kLevelState } from '@/entities/Level'
 import { CursorComp } from '@/comps/Cursor'
 import { LifeComp } from '@/comps/Life'
 import { FilterComp } from '@/comps/Filter'
+import { ButtonEvents } from '@/comps/Button'
+import { TextureConfig, TextureEntity, TextureEvents, TextureState } from '@/entities/Texture'
+import { HoverableComp } from '@/comps/Hoverable'
 
 interface SunUniqueConfig {
     life: number
     sun: number
 }
-interface SunConfig extends SunUniqueConfig, ButtonConfig {}
+interface SunConfig extends SunUniqueConfig, TextureConfig {}
 
 interface SunUniqueState {}
-interface SunState extends SunUniqueState, ButtonState {}
+interface SunState extends SunUniqueState, TextureState {}
 
-interface SunEvents extends ButtonEvents {}
+interface SunEvents extends TextureEvents, ButtonEvents {}
 
-export class SunEntity extends ButtonEntity<SunConfig, SunState, SunEvents> {
+export class SunEntity extends TextureEntity<SunConfig, SunState, SunEvents> {
     constructor(config: SunConfig, state: SunState) {
         super(config, state)
         this
             .addComp(LifeComp, config.life)
+            .addComp(HoverableComp)
             .addComp(CursorComp, 'pointer')
             .addComp(FilterComp)
-            .on('attached', () => {
+            .on('attach', () => {
                 const levelState = this.inject(kLevelState)!
                 this
                     .on('click', () => {
@@ -52,18 +54,10 @@ export class SunEntity extends ButtonEntity<SunConfig, SunState, SunEvents> {
     }
 
     static create(config: SunUniqueConfig, state: EntityState) {
-        return SunEntity.from(
-            ImageEntity.create(
-                {
-                    src: './assets/sun.png',
-                    origin: 'center',
-                },
-                state,
-            ),
-            {
-                containingMode: 'rect',
-                ...config,
-            },
+        return SunEntity.createButtonFromImage(
+            './assets/sun.png',
+            config,
+            state
         )
     }
 }

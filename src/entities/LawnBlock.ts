@@ -1,32 +1,27 @@
+import { HoverableComp } from '@/comps/Hoverable'
 import { EntityState } from '@/engine'
-import { ButtonConfig, ButtonEntity, ButtonEvents, ButtonState } from '@/entities/ui/Button'
-import { ImageEntity } from '@/entities/Image'
+import { TextureConfig, TextureEntity, TextureEvents, TextureState } from '@/entities/Texture'
 
 export interface LawnBlockUniqueConfig {
-    type: 'light' | 'dark'
+    variant: 'light' | 'dark'
     i: number
     j: number
 }
 
-export interface LawnBlockConfig extends ButtonConfig, LawnBlockUniqueConfig {}
+export interface LawnBlockConfig extends TextureConfig, LawnBlockUniqueConfig {}
 
-export interface LawnBlockState extends ButtonState {}
+export interface LawnBlockState extends TextureState {}
 
-export interface LawnBlockEvents extends ButtonEvents {}
+export interface LawnBlockEvents extends TextureEvents {}
 
-export class LawnBlockEntity extends ButtonEntity<LawnBlockConfig, LawnBlockState, LawnBlockEvents> {
-    static create(config: LawnBlockUniqueConfig, state: EntityState) {
-        return LawnBlockEntity.from(
-            ImageEntity.create(
-                {
-                    src: `./assets/lawn/${ config.type }.png`,
-                },
-                state,
-            ),
-            {
-                containingMode: 'rect',
-                ...config,
-            }
-        )
+export class LawnBlockEntity extends TextureEntity<LawnBlockConfig, LawnBlockState, LawnBlockEvents> {
+    static createLawnBlock(config: LawnBlockUniqueConfig, state: EntityState) {
+        return LawnBlockEntity
+            .createTextureFromImage(
+                `./assets/lawn/${ config.variant }.png`,
+                config,
+                state
+            )
+            .addComp(HoverableComp)
     }
 }
