@@ -23,17 +23,17 @@ export class BulletEntity<
         super(config, state)
 
         const { shapeFactory } = this.config.metadata
-        if (shapeFactory) this.addCompRaw(shapeFactory(this).setTag('hitbox'))
-
-        this
+        if (shapeFactory) this
+            .addCompRaw(shapeFactory(this).setTag('hitbox'))
             .addComp(CollidableComp, {
                 groups: new Set([ 'bullets' ] as const),
                 targetGroups: new Set([ 'zombies' ] as const),
                 onCollide: (target: Entity) => {
-                    if (target instanceof ZombieEntity) this.attack(target)
+                    if (target instanceof ZombieEntity) this.hit(target)
                 },
             })
-            .addComp(FilterComp)
+
+        this.addComp(FilterComp)
     }
 
     static createBullet<
@@ -55,7 +55,7 @@ export class BulletEntity<
         )
     }
 
-    attack(zombie: ZombieEntity) {
+    hit(zombie: ZombieEntity) {
         zombie.damage(this.config.metadata.damage)
         if (! this.config.metadata.penetrating) this.dispose()
     }

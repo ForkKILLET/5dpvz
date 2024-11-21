@@ -8,6 +8,7 @@ export interface ZombieMetadata {
     name: string
     hp: number
     speed: number
+    damage: number
     shapeFactory?: (entity: ZombieEntity) => ShapeComp
     animes: AnimeDefSet
 }

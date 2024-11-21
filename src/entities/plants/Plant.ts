@@ -1,4 +1,5 @@
 import { ButtonEvents } from '@/comps/Button'
+import { CollidableComp } from '@/comps/Collidable'
 import { FilterComp } from '@/comps/Filter'
 import { HoverableComp } from '@/comps/Hoverable'
 import { PLANTS, PlantId, PlantMetadata, plantTextures } from '@/data/plants'
@@ -27,6 +28,14 @@ export class PlantEntity<
 > extends TextureEntity<PlantConfig, S, V> {
     constructor(config: PlantConfig, state: S) {
         super(config, state)
+
+        const { shapeFactory } = this.config.metadata
+        if (shapeFactory) this
+            .addCompRaw(shapeFactory(this).setTag('hitbox'))
+            .addComp(CollidableComp, {
+                groups: new Set([ 'plants' ] as const),
+                targetGroups: new Set([ 'zombies' ] as const),
+            })
 
         this
             .addComp(FilterComp)

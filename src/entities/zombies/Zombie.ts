@@ -60,7 +60,6 @@ export class ZombieEntity<
             {
                 textures: zombieTextures.getAnimeTextureSet(zombieId),
                 metadata: Zombie,
-                containingMode: 'strict',
                 ...config,
             },
             {

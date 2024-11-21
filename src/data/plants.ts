@@ -2,6 +2,7 @@ import { PlantEntity } from '@/entities/plants/Plant'
 import { PeaShooterEntity } from '@/entities/plants/PeaShooter'
 import { SunflowerEntity } from '@/entities/plants/Sunflower'
 import { AnimeDefSet, useTextures } from '@/data/textures'
+import { ShapeComp } from '@/comps/Shape'
 
 export interface PlantMetadata {
     id: PlantId
@@ -10,6 +11,7 @@ export interface PlantMetadata {
     cd: number
     hp: number
     isPlantableAtStart: boolean
+    shapeFactory?: (entity: PlantEntity) => ShapeComp
     animes: AnimeDefSet
 }
 
