@@ -1,6 +1,6 @@
 import { shovelTextures, SHOVELS, ShovelId, ShovelMetadata } from '@/data/shovels'
 import { SlotConfig, SlotEntity, SlotEvents, SlotState } from '@/entities/ui/Slot'
-import { kLevelState } from '@/entities/Level'
+import { kLevel } from '@/entities/Level'
 import { CursorComp } from '@/comps/Cursor'
 import { TextureEntity } from '../Texture'
 
@@ -40,7 +40,7 @@ export class ShovelSlotEntity extends SlotEntity<ShovelSlotConfig, ShovelSlotSta
     preRender() {
         super.preRender()
 
-        const { holdingObject } = this.inject(kLevelState)!
+        const { holdingObject } = this.inject(kLevel)!.state
         if (holdingObject?.type === 'shovel') {
             this.addRenderJob(() => {
                 const attachedImageEntity = this.shovelImage

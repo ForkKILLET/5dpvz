@@ -1,5 +1,5 @@
 import { plantTextures, PLANTS, PlantMetadata, PlantId } from '@/data/plants'
-import { kLevelState } from '@/entities/Level'
+import { kLevel } from '@/entities/Level'
 import { SlotConfig, SlotEntity, SlotEvents, SlotState } from '@/entities/ui/Slot'
 import { CursorComp } from '@/comps/Cursor'
 import { TextureEntity } from '../Texture'
@@ -38,8 +38,8 @@ export class PlantSlotEntity extends SlotEntity<PlantSlotConfig, PlantSlotState,
     preRender() {
         super.preRender()
 
-        const { plantSlotsData: plantSlots } = this.inject(kLevelState)!
-        const slot = plantSlots[this.config.slotId]
+        const { plantSlotsData } = this.inject(kLevel)!.state
+        const slot = plantSlotsData[this.config.slotId]
 
         const { ctx } = this.game
         const { position: { x, y } } = this.state

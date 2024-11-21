@@ -1,6 +1,6 @@
 import { easeOutExpo } from '@/engine'
 import { definePlant, PlantConfig, PlantEntity, PlantEvents, PlantState } from '@/entities/plants/Plant'
-import { kAttachToLevel, kLevelState } from '@/entities/Level'
+import { kLevel } from '@/entities/Level'
 import { SunEntity } from '@/entities/Sun'
 import { FilterComp } from '@/comps/Filter'
 import { UpdaterComp } from '@/comps/Updater'
@@ -39,8 +39,7 @@ export const SunflowerEntity = definePlant(class SunflowerEntity extends PlantEn
             'sunProduceTimer',
             { interval: SunflowerEntity.sunProduceInterval },
             () => {
-                const levelState = this.inject(kLevelState)!
-                const attachToLevel = this.inject(kAttachToLevel)!
+                const level = this.inject(kLevel)!
 
                 const { x: x0, y: y0 } = this.state.position
                 const startOffsetX = random(- 5, + 5)
@@ -63,7 +62,7 @@ export const SunflowerEntity = definePlant(class SunflowerEntity extends PlantEn
                 let x = - topDeltaX
                 let y = - topDeltaY
 
-                attachToLevel(SunEntity
+                SunEntity
                     .createSun(
                         {
                             sun: 25,
@@ -71,7 +70,7 @@ export const SunflowerEntity = definePlant(class SunflowerEntity extends PlantEn
                         },
                         {
                             position: { x: startX, y: startY },
-                            zIndex: levelState.zIndex + 4,
+                            zIndex: level.state.zIndex + 4,
                         }
                     )
                     .addComp(UpdaterComp, entity => {
@@ -85,7 +84,7 @@ export const SunflowerEntity = definePlant(class SunflowerEntity extends PlantEn
                         entity.updatePosition(delta)
                         entity.state.scale = easeOutExpo(f / totalF)
                     })
-                )
+                    .attachTo(level)
             }
         )
         this.withComp(FilterComp, filter => {

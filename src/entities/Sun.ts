@@ -1,5 +1,5 @@
 import { EntityState } from '@/engine'
-import { kLevelState } from '@/entities/Level'
+import { kLevel } from '@/entities/Level'
 import { CursorComp } from '@/comps/Cursor'
 import { LifeComp } from '@/comps/Life'
 import { FilterComp } from '@/comps/Filter'
@@ -27,10 +27,11 @@ export class SunEntity extends TextureEntity<SunConfig, SunState, SunEvents> {
             .addComp(CursorComp, 'pointer')
             .addComp(FilterComp)
             .on('attach', () => {
-                const levelState = this.inject(kLevelState)!
+                const level = this.inject(kLevel)!
                 this
                     .on('click', () => {
-                        levelState.sun += this.config.sun
+                        level.state.sun += this.config.sun
+                        level.updatePlantSlot(false)
                         this.dispose()
                     })
                     .on('mouseenter', () => {

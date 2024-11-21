@@ -87,8 +87,7 @@ export interface LevelState extends LevelUniqueState, EntityState {}
 
 export interface LevelEvents extends EntityEvents {}
 
-export const kLevelState = injectKey<LevelState>('kLevelState')
-export const kAttachToLevel = injectKey<(entity: Entity) => void>('kAttachToLevel')
+export const kLevel = injectKey<LevelEntity>('kLevel')
 
 export class LevelEntity extends Entity<LevelConfig, LevelState, LevelEvents> {
     static initState = <S>(state: S): S & LevelUniqueState => ({
@@ -149,9 +148,7 @@ export class LevelEntity extends Entity<LevelConfig, LevelState, LevelEvents> {
         this.height = 150 + config.lawn.height * 80
         this.addComp(RectShape, { width: this.width, height: this.height, origin: 'top-left' })
 
-        this
-            .provide(kLevelState, this.state)
-            .provide(kAttachToLevel, entity => entity.attachTo(this))
+        this.provide(kLevel, this)
 
         this.ui = new UIEntity(
             config.plantSlots,

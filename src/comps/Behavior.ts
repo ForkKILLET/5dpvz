@@ -1,6 +1,6 @@
 import { Comp, Entity } from '@/engine'
 import { BulletEntity } from '@/entities/bullets/Bullet'
-import { kAttachToLevel, kLevelState } from '@/entities/Level'
+import { kLevel } from '@/entities/Level'
 import { PlantEntity } from '@/entities/plants/Plant'
 import { remove } from '@/utils'
 
@@ -36,7 +36,7 @@ export class PlantAttackBehavior<E extends PlantEntity = PlantEntity> extends Be
 
 export class ZombieSeekingBehavior<E extends PlantEntity = PlantEntity> extends BehaviorComp<E> {
     seekZombies(rows: number[], direction: 'front' | 'back') {
-        const { zombiesData } = this.entity.inject(kLevelState)!
+        const { zombiesData } = this.entity.inject(kLevel)!.state
         const { x } = this.entity.state.position
 
         return zombiesData.filter(({ entity: { state } }) => (
@@ -48,14 +48,15 @@ export class ZombieSeekingBehavior<E extends PlantEntity = PlantEntity> extends 
 
 export class BulletShootingBehavior<E extends PlantEntity = PlantEntity> extends BehaviorComp<E> {
     shootBullet(bullet: BulletEntity) {
-        const { bulletsData } = this.entity.inject(kLevelState)!
-        const attachToLevel = this.entity.inject(kAttachToLevel)!
+        const level = this.entity.inject(kLevel)!
+        const { bulletsData } = level.state
 
-        bullet.on('dispose', () => {
-            remove(bulletsData, ({ entity }) => bullet.id === entity.id)
-        })
+        bullet
+            .on('dispose', () => {
+                remove(bulletsData, ({ entity }) => bullet.id === entity.id)
+            })
+            .attachTo(level)
 
         bulletsData.push({ id: bullet.config.metadata.id, entity: bullet })
-        attachToLevel(bullet)
     }
 }

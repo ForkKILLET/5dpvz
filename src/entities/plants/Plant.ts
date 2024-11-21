@@ -4,7 +4,7 @@ import { FilterComp } from '@/comps/Filter'
 import { HoverableComp } from '@/comps/Hoverable'
 import { PLANTS, PlantId, PlantMetadata, plantTextures } from '@/data/plants'
 import { EntityCtor, EntityState } from '@/engine'
-import { kLevelState } from '@/entities/Level'
+import { kLevel } from '@/entities/Level'
 import { TextureConfig, TextureEntity, TextureEvents, TextureState } from '@/entities/Texture'
 import { PartialBy, StrictOmit } from '@/utils'
 
@@ -42,7 +42,7 @@ export class PlantEntity<
             .addComp(FilterComp)
             .withComps([ HoverableComp, FilterComp ], ({ emitter }, filterComp) => {
                 emitter.on('mouseenter', () => {
-                    if (this.inject(kLevelState)!.holdingObject?.type === 'shovel')
+                    if (this.inject(kLevel)!.state.holdingObject?.type === 'shovel')
                         filterComp.filters.onShovel = 'brightness(1.5)'
                 })
                 emitter.on('mouseleave', () => {
