@@ -1,7 +1,7 @@
 import { Position, Comp, Entity } from '@/engine'
 import { clamp } from '@/utils'
 
-export type ShapeTag = 'boundary' | 'hitbox'
+export type ShapeTag = 'boundary' | 'texture' | 'hitbox'
 export interface ShapeConfig {
     tag?: ShapeTag
 }

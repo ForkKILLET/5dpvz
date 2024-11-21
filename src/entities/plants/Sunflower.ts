@@ -64,7 +64,7 @@ export const SunflowerEntity = definePlant(class SunflowerEntity extends PlantEn
                 let y = - topDeltaY
 
                 attachToLevel(SunEntity
-                    .create(
+                    .createSun(
                         {
                             sun: 25,
                             life: 4000 + totalT,

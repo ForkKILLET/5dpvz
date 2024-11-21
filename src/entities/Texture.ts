@@ -1,9 +1,9 @@
 import { ButtonComp, ButtonEvents } from '@/comps/Button'
 import { HoverableComp } from '@/comps/Hoverable'
-import { OriginConfig, RectShape } from '@/comps/Shape'
+import { AnyShape, OriginConfig, RectShape, ShapeComp } from '@/comps/Shape'
 import { TextureSet } from '@/data/textures'
-import { Entity, EntityCtor, EntityEvents, EntityState } from '@/engine'
-import { PartialBy, pick, placeholder, StrictOmit } from '@/utils'
+import { Entity, EntityCtor, EntityEvents, EntityState, getImagePixels } from '@/engine'
+import { elem, mapk, PartialBy, pick, placeholder, StrictOmit } from '@/utils'
 
 export type TextureInnerState =
     | {
@@ -18,6 +18,7 @@ export type TextureInnerState =
 export interface TextureConfig extends OriginConfig {
     textures: TextureSet
     defaultTextureName: string
+    strictShape?: boolean
 }
 
 export interface TextureState extends EntityState {
@@ -49,7 +50,6 @@ export class TextureEntity<
     S extends TextureState = TextureState,
     V extends TextureEvents = TextureEvents
 > extends Entity<C, S, V> {
-    images: Record<string, HTMLImageElement> = {}
     frames: Record<string, HTMLImageElement[]> = {}
 
     constructor(config: C, state: S) {
@@ -117,15 +117,18 @@ export class TextureEntity<
         return button
     }
 
+    pixels: Record<string, Uint8ClampedArray[]> = {}
+
     async start() {
         await super.start()
-        const { textures } = this.config
+        const { textures, strictShape } = this.config
 
         for (const [ name, texture ] of Object.entries(textures)) {
             switch (texture.type) {
                 case 'image': {
                     const img = await this.game.imageManager.loadImage(texture.src)
-                    this.images[name] = img
+                    this.frames[name] = [ img ]
+                    if (strictShape) this.pixels[name] = [ getImagePixels(img) ]
                     break
                 }
                 case 'anime': {
@@ -133,6 +136,7 @@ export class TextureEntity<
                         texture.srcs.map(src => this.game.imageManager.loadImage(src))
                     )
                     this.frames[name] = frames
+                    if (strictShape) this.pixels[name] = frames.map(getImagePixels)
                     break
                 }
             }
@@ -164,28 +168,19 @@ export class TextureEntity<
         return this.config.textures[this.textureName]
     }
 
-    get size() {
-        const { texture } = this
-        switch (texture.type) {
-            case 'image': {
-                const img = this.images[this.textureName]
-                return { width: img.width, height: img.height }
-            }
-            case 'anime': {
-                const [ frame ] = this.frames[this.textureName]
-                return { width: frame.width, height: frame.height }
-            }
+    get f() {
+        switch (this.texture.type) {
+            case 'image':
+                return 0
+            case 'anime':
+                return this.getInnerState<'anime'>().af
         }
     }
-
     get frame(): HTMLImageElement {
-        const { texture } = this
-        switch (texture.type) {
-            case 'image':
-                return this.images[this.textureName]
-            case 'anime':
-                return this.frames[this.textureName][this.getInnerState<'anime'>().af]
-        }
+        return this.frames[this.textureName][this.f]
+    }
+    get size() {
+        return pick(this.frame, [ 'width', 'height' ])
     }
 
     switchTexture(name: string) {
@@ -193,12 +188,39 @@ export class TextureEntity<
             this.error(`Texture '${ name }' does not exist.`)
 
         this.afterStart(
-            () => this
-                .removeComp([ RectShape, shape => shape.tag === 'boundary' ])
-                .addComp(RectShape, {
+            () => {
+                const shapeConfig = {
                     ...this.size,
                     ...pick(this.config, [ 'origin' ]),
-                }),
+                }
+                this
+                    .removeComp([ ShapeComp, mapk('tag', elem('boundary', 'texture')) ])
+                    .addComp(RectShape, {
+                        tag: 'texture',
+                        ...shapeConfig,
+                    })
+
+                if (this.config.strictShape)
+                    this.addComp(AnyShape, {
+                        tag: 'boundary',
+                        contains: point => {
+                            const rectShape = this.getComp(RectShape)!
+                            if (! rectShape.contains(point)) return false
+                            const { x, y, width } = rectShape.rect
+                            const pixels = this.pixels[this.textureName][this.f]
+                            const rx = point.x - x
+                            const ry = point.y - y
+                            const i = ry * width * 4 + rx * 4
+                            const [ r, g, b, a ] = pixels.slice(i, i + 4)
+                            return ! (r === 0 && g === 0 && b === 0 && a === 0)
+                        },
+                        intersects: () => false,
+                        stroke: () => {},
+                        fill: () => {},
+                    })
+                else
+                    this.addComp(RectShape, shapeConfig)
+            },
             true
         )
 
@@ -211,25 +233,9 @@ export class TextureEntity<
     }
 
     render() {
-        const rectShape = this.getComp(RectShape)
-        if (! rectShape) return
-
+        const rectShape = this.getComp(RectShape)!
         const { x, y, width, height } = rectShape.rect
-        const { texture, textureName } = this
-
-        switch (texture.type) {
-            case 'image': {
-                const img = this.images[textureName]
-                this.game.ctx.drawImage(img, x, y, width, height)
-                break
-            }
-            case 'anime': {
-                const { af } = this.getInnerState<'anime'>()
-                const frames = this.frames[textureName]
-                this.game.ctx.drawImage(frames[af], x, y, width, height)
-                break
-            }
-        }
+        this.game.ctx.drawImage(this.frame, x, y, width, height)
     }
 
     update() {

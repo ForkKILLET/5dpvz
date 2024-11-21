@@ -38,6 +38,7 @@ export class PlantEntity<
             })
 
         this
+            .addComp(HoverableComp)
             .addComp(FilterComp)
             .withComps([ HoverableComp, FilterComp ], ({ emitter }, filterComp) => {
                 emitter.on('mouseenter', () => {
@@ -60,6 +61,7 @@ export class PlantEntity<
             {
                 metadata: Plant,
                 textures: plantTextures.getAnimeTextureSet(plantId),
+                strictShape: true,
                 ...config,
             },
             {

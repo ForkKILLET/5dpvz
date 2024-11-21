@@ -14,7 +14,9 @@ export class StartScene extends Scene {
         const startButton = TextureEntity
             .createButtonFromImage(
                 './assets/start_button_start.png',
-                {},
+                {
+                    strictShape: true,
+                },
                 {
                     position: { x: 450, y: 140 },
                     zIndex: 1,

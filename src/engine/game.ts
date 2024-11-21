@@ -74,7 +74,7 @@ export class Game {
 
         let isCursorSet = false
         for (const entity of hoverableEntities) {
-            const shapeComp = entity.getComp(ShapeComp)!
+            const shapeComp = entity.getComp([ ShapeComp, shape => shape.tag === 'boundary' ])!
             const hoverableComp = entity.getComp(HoverableComp)!
 
             const hovering = ! this.hoveringEntity && shapeComp.contains(this.mouse.position)

@@ -1,10 +1,10 @@
-export const by = <T, U>(cmpGetter: (item: T) => U) => (a: T, b: T) => {
+export const by = <X>(cmpGetter: (item: X) => number) => (a: X, b: X) => {
     const cmpA = cmpGetter(a)
     const cmpB = cmpGetter(b)
     return cmpA < cmpB ? - 1 : cmpA > cmpB ? 1 : 0
 }
 
-export const matrix = <T>(width: number, height: number, gen: (x: number, y: number) => T) => {
+export const matrix = <X>(width: number, height: number, gen: (x: number, y: number) => X) => {
     const mat = []
     for (let i = 0; i < width; i ++) {
         const row = []
@@ -14,9 +14,11 @@ export const matrix = <T>(width: number, height: number, gen: (x: number, y: num
     return mat
 }
 
-export const includes = <T>(array: T[], item: any) => array.includes(item)
+export const includes = <X>(item: X) => (array: X[]) => array.includes(item)
 
-export const remove = <T>(array: T[], pred: (item: T) => boolean) => {
+export const elem = <X, Y extends X>(...array: Y[]) => (item: X) => array.includes(item as Y)
+
+export const remove = <X>(array: X[], pred: (item: X) => boolean) => {
     const index = array.findIndex(pred)
     if (index >= 0) array.splice(index, 1)
 }

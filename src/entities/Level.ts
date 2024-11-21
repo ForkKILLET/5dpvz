@@ -297,7 +297,7 @@ export class LevelEntity extends Entity<LevelConfig, LevelState, LevelEvents> {
                 {},
                 {
                     position: { x: this.width - 32, y: 5 },
-                    zIndex: this.state.zIndex + 5,
+                    zIndex: this.state.zIndex + 11,
                 },
             )
             .addComp(CursorComp, 'pointer')
@@ -310,7 +310,7 @@ export class LevelEntity extends Entity<LevelConfig, LevelState, LevelEvents> {
                 {},
                 {
                     position: { x: this.width - 32, y: 5 },
-                    zIndex: this.state.zIndex + 5,
+                    zIndex: this.state.zIndex + 11,
                 },
             )
             .addComp(CursorComp, 'pointer')
@@ -399,7 +399,7 @@ export class LevelEntity extends Entity<LevelConfig, LevelState, LevelEvents> {
         const targetY = y + deltaY
         const life = deltaY / this.config.sun.sunDroppingVelocity + 4000
 
-        SunEntity.create(
+        SunEntity.createSun(
             {
                 life,
                 sun: 25,
@@ -518,7 +518,7 @@ export class LevelEntity extends Entity<LevelConfig, LevelState, LevelEvents> {
             const { x, y } = this.state.position
             ctx.fillStyle = 'rgba(0, 32, 255, .3)'
             ctx.fillRect(x, y, this.width, this.height)
-        }, 4)
+        }, 10)
 
         super.preRender()
     }

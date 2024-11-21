@@ -21,7 +21,22 @@ export type InjectKey<T> = symbol & { __injectType: T }
 export const injectKey = <T>(description: string) => Symbol(description) as InjectKey<T>
 
 export class Comp<E extends Entity = Entity> {
-    static dependencies: CompCtor[] = []
+    static readonly dependencies: CompSelector<any>[] = []
+
+    static selector = <C extends Comp>(
+        Comp: CompCtor<C>, filter: (comp: C) => boolean
+    ): CompSelector<C> => [ Comp, filter ]
+
+    static runSelector = <C extends Comp>(Comp: CompSelector<C>) => {
+        return (comp: Comp): comp is C => {
+            if (typeof Comp === 'function') return comp instanceof Comp
+            return comp instanceof Comp[0] && Comp[1](comp)
+        }
+    }
+
+    static getCtorFromSelector = <C extends Comp>(Comp: CompSelector<C>) => {
+        return typeof Comp === 'function' ? Comp : Comp[0]
+    }
 
     constructor(public readonly entity: E) {}
 
@@ -31,7 +46,7 @@ export class Comp<E extends Entity = Entity> {
 export type CompCtor<C extends Comp = Comp> =
     | (new (...args: any[]) => C)
     | (abstract new (...args: any[]) => C)
-export type CompSelector<C extends Comp> =
+export type CompSelector<C extends Comp = Comp> =
     | CompCtor<C>
     | [ Comp: CompCtor<C>, filter: (comp: C) => boolean ]
 
@@ -186,21 +201,16 @@ export class Entity<
     }
 
     comps: Comp[] = []
-    hasComp(...Comps: CompCtor[]) {
-        return Comps.every(Comp => this.comps.some(comp => comp instanceof Comp))
-    }
-    getCompSelector<C extends Comp>(Comp: CompSelector<C>) {
-        return (comp: Comp): comp is C => {
-            if (typeof Comp === 'function') return comp instanceof Comp
-            return comp instanceof Comp[0] && Comp[1](comp)
-        }
+    hasComp(...sels: CompSelector[]) {
+        return sels.every(sel => this.comps.some(Comp.runSelector(sel)))
     }
     addCompRaw(comp: Comp) {
         const _addComp = () => {
-            const { dependencies } = comp.constructor as any as { dependencies: CompCtor[] }
+            const { dependencies } = comp.constructor as any as { dependencies: CompSelector[] }
             if (! this.hasComp(...dependencies))
-                this.error(`Component missing dependencies: ${ dependencies.map(Dep => Dep.name).join(', ') }.`)
-
+                this.error(`Component missing dependencies: ${
+                    dependencies.map(dep => Comp.getCtorFromSelector(dep).name).join(', ')
+                }.`)
             this.comps.push(comp)
         }
         if (this.started) _addComp()
@@ -210,13 +220,13 @@ export class Entity<
     addComp<A extends any[], C extends Comp>(Comp: new (entity: this, ...args: A) => C, ...args: A) {
         return this.addCompRaw(new Comp(this, ...args))
     }
-    removeComp<C extends Comp>(Comp: CompSelector<C>) {
+    removeComp<C extends Comp>(sel: CompSelector<C>) {
         return this.afterStart(() => {
-            this.comps = this.comps.filter(this.getCompSelector(Comp))
+            this.comps = this.comps.filter(Comp.runSelector(sel))
         })
     }
-    getComp<C extends Comp>(Comp: CompSelector<C>): C | undefined {
-        return this.comps.find(this.getCompSelector(Comp))
+    getComp<C extends Comp>(sel: CompSelector<C>): C | undefined {
+        return this.comps.find(Comp.runSelector(sel))
     }
     withComp<C extends Comp>(Comp: CompSelector<C>, fn: (comp: C) => void) {
         return this.afterStart(() => {

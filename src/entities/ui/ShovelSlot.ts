@@ -23,15 +23,17 @@ export class ShovelSlotEntity extends SlotEntity<ShovelSlotConfig, ShovelSlotSta
 
         this.shovelMetadata = SHOVELS[this.config.shovelId]
 
+        this.shovelImage = TextureEntity.createTextureFromImage(
+            shovelTextures.getImageSrc(this.config.shovelId),
+            {},
+            {
+                position: { x: x + 1, y: y + 1 },
+                zIndex: zIndex + 2,
+            },
+        )
+
         this
-            .attach(this.shovelImage = TextureEntity.createTextureFromImage(
-                shovelTextures.getImageSrc(this.config.shovelId),
-                {},
-                {
-                    position: { x: x + 1, y: y + 1 },
-                    zIndex: zIndex + 2,
-                },
-            ))
+            .attach(this.shovelImage)
             .addComp(CursorComp, 'pointer')
     }
 

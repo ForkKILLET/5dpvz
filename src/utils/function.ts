@@ -1,3 +1,8 @@
-export const eq = <T, U extends T>(a: U) => (b: T): boolean => a === b
+export const id =
+    <X>(x: X): X => x
 
-export const neq = <T, U extends T>(a: U) => (b: T): b is Exclude<T, U> => a !== b
+export const eq =
+    <X extends Y, Y>(x: X) => (y: Y): boolean => x === y
+
+export const neq =
+    <X extends Y, Y>(x: X) => (y: Y): y is Exclude<Y, X> => x !== y

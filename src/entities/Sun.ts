@@ -53,10 +53,13 @@ export class SunEntity extends TextureEntity<SunConfig, SunState, SunEvents> {
             })
     }
 
-    static create(config: SunUniqueConfig, state: EntityState) {
+    static createSun(config: SunUniqueConfig, state: EntityState) {
         return SunEntity.createButtonFromImage(
             './assets/sun.png',
-            config,
+            {
+                origin: 'center',
+                ...config,
+            },
             state
         )
     }
