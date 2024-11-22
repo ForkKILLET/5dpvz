@@ -1,6 +1,13 @@
-import { BulletShootingBehavior, PlantAttackBehavior, ZombieSeekingBehavior } from '@/comps/Behavior'
+import { PLANTS } from '@/data/plants'
 import { definePlant, PlantConfig, PlantEntity, PlantState } from '@/entities/plants/Plant'
-import { BulletEntity } from '../bullets/Bullet'
+import { BULLETS } from '@/data/bullets'
+import { BulletEntity } from '@/entities/bullets/Bullet'
+import { PlantAttackBehavior } from '@/comps/plantBehaviors/Attack'
+import { BulletShootingBehavior } from '@/comps/plantBehaviors/BulletShooting'
+import { ZombieSeekingBehavior } from '@/comps/plantBehaviors/ZombieSeeking'
+
+void PLANTS
+void BULLETS
 
 export const PeaShooterEntity = definePlant(class PeaShooterEntity extends PlantEntity {
     static readonly id = 'pea_shooter'

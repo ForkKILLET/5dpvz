@@ -4,7 +4,7 @@ import { Entity, EntityCtor, EntityState, Position } from '@/engine'
 import { ZombieEntity } from '@/entities/zombies/Zombie'
 import { CollidableComp } from '@/comps/Collidable'
 import { TextureConfig, TextureState, TextureEvents, TextureEntity } from '@/entities/Texture'
-import { HealthAtkComp } from '@/comps/Health'
+import { HealthComp } from '@/comps/Health'
 
 export interface BulletUniqueConfig {
     metadata: BulletMetadata
@@ -57,7 +57,7 @@ export class BulletEntity<
     }
 
     hit(zombie: ZombieEntity) {
-        zombie.getComp(HealthAtkComp)!.takeDamage(this.config.metadata.damage)
+        zombie.getComp(HealthComp)!.takeDamage(this.config.metadata.damage)
         if (! this.config.metadata.penetrating) this.dispose()
     }
 

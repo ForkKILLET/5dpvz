@@ -1,13 +1,14 @@
 import { CollidableComp } from '@/comps/Collidable'
 import { FilterComp } from '@/comps/Filter'
-import {
-    ZOMBIES, ZombieMetadata, zombieTextures,
-    ZombieId, ZombieMovingState, ZombiePlace
-} from '@/data/zombies'
+import { ContinuousDamagingComp, DamageEffectComp, HealthComp } from '@/comps/Health'
+import { PLANTS } from '@/data/plants'
+import { ZombieId, ZombieMetadata, ZombieMovingState, ZombiePlace, ZOMBIES, zombieTextures } from '@/data/zombies'
 import { Entity, EntityCtor, EntityState, Position } from '@/engine'
+import { PlantEntity } from '@/entities/plants/Plant'
 import { TextureConfig, TextureEntity, TextureEvents, TextureState } from '@/entities/Texture'
 import { PartialBy } from '@/utils'
-import { HealthAtkComp, HealthComp } from '@/comps/Health'
+
+void PLANTS
 
 export interface ZombieUniqueConfig {
     metadata: ZombieMetadata
@@ -16,22 +17,19 @@ export interface ZombieConfig extends ZombieUniqueConfig, TextureConfig {}
 
 export interface ZombieUniqueState {
     j: number
-    // hp: number
     movingState: ZombieMovingState
     place: ZombiePlace
     damageFilterTimer: number
+    eatingPlant: PlantEntity | null
 }
 export interface ZombieState extends ZombieUniqueState, TextureState {}
 
-export interface ZombieEvents extends TextureEvents {
-    // 'damage': [ number ]
-}
+export interface ZombieEvents extends TextureEvents {}
 
 export class ZombieEntity<
     S extends ZombieState = ZombieState,
     V extends ZombieEvents = ZombieEvents
 > extends TextureEntity<ZombieConfig, S, V> {
-    currentAttacking: Entity | null = null
 
     constructor(config: ZombieConfig, state: S) {
         super(config, state)
@@ -41,32 +39,19 @@ export class ZombieEntity<
 
         this
             .addComp(FilterComp)
-            .addComp(HealthAtkComp, {
-                hp: this.config.metadata.hp,
-                atk: this.config.metadata.atk,
-                canInstantAttack: true,
-                instantAttackTimer: 0,
-                attackInterval: 500,
-            })
+            .addComp(HealthComp, { hp: this.config.metadata.hp })
+            .addComp(DamageEffectComp)
+            .addComp(ContinuousDamagingComp, { damagePF: 1 })
             .addComp(CollidableComp, {
                 groups: new Set([ 'zombies' ] as const),
                 targetGroups: new Set([ 'bullets', 'plants' ] as const),
                 onCollide: (target: Entity) => {
-                    // TODO: type check here!!!!!
-                    console.log(target)
-                    if (! this.currentAttacking) {
-                        this.currentAttacking = target
-                        target.on('dispose', () => this.currentAttacking = null)
+                    if (! PlantEntity.isPlant(target)) return
+                    if (! this.state.eatingPlant) {
+                        this.state.eatingPlant = target
+                        target.on('dispose', () => this.state.eatingPlant = null)
                     }
-                    // if (target instanceof PlantEntity) this.getComp(HealthAtkComp)!.attack(target)
-                    this.getComp(HealthAtkComp)!.attack(target)
                 },
-            })
-            .withComp(FilterComp, filter => {
-                this.getComp(HealthComp)!.emitter.on('takeDamage', () => {
-                    filter.filters.damage = 'brightness(1.2)'
-                    this.state.damageFilterTimer = 500
-                })
             })
     }
 
@@ -74,37 +59,35 @@ export class ZombieEntity<
         Z extends ZombieId,
         C extends Omit<ZombieUniqueConfig, 'metadata'>,
         S extends ZombieUniqueState & EntityState
-    >(zombieId: Z, config: C, state: PartialBy<S, 'movingState' | 'place' | 'damageFilterTimer'>) {
+    >(zombieId: Z, config: C, state: PartialBy<S, 'movingState' | 'place' | 'damageFilterTimer' | 'eatingPlant'>) {
         const Zombie = ZOMBIES[zombieId]
-        return Zombie.createTexture(
-            {
-                textures: zombieTextures.getAnimeTextureSet(zombieId),
-                metadata: Zombie,
-                ...config,
-            },
-            {
-                // hp: Zombie.hp,
-                movingState: 'moving',
-                place: 'front',
-                damageFilterTimer: 0,
-                ...state,
-            }
-        )
+        return Zombie
+            .createTexture(
+                {
+                    textures: zombieTextures.getAnimeTextureSet(zombieId),
+                    metadata: Zombie,
+                    ...config,
+                },
+                {
+                    movingState: 'moving',
+                    place: 'front',
+                    damageFilterTimer: 0,
+                    eatingPlant: null,
+                    ...state,
+                }
+            )
     }
 
     nextMove(): Position {
-        return {
-            x: this.currentAttacking ? 0 : - this.config.metadata.speed * this.game.mspf,
-            y: 0,
-        }
+        const x = this.state.eatingPlant
+            ? 0
+            : - this.config.metadata.speed * this.game.mspf
+        return { x, y: 0 }
     }
 
     update() {
         super.update()
         this.updatePosition(this.nextMove())
-        this.updateTimer('damageFilterTimer', { interval: 500 }, () => {
-            this.getComp(FilterComp)!.filters.damage = null
-        })
     }
 }
 

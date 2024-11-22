@@ -1,13 +1,13 @@
 import { ButtonEvents } from '@/comps/Button'
 import { CollidableComp } from '@/comps/Collidable'
 import { FilterComp } from '@/comps/Filter'
+import { DamageEffectComp, HealthComp } from '@/comps/Health'
 import { HoverableComp } from '@/comps/Hoverable'
-import { PLANTS, PlantId, PlantMetadata, plantTextures } from '@/data/plants'
-import { EntityCtor, EntityState } from '@/engine'
+import { PlantId, PlantMetadata, PLANTS, plantTextures } from '@/data/plants'
+import { Entity, EntityCtor, EntityState } from '@/engine'
 import { kLevel } from '@/entities/Level'
 import { TextureConfig, TextureEntity, TextureEvents, TextureState } from '@/entities/Texture'
 import { StrictOmit } from '@/utils'
-import { HealthComp } from '@/comps/Health'
 
 export interface PlantUniqueConfig {
     metadata: PlantMetadata
@@ -15,7 +15,6 @@ export interface PlantUniqueConfig {
 export interface PlantConfig extends PlantUniqueConfig, TextureConfig {}
 
 export interface PlantUniqueState {
-    // hp: number
     i: number
     j: number
 }
@@ -42,15 +41,20 @@ export class PlantEntity<
             .addComp(HoverableComp)
             .addComp(FilterComp)
             .addComp(HealthComp, { hp: this.config.metadata.hp })
+            .addComp(DamageEffectComp)
             .withComps([ HoverableComp, FilterComp ], ({ emitter }, filterComp) => {
                 emitter.on('mouseenter', () => {
                     if (this.inject(kLevel)!.state.holdingObject?.type === 'shovel')
-                        filterComp.filters.onShovel = 'brightness(1.5)'
+                        filterComp.filters.onShovel = 'brightness(1.2)'
                 })
                 emitter.on('mouseleave', () => {
                     filterComp.filters.onShovel = null
                 })
             })
+    }
+
+    static isPlant(entity: Entity): entity is PlantEntity {
+        return entity instanceof PlantEntity
     }
 
     static createPlant<
@@ -66,10 +70,7 @@ export class PlantEntity<
                 strictShape: true,
                 ...config,
             },
-            {
-                // hp: Plant.hp,
-                ...state,
-            },
+            state,
         )
     }
 }

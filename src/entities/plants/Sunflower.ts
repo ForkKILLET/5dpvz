@@ -5,6 +5,9 @@ import { SunEntity } from '@/entities/Sun'
 import { FilterComp } from '@/comps/Filter'
 import { UpdaterComp } from '@/comps/Updater'
 import { random, StrictOmit } from '@/utils'
+import { PLANTS } from '@/data/plants'
+
+void PLANTS
 
 export interface SunflowerUniqueState {
     sunProduceTimer: number
