@@ -1,5 +1,5 @@
 import { Comp, Emitter, Entity, Events } from '@/engine'
-import { FilterComp } from './Filter'
+import { FilterComp } from '@/comps/Filter'
 
 export interface HealthEvents extends Events {
     takeDamage: [ number ]
@@ -56,14 +56,14 @@ export class DamageEffectComp<E extends Entity = Entity> extends Comp<E> {
     }
 }
 
-export interface ContinuousDamageConfig {
+export interface ContinuousDamagingConfig {
     damagePF: number
 }
 
 export class ContinuousDamagingComp<E extends Entity = Entity> extends Comp<E> {
     targets: Set<Entity> = new Set()
 
-    constructor(entity: E, public config: ContinuousDamageConfig) {
+    constructor(entity: E, public config: ContinuousDamagingConfig) {
         super(entity)
     }
 

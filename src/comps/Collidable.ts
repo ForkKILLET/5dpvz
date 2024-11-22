@@ -1,7 +1,7 @@
 import { Comp, Emitter, Entity, Events } from '@/engine'
 import { CollidableGroup } from '@/data/collidableGroups'
 import { ShapeComp } from '@/comps/Shape'
-import { eq, remove, intersect, placeholder } from '@/utils'
+import { eq, remove, intersect, placeholder, elem } from '@/utils'
 
 export interface CollidableEvents extends Events {
     collide: [ Entity ]
@@ -14,7 +14,7 @@ export interface CollidableConfig {
 }
 
 export class CollidableComp<E extends Entity = Entity> extends Comp<E> {
-    static dependencies = [ ShapeComp ]
+    static dependencies = [ ShapeComp.withTag(elem('hitbox', 'texture')) ]
 
     static collidableComps: CollidableComp[] = []
 
@@ -26,7 +26,7 @@ export class CollidableComp<E extends Entity = Entity> extends Comp<E> {
         super(entity)
 
         this.entity.afterStart(() => {
-            this.shape = entity.getComp(ShapeComp)!
+            this.shape = entity.getComp(ShapeComp.withTag(elem('hitbox', 'texture')))!
         })
 
         CollidableComp.collidableComps.push(this)
@@ -44,7 +44,7 @@ export class CollidableComp<E extends Entity = Entity> extends Comp<E> {
         }
     }
 
-    shouldCollideWith(target: CollidableComp): boolean {
+    shouldCollideWith(target: CollidableComp) {
         if (target === this) return false
         return intersect(this.config.targetGroups, target.config.groups).size > 0
     }

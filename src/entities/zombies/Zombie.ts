@@ -48,8 +48,14 @@ export class ZombieEntity<
                 onCollide: (target: Entity) => {
                     if (! PlantEntity.isPlant(target)) return
                     if (! this.state.eatingPlant) {
-                        this.state.eatingPlant = target
-                        target.on('dispose', () => this.state.eatingPlant = null)
+                        this.withComp(ContinuousDamagingComp, damaging => {
+                            damaging.targets.add(target)
+                            this.state.eatingPlant = target
+                            target.on('dispose', () => {
+                                damaging.targets.delete(target)
+                                this.state.eatingPlant = null
+                            })
+                        })
                     }
                 },
             })

@@ -26,6 +26,8 @@ export class BulletEntity<
         const { shapeFactory } = this.config.metadata
         if (shapeFactory) this
             .addCompRaw(shapeFactory(this).setTag('hitbox'))
+
+        this
             .addComp(CollidableComp, {
                 groups: new Set([ 'bullets' ] as const),
                 targetGroups: new Set([ 'zombies' ] as const),
@@ -33,8 +35,7 @@ export class BulletEntity<
                     if (target instanceof ZombieEntity) this.hit(target)
                 },
             })
-
-        this.addComp(FilterComp)
+            .addComp(FilterComp)
     }
 
     static createBullet<

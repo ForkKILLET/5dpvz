@@ -32,12 +32,12 @@ export class PlantEntity<
         const { shapeFactory } = this.config.metadata
         if (shapeFactory) this
             .addCompRaw(shapeFactory(this).setTag('hitbox'))
+
+        this
             .addComp(CollidableComp, {
                 groups: new Set([ 'plants' ] as const),
                 targetGroups: new Set([ 'zombies' ] as const),
             })
-
-        this
             .addComp(HoverableComp)
             .addComp(FilterComp)
             .addComp(HealthComp, { hp: this.config.metadata.hp })
