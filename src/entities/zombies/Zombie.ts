@@ -15,12 +15,15 @@ export interface ZombieUniqueConfig {
 }
 export interface ZombieConfig extends ZombieUniqueConfig, TextureConfig {}
 
-export interface ZombieUniqueState {
-    j: number
+export interface ZombieAutoState {
     movingState: ZombieMovingState
     place: ZombiePlace
     damageFilterTimer: number
     eatingPlant: PlantEntity | null
+    enteredHouse: boolean
+}
+export interface ZombieUniqueState extends ZombieAutoState {
+    j: number
 }
 export interface ZombieState extends ZombieUniqueState, TextureState {}
 
@@ -62,10 +65,10 @@ export class ZombieEntity<
     }
 
     static createZombie<
-        Z extends ZombieId,
+        I extends ZombieId,
         C extends Omit<ZombieUniqueConfig, 'metadata'>,
         S extends ZombieUniqueState & EntityState
-    >(zombieId: Z, config: C, state: PartialBy<S, 'movingState' | 'place' | 'damageFilterTimer' | 'eatingPlant'>) {
+    >(zombieId: I, config: C, state: PartialBy<S, keyof ZombieAutoState>) {
         const Zombie = ZOMBIES[zombieId]
         return Zombie
             .createTexture(
@@ -79,6 +82,7 @@ export class ZombieEntity<
                     place: 'front',
                     damageFilterTimer: 0,
                     eatingPlant: null,
+                    enteredHouse: false,
                     ...state,
                 }
             )
