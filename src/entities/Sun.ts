@@ -32,6 +32,7 @@ export class SunEntity extends TextureEntity<SunConfig, SunState, SunEvents> {
                     .on('click', () => {
                         level.state.sun += this.config.sun
                         level.updatePlantSlot(false)
+                        // TODO: animation
                         this.dispose()
                     })
                     .on('mouseenter', () => {
