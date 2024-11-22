@@ -121,6 +121,9 @@ export class LevelEntity extends Entity<LevelConfig, LevelState, LevelEvents> {
 
     plantMetadatas: PlantMetadata[] = []
 
+    isWin: (level: LevelUniqueState) => boolean
+    isLose: (level: LevelUniqueState) => boolean
+
     getPlantIdBySlotId(slotId: number) {
         return this.config.plantSlots.plantIds[slotId]
     }
@@ -266,6 +269,9 @@ export class LevelEntity extends Entity<LevelConfig, LevelState, LevelEvents> {
         this.game.emitter.on('rightclick', () => {
             if (this.state.holdingObject !== null) this.cancelHolding()
         })
+
+        this.isWin = this.config.stage.isWin
+        this.isLose = this.config.stage.isLose
 
         const pause = () => {
             this.freeze()
@@ -488,6 +494,13 @@ export class LevelEntity extends Entity<LevelConfig, LevelState, LevelEvents> {
         })
     }
 
+    onWin() {
+        console.log('onWin')
+    }
+    onLose() {
+        console.log('onLose')
+    }
+
     frozenUpdate() {
         if (this.holdingImage) {
             const { x, y } = this.game.mouse.position
@@ -496,6 +509,9 @@ export class LevelEntity extends Entity<LevelConfig, LevelState, LevelEvents> {
     }
 
     update() {
+        if (this.isWin(this.state)) this.onWin()
+        if (this.isLose(this.state)) this.onLose()
+
         this.updatePlantSlot()
 
         this.updateTimer('waveTimer', { interval: 25000 }, () => this.nextWave())

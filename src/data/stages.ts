@@ -1,4 +1,5 @@
 import { ZombieId } from '@/data/zombies'
+import {LevelUniqueState} from "@/entities/Level";
 
 export interface WaveData {
     zombieCount: number
@@ -16,6 +17,8 @@ export interface StageData {
     chapter: number
     track: number
     wavesData: WavesData
+    isWin: (levelState: LevelUniqueState) => boolean
+    isLose: (levelState: LevelUniqueState) => boolean
 }
 
 export const Stage1_1: StageData = {
@@ -23,7 +26,7 @@ export const Stage1_1: StageData = {
     chapter: 1,
     track: 1,
     wavesData: {
-        zombieType: [ 'normal_zombie' ],
+        zombieType: ['normal_zombie'],
         waveCount: 3,
         waves: [
             {
@@ -45,5 +48,11 @@ export const Stage1_1: StageData = {
                 },
             },
         ],
+    },
+    isWin(levelState: LevelUniqueState) { // TODO: maybe use smaller param 'ZombieData[]'?
+        return levelState.zombiesData.length === 0 && levelState.wave === 3
+    },
+    isLose(levelState: LevelUniqueState) { // TODO: this one as well
+        return levelState.zombiesData.some(zombie => zombie.entity.state.position.x < 0)
     },
 }
