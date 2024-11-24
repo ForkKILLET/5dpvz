@@ -5,7 +5,7 @@ import { DamageEffectComp, HealthComp } from '@/comps/Health'
 import { HoverableComp } from '@/comps/Hoverable'
 import { PlantId, PlantMetadata, PLANTS, plantTextures } from '@/data/plants'
 import { Entity, EntityCtor, EntityState } from '@/engine'
-import { kLevel } from '@/entities/Level'
+import { kProcess } from '@/entities/Process'
 import { TextureConfig, TextureEntity, TextureEvents, TextureState } from '@/entities/Texture'
 import { StrictOmit } from '@/utils'
 
@@ -44,7 +44,7 @@ export class PlantEntity<
             .addComp(DamageEffectComp)
             .withComps([ HoverableComp, FilterComp ], ({ emitter }, { state: { filters } }) => {
                 emitter.on('mouseenter', () => {
-                    if (this.inject(kLevel)!.state.holdingObject?.type === 'shovel')
+                    if (this.inject(kProcess)!.state.holdingObject?.type === 'shovel')
                         filters.onShovel = 'brightness(1.2)'
                 })
                 emitter.on('mouseleave', () => {

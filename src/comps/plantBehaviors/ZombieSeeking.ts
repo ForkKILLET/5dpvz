@@ -1,6 +1,6 @@
 import { PLANTS } from '@/data/plants'
 import { Comp, CompCtor } from '@/engine'
-import { kLevel } from '@/entities/Level'
+import { kProcess } from '@/entities/Process'
 import { PlantEntity } from '@/entities/plants/Plant'
 
 void PLANTS
@@ -11,7 +11,7 @@ export class ZombieSeekingBehavior<E extends PlantEntity = PlantEntity> extends 
     }
 
     seekZombies(rows: number[], direction: 'front' | 'back') {
-        const { zombiesData } = this.entity.inject(kLevel)!.state
+        const { zombiesData } = this.entity.inject(kProcess)!.state
         const { x } = this.entity.state.position
 
         return zombiesData.filter(({ entity: { state } }) => (

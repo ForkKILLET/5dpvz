@@ -1,5 +1,5 @@
 import { ZombieId } from '@/data/zombies'
-import { LevelEntity } from '@/entities/Level'
+import { ProcessEntity } from '@/entities/Process'
 import { Pred } from '@/utils'
 
 export interface WaveData {
@@ -18,11 +18,11 @@ export interface StageData {
     chapter: number
     track: number
     wavesData: WavesData
-    hasWon: (level: LevelEntity) => boolean
-    hasLost: (level: LevelEntity) => boolean
+    hasWon: (process: ProcessEntity) => boolean
+    hasLost: (process: ProcessEntity) => boolean
 }
 
-export type StageResultPred = Pred<LevelEntity>
+export type StageResultPred = Pred<ProcessEntity>
 
 export const hasWonByWave: StageResultPred = ({ state, config }) => (
     state.zombiesData.length === 0 && state.wave === config.stage.wavesData.waveCount

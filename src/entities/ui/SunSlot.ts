@@ -1,4 +1,4 @@
-import { kLevel } from '@/entities/Level'
+import { kProcess } from '@/entities/Process'
 import { SlotConfig, SlotEntity, SlotEvents, SlotState } from '@/entities/ui/Slot'
 import { TextureEntity } from '../Texture'
 
@@ -28,7 +28,7 @@ export class SunSlotEntity extends SlotEntity<SunSlotConfig, SunSlotState, SunSl
     }
 
     render() {
-        const { sun } = this.inject(kLevel)!.state
+        const { sun } = this.inject(kProcess)!.state
 
         const { ctx } = this.game
         const { position: { x, y } } = this.state

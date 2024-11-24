@@ -18,7 +18,7 @@ import { BulletEntity } from '@/entities/bullets/Bullet'
 import { RectShape } from '@/comps/Shape'
 import { TextureEntity } from './Texture'
 
-export interface LevelConfig {
+export interface ProcessConfig {
     plantSlots: PlantSlotsConfig
     shovelSlot: ShovelSlotConfig
     lawn: LawnConfig
@@ -66,7 +66,7 @@ export type HoldingObject =
     | { type: 'plant', slotId: number }
     | { type: 'shovel', shovelId: ShovelId }
 
-export interface LevelUniqueState {
+export interface ProcessUniqueState {
     sun: number
     sunDropTimer: number
 
@@ -85,14 +85,14 @@ export interface LevelUniqueState {
 
     finished: boolean
 }
-export interface LevelState extends LevelUniqueState, EntityState {}
+export interface ProcessState extends ProcessUniqueState, EntityState {}
 
-export interface LevelEvents extends EntityEvents {}
+export interface ProcessEvents extends EntityEvents {}
 
-export const kLevel = injectKey<LevelEntity>('kLevel')
+export const kProcess = injectKey<ProcessEntity>('kProcess')
 
-export class LevelEntity extends Entity<LevelConfig, LevelState, LevelEvents> {
-    static initState = <S>(state: S): S & LevelUniqueState => ({
+export class ProcessEntity extends Entity<ProcessConfig, ProcessState, ProcessEvents> {
+    static initState = <S>(state: S): S & ProcessUniqueState => ({
         ...state,
         sun: 0,
         sunDropTimer: 0,
@@ -110,7 +110,7 @@ export class LevelEntity extends Entity<LevelConfig, LevelState, LevelEvents> {
     })
     private bgmPlayBack: AudioPlayback = placeholder
 
-    static create<C extends LevelConfig, S extends EntityState>(config: C, state: S) {
+    static create<C extends ProcessConfig, S extends EntityState>(config: C, state: S) {
         return new this(config, this.initState(state))
     }
 
@@ -128,7 +128,7 @@ export class LevelEntity extends Entity<LevelConfig, LevelState, LevelEvents> {
         return this.config.plantSlots.plantIds[slotId]
     }
 
-    constructor(config: LevelConfig, state: LevelState) {
+    constructor(config: ProcessConfig, state: ProcessState) {
         super(config, state)
 
         this.state.plantSlotsData = this.config.plantSlots.plantIds.map((plantName, i) => {
@@ -151,7 +151,7 @@ export class LevelEntity extends Entity<LevelConfig, LevelState, LevelEvents> {
         this.height = 150 + config.lawn.height * 80
         this.addComp(RectShape, { width: this.width, height: this.height, origin: 'top-left' })
 
-        this.provide(kLevel, this)
+        this.provide(kProcess, this)
 
         this.ui = new UIEntity(
             config.plantSlots,

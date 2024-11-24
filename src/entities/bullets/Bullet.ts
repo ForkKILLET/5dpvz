@@ -39,10 +39,10 @@ export class BulletEntity<
     }
 
     static createBullet<
-        B extends BulletId,
+        I extends BulletId,
         C extends Omit<BulletUniqueConfig, 'metadata'>,
         S extends EntityState
-    >(bulletId: B, config: C, state: S) {
+    >(bulletId: I, config: C, state: S) {
         const Bullet = BULLETS[bulletId]
         return Bullet.createTexture(
             {

@@ -1,6 +1,6 @@
 import { easeOutExpo } from '@/engine'
 import { definePlant, PlantConfig, PlantEntity, PlantEvents, PlantState } from '@/entities/plants/Plant'
-import { kLevel } from '@/entities/Level'
+import { kProcess } from '@/entities/Process'
 import { SunEntity } from '@/entities/Sun'
 import { FilterComp } from '@/comps/Filter'
 import { UpdaterComp } from '@/comps/Updater'
@@ -42,7 +42,7 @@ export const SunflowerEntity = definePlant(class SunflowerEntity extends PlantEn
             'sunProduceTimer',
             { interval: SunflowerEntity.sunProduceInterval },
             () => {
-                const level = this.inject(kLevel)!
+                const process = this.inject(kProcess)!
 
                 const { x: x0, y: y0 } = this.state.position
                 const startOffsetX = random(- 5, + 5)
@@ -61,6 +61,7 @@ export const SunflowerEntity = definePlant(class SunflowerEntity extends PlantEn
                 const totalF = Math.round(totalT / this.game.mspf)
                 const stepX = deltaX / totalF
 
+                // TODO: closure to state
                 let f = 0
                 let x = - topDeltaX
                 let y = - topDeltaY
@@ -73,7 +74,7 @@ export const SunflowerEntity = definePlant(class SunflowerEntity extends PlantEn
                         },
                         {
                             position: { x: startX, y: startY },
-                            zIndex: level.state.zIndex + 4,
+                            zIndex: process.state.zIndex + 4,
                         }
                     )
                     .addComp(UpdaterComp, entity => {
@@ -87,7 +88,7 @@ export const SunflowerEntity = definePlant(class SunflowerEntity extends PlantEn
                         entity.updatePosition(delta)
                         entity.state.scale = easeOutExpo(f / totalF)
                     })
-                    .attachTo(level)
+                    .attachTo(process)
             }
         )
         this.withComp(FilterComp, ({ state: { filters } }) => {

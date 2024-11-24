@@ -2,7 +2,7 @@ import { BULLETS } from '@/data/bullets'
 import { PLANTS } from '@/data/plants'
 import { Comp, CompCtor } from '@/engine'
 import { BulletEntity } from '@/entities/bullets/Bullet'
-import { kLevel } from '@/entities/Level'
+import { kProcess } from '@/entities/Process'
 import { PlantEntity } from '@/entities/plants/Plant'
 import { remove } from '@/utils'
 
@@ -15,14 +15,14 @@ export class BulletShootingBehavior<E extends PlantEntity = PlantEntity> extends
     }
 
     shootBullet(bullet: BulletEntity) {
-        const level = this.entity.inject(kLevel)!
-        const { bulletsData } = level.state
+        const process = this.entity.inject(kProcess)!
+        const { bulletsData } = process.state
 
         bullet
             .on('dispose', () => {
                 remove(bulletsData, ({ entity }) => bullet.id === entity.id)
             })
-            .attachTo(level)
+            .attachTo(process)
 
         bulletsData.push({ id: bullet.config.metadata.id, entity: bullet })
     }

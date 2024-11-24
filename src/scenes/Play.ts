@@ -1,10 +1,10 @@
 import { Scene } from '@/engine'
-import { LevelEntity } from '@/entities/Level'
+import { ProcessEntity } from '@/entities/Process'
 import { Stage1_1 } from '@/data/stages'
 
 export class PlayScene extends Scene {
     constructor() {
-        const level = LevelEntity.create(
+        const process = ProcessEntity.create(
             {
                 plantSlots: {
                     slotNum: 2,
@@ -34,7 +34,7 @@ export class PlayScene extends Scene {
         )
 
         super([
-            level,
+            process,
         ])
     }
 }
