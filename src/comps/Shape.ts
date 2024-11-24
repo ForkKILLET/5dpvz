@@ -1,29 +1,42 @@
 import { Position, Comp, Entity, CompSelector, CompCtor } from '@/engine'
-import { clamp, mapk, Pred } from '@/utils'
+import { clamp, mapk, PartialBy, Pred } from '@/utils'
 
 export type ShapeTag = 'boundary' | 'texture' | 'hitbox'
+
 export interface ShapeConfig {
-    tag?: ShapeTag
+    tag: ShapeTag
 }
 
-export abstract class ShapeComp<E extends Entity = Entity> extends Comp<E> {
-    public ctx: CanvasRenderingContext2D
+export interface ShapeState {}
 
-    tag: ShapeTag
+export class ShapeComp<
+    C extends ShapeConfig = ShapeConfig,
+    S extends ShapeState = ShapeState,
+    E extends Entity = Entity
+> extends Comp<C, S, E> {
+    constructor(entity: E, config: C, state: S) {
+        super(entity, config, state)
+        this.ctx = this.game.ctx
+    }
 
+    static create<M extends Comp>(
+        this: CompCtor<M>, entity: M['entity'], config: PartialBy<ShapeConfig, 'tag'>
+    ) {
+        return new this(entity, { tag: 'boundary', ...config }, {})
+    }
+
+    ctx: CanvasRenderingContext2D
+
+    get tag() {
+        return this.config.tag
+    }
     setTag(tag: ShapeTag) {
-        this.tag = tag
+        this.config.tag = tag
         return this
     }
 
     static withTag<C extends ShapeComp>(this: CompCtor<C>, tagPred: Pred<ShapeTag>): CompSelector<C> {
         return [ this, mapk('tag', tagPred) ]
-    }
-
-    constructor(entity: E, config: ShapeConfig) {
-        super(entity)
-        this.ctx = entity.game.ctx
-        this.tag = config.tag ?? 'boundary'
     }
 
     get position() {
@@ -34,10 +47,16 @@ export abstract class ShapeComp<E extends Entity = Entity> extends Comp<E> {
         return this.entity.state.scale ?? 1
     }
 
-    abstract contains(point: Position): boolean
-    abstract intersects(other: ShapeComp): boolean
-    abstract stroke(): void
-    abstract fill(): void
+    contains(point: Position) {
+        void point
+        return false
+    }
+    intersects(other: ShapeComp) {
+        void other
+        return false
+    }
+    stroke() {}
+    fill() {}
 }
 
 export interface AnyShapeConfig<E extends Entity> extends ShapeConfig {
@@ -47,14 +66,23 @@ export interface AnyShapeConfig<E extends Entity> extends ShapeConfig {
     fill: (this: E, ctx: CanvasRenderingContext2D) => void
 }
 
-export class AnyShape<E extends Entity = Entity> extends ShapeComp<E> {
-    config: AnyShapeConfig<E>
+export interface AnyShapeState extends ShapeState {}
 
-    constructor(entity: E, preConfig: Partial<AnyShapeConfig<E>>) {
-        super(entity, preConfig)
-        preConfig.contains ??= () => false
-        preConfig.intersects ??= () => false
-        this.config = preConfig as AnyShapeConfig<E>
+export class AnyShape<E extends Entity = Entity> extends ShapeComp<AnyShapeConfig<E>, AnyShapeState, E> {
+    static create<C extends Comp>(
+        this: CompCtor<C>,
+        entity: C['entity'],
+        config: PartialBy<AnyShapeConfig<C['entity']>, 'tag' | 'intersects' | 'fill' | 'stroke'>,
+    ) {
+        return super.create<C>(
+            entity,
+            {
+                intersects: () => false,
+                stroke: () => {},
+                fill: () => {},
+                ...config,
+            }
+        )
     }
 
     contains(point: Position) {
@@ -110,9 +138,14 @@ export interface RectP {
 
 export interface RectShapeConfig extends Size, OriginConfig, ShapeConfig {}
 
-export class RectShape extends ShapeComp {
-    constructor(entity: Entity, public config: RectShapeConfig) {
-        super(entity, config)
+export class RectShape extends ShapeComp<RectShapeConfig> {
+    static create<M extends Comp>(
+        this: CompCtor<M>,
+        entity: Entity,
+        config: PartialBy<RectShapeConfig, 'tag' | 'origin'>
+    ): M {
+        // TODO: use `super.create`
+        return new this(entity, { tag: 'boundary', origin: 'top-left', ...config }, {})
     }
 
     get rect(): Rect {
@@ -170,9 +203,9 @@ export class RectShape extends ShapeComp {
 }
 
 export class FullscreenShape extends RectShape {
-    constructor(entity: Entity) {
+    static create<M extends Comp>(this: CompCtor<M>, entity: M['entity']): M {
         const { width, height } = entity.game.ctx.canvas
-        super(entity, { width, height, origin: 'top-left' })
+        return super.create<M>(entity, { width, height })
     }
 }
 
@@ -184,9 +217,13 @@ export interface CircleConfig extends ShapeConfig {
     radius: number
 }
 
-export class CircleShape extends ShapeComp {
-    constructor(entity: Entity, public config: CircleConfig) {
-        super(entity, config)
+export class CircleShape extends ShapeComp<CircleConfig> {
+    static create<M extends Comp>(
+        this: CompCtor<M>,
+        entity: Entity,
+        config: PartialBy<CircleConfig, 'tag'>
+    ): M {
+        return new this(entity, { tag: 'boundary', ...config }, {})
     }
 
     get circle(): Circle {

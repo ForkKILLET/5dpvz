@@ -90,8 +90,8 @@ export const SunflowerEntity = definePlant(class SunflowerEntity extends PlantEn
                     .attachTo(level)
             }
         )
-        this.withComp(FilterComp, filter => {
-            filter.filters['nearProduce'] = sunProduceEta < 1000
+        this.withComp(FilterComp, ({ state: { filters } }) => {
+            filters['nearProduce'] = sunProduceEta < 1000
                 ? `brightness(${ 1.5 - 0.5 * sunProduceEta / 1000 })`
                 : null
         })

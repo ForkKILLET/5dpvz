@@ -29,7 +29,7 @@ export const PeaShooterEntity = definePlant(class PeaShooterEntity extends Plant
             .addComp(BulletShootingBehavior)
             .withComps([ ZombieSeekingBehavior, BulletShootingBehavior ], (seeking, shooting) => this
                 .addComp(PlantAttackBehavior, {
-                    cd: PeaShooterEntity.attackCd,
+                    maxCd: PeaShooterEntity.attackCd,
                     canAttack: () => seeking.seekZombies([ this.state.j ], 'front'),
                     attack: () => {
                         const { position: { x, y }, zIndex } = this.state

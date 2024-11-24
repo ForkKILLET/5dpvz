@@ -5,7 +5,7 @@ import {
     Emitter, Entity, Scene, Events,
     AudioManager, useAudioManager, ImageManager, useImageManager, Mouse, useMouse
 } from '@/engine'
-import { by, placeholder, remove } from '@/utils'
+import { by, eq, placeholder, remove } from '@/utils'
 import { Keyboard, KeyboardEvents, useKeyboard } from '@/engine/keyboard'
 import { loadDebugWindow } from '@/debug'
 
@@ -74,21 +74,21 @@ export class Game {
 
         let isCursorSet = false
         for (const entity of hoverableEntities) {
-            const shapeComp = entity.getComp([ ShapeComp, shape => shape.tag === 'boundary' ])!
+            const shapeComp = entity.getComp(ShapeComp.withTag(eq('boundary')))!
             const hoverableComp = entity.getComp(HoverableComp)!
 
             const hovering = ! this.hoveringEntity && shapeComp.contains(this.mouse.position)
             if (hovering) {
                 this.hoveringEntity = entity
                 entity.withComp(CursorComp, cursor => {
-                    this.ctx.canvas.style.cursor = cursor.cursor
+                    this.ctx.canvas.style.cursor = cursor.config.cursor
                     isCursorSet = true
                 })
             }
 
-            if (hoverableComp.hovering !== hovering) {
+            if (hoverableComp.state.hovering !== hovering) {
                 hoverableComp.emitter.emit(hovering ? 'mouseenter' : 'mouseleave')
-                hoverableComp.hovering = hovering
+                hoverableComp.state.hovering = hovering
             }
         }
 

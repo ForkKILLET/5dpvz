@@ -42,20 +42,20 @@ export class ZombieEntity<
 
         this
             .addComp(FilterComp)
-            .addComp(HealthComp, { hp: this.config.metadata.hp })
+            .addComp(HealthComp, this.config.metadata.hp)
             .addComp(DamageEffectComp)
-            .addComp(ContinuousDamagingComp, { damagePF: 1 })
+            .addComp(ContinuousDamagingComp, 1)
             .addComp(CollidableComp, {
                 groups: new Set([ 'zombies' ] as const),
                 targetGroups: new Set([ 'bullets', 'plants' ] as const),
                 onCollide: (target: Entity) => {
                     if (! PlantEntity.isPlant(target)) return
                     if (! this.state.eatingPlant) {
-                        this.withComp(ContinuousDamagingComp, damaging => {
-                            damaging.targets.add(target)
+                        this.withComp(ContinuousDamagingComp, ({ state: { targets } }) => {
+                            targets.add(target)
                             this.state.eatingPlant = target
                             target.on('dispose', () => {
-                                damaging.targets.delete(target)
+                                targets.delete(target)
                                 this.state.eatingPlant = null
                             })
                         })

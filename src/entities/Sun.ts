@@ -36,17 +36,17 @@ export class SunEntity extends TextureEntity<SunConfig, SunState, SunEvents> {
                         this.dispose()
                     })
                     .on('mouseenter', () => {
-                        this.withComp(FilterComp, ({ filters }) => {
+                        this.withComp(FilterComp, (({ state: { filters } }) => {
                             filters.hover = 'brightness(1.2)'
-                        })
+                        }))
                     })
                     .on('mouseleave', () => {
-                        this.withComp(FilterComp, ({ filters }) => {
-                            filters.hover = ''
-                        })
+                        this.withComp(FilterComp, (({ state: { filters } }) => {
+                            filters.hover = null
+                        }))
                     })
                     .on('before-render', () => {
-                        this.withComp(LifeComp, ({ life }) => {
+                        this.withComp(LifeComp, ({ state: { life } }) => {
                             this.game.ctx.globalAlpha = life < 3000
                                 ? 0.5 + 0.25 * Math.cos(2 * Math.PI * life / 1000)
                                 : 0.75

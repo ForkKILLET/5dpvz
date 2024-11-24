@@ -1,19 +1,27 @@
-import { Comp, Emitter, Entity, Events } from '@/engine'
+import { Comp, CompCtor, Emitter, Entity, Events } from '@/engine'
 
 export interface LifeEvents extends Events {
     expire: []
 }
 
-export class LifeComp extends Comp {
-    constructor(entity: Entity, public life: number) {
-        super(entity)
+export interface LifeConfig {
+    maxLife: number
+}
+
+export interface LifeState {
+    life: number
+}
+
+export class LifeComp extends Comp<LifeConfig, LifeState> {
+    static create<M extends Comp>(this: CompCtor<M>, entity: Entity, maxLife: number) {
+        return new this(entity, { maxLife }, { life: maxLife })
     }
 
     emitter = new Emitter<LifeEvents>()
 
     update() {
-        this.life -= this.entity.game.mspf
-        if (this.life <= 0) {
+        this.state.life -= this.entity.game.mspf
+        if (this.state.life <= 0) {
             this.entity.dispose()
             this.emitter.emit('expire')
         }

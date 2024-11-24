@@ -1,4 +1,4 @@
-import { Comp, Emitter, Entity, Events } from '@/engine'
+import { Comp, CompCtor, Emitter, Entity, Events } from '@/engine'
 import { FilterComp } from '@/comps/Filter'
 
 export interface HealthEvents extends Events {
@@ -7,52 +7,66 @@ export interface HealthEvents extends Events {
 }
 
 export interface HealthConfig {
+    maxHp: number
+}
+
+export interface HealthState {
     hp: number
 }
 
-export class HealthComp<E extends Entity = Entity> extends Comp<E> {
-    constructor(entity: E, public config: HealthConfig) {
-        super(entity)
-    }
-
+export class HealthComp<E extends Entity = Entity> extends Comp<HealthConfig, HealthState, E> {
     emitter = new Emitter<HealthEvents>()
 
+    static create<M extends Comp>(this: CompCtor<M>, entity: M['entity'], maxHp: number) {
+        return new this(entity, { maxHp }, { hp: maxHp })
+    }
+
     takeDamage(damage: number) {
-        this.config.hp -= damage
+        this.config.maxHp -= damage
         this.emitter.emit('takeDamage', damage)
-        if (this.config.hp <= 0) {
+        if (this.config.maxHp <= 0) {
             this.emitter.emit('die')
             this.entity.dispose()
         }
     }
 }
 
-export class DamageEffectComp<E extends Entity = Entity> extends Comp<E> {
+export interface DamageEffectConfig {
+    duration: number
+}
+
+export interface DamageEffectState {
+    damageEffectTimer: number
+}
+
+export class DamageEffectComp extends Comp<DamageEffectConfig, DamageEffectState> {
     static readonly dependencies = [ HealthComp, FilterComp ]
 
     static readonly damageEffectDuration = 200
 
-    damageEffectTimer = 0
+    constructor(entity: Entity, config: DamageEffectConfig, state: DamageEffectState) {
+        super(entity, config, state)
 
-    constructor(entity: E) {
-        super(entity)
         entity.withComps([ HealthComp, FilterComp ], (health, filter) => {
             health.emitter.on('takeDamage', () => {
-                // TODO: state API & timer API
-                this.damageEffectTimer = DamageEffectComp.damageEffectDuration
-                filter.filters.damageEffect = 'brightness(1.2)'
+                this.state.damageEffectTimer = 0
+                filter.state.filters.damageEffect = 'brightness(1.2)'
             })
         })
     }
 
+    static create<M extends Comp>(this: CompCtor<M>, entity: M['entity'], duration = 100): M {
+        return new this(entity, { duration }, {})
+    }
+
     update() {
-        if (this.damageEffectTimer) this.damageEffectTimer -= this.entity.game.mspf
-        if (this.damageEffectTimer <= 0) {
-            this.damageEffectTimer = 0
-            this.entity.withComp(FilterComp, filter => {
-                filter.filters.damageEffect = null
+        this.updateTimer(
+            'damageEffectTimer',
+            { interval: this.config.duration, once: true },
+            () => this.entity.withComp(FilterComp, filter => {
+                filter.state.filters.damageEffect = null
             })
-        }
+        )
     }
 }
 
@@ -60,17 +74,19 @@ export interface ContinuousDamagingConfig {
     damagePF: number
 }
 
-export class ContinuousDamagingComp<E extends Entity = Entity> extends Comp<E> {
-    targets: Set<Entity> = new Set()
+export interface ContinuousDamagingState {
+    targets: Set<Entity>
+}
 
-    constructor(entity: E, public config: ContinuousDamagingConfig) {
-        super(entity)
+export class ContinuousDamagingComp extends Comp<ContinuousDamagingConfig, ContinuousDamagingState> {
+    static create<M extends Comp>(this: CompCtor<M>, entity: Entity, damagePF: number) {
+        return new this(entity, { damagePF }, { targets: new Set() })
     }
 
     update() {
-        this.targets.forEach(target => target
-            .withComp(HealthComp, health => health.takeDamage(this.config.damagePF))
-        )
+        this.state.targets.forEach(target => {
+            target.withComp(HealthComp, health => health.takeDamage(this.config.damagePF))
+        })
     }
 }
 

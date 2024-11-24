@@ -40,15 +40,15 @@ export class PlantEntity<
             })
             .addComp(HoverableComp)
             .addComp(FilterComp)
-            .addComp(HealthComp, { hp: this.config.metadata.hp })
+            .addComp(HealthComp, this.config.metadata.hp)
             .addComp(DamageEffectComp)
-            .withComps([ HoverableComp, FilterComp ], ({ emitter }, filterComp) => {
+            .withComps([ HoverableComp, FilterComp ], ({ emitter }, { state: { filters } }) => {
                 emitter.on('mouseenter', () => {
                     if (this.inject(kLevel)!.state.holdingObject?.type === 'shovel')
-                        filterComp.filters.onShovel = 'brightness(1.2)'
+                        filters.onShovel = 'brightness(1.2)'
                 })
                 emitter.on('mouseleave', () => {
-                    filterComp.filters.onShovel = null
+                    filters.onShovel = null
                 })
             })
     }

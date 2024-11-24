@@ -1,4 +1,8 @@
-import { createIdGenerator, Game, Position, Emitter, Events, positionAdd, ListenerOptions } from '@/engine'
+import {
+    createIdGenerator, Position, positionAdd,
+    Emitter, Events, ListenerOptions,
+    State, Comp, CompCtor, CompSelector
+} from '@/engine'
 import { Disposer, remove, RemoveIndex } from '@/utils'
 
 export interface EntityState {
@@ -20,48 +24,18 @@ export interface EntityEvents extends Events {
 export type InjectKey<T> = symbol & { __injectType: T }
 export const injectKey = <T>(description: string) => Symbol(description) as InjectKey<T>
 
-export class Comp<E extends Entity = Entity> {
-    static readonly dependencies: CompSelector<any>[] = []
-
-    static selector = <C extends Comp>(
-        Comp: CompCtor<C>, filter: (comp: C) => boolean
-    ): CompSelector<C> => [ Comp, filter ]
-
-    static runSelector = <C extends Comp>(Comp: CompSelector<C>) => {
-        return (comp: Comp): comp is C => {
-            if (typeof Comp === 'function') return comp instanceof Comp
-            return comp instanceof Comp[0] && Comp[1](comp)
-        }
-    }
-
-    static getCtorFromSelector = <C extends Comp>(Comp: CompSelector<C>) => {
-        return typeof Comp === 'function' ? Comp : Comp[0]
-    }
-
-    constructor(public readonly entity: E) {}
-
-    update() {}
-    frozenUpdate() {}
-}
-export type CompCtor<C extends Comp = Comp> =
-    | (new (...args: any[]) => C)
-    | (abstract new (...args: any[]) => C)
-export type CompSelector<C extends Comp = any> =
-    | CompCtor<C>
-    | [ Comp: CompCtor<C>, filter: (comp: C) => boolean ]
-
 export class Entity<
     C = any,
     S extends EntityState = EntityState,
     V extends EntityEvents = EntityEvents
-> {
+> extends State<S> {
     static generateEntityId = createIdGenerator()
 
     readonly id = Entity.generateEntityId()
 
-    readonly game = Game.defaultGame
-
-    constructor(public config: C, public state: S) {}
+    constructor(public config: C, state: S) {
+        super(state)
+    }
 
     active = true
     get deepActive(): boolean {
@@ -217,31 +191,34 @@ export class Entity<
         else this.afterStart(_addComp, this.startedToStart)
         return this
     }
-    addComp<A extends any[], C extends Comp>(Comp: new (entity: this, ...args: A) => C, ...args: A) {
-        return this.addCompRaw(new Comp(this, ...args))
+    addComp<A extends any[], M extends Comp>(
+        Comp: { create: (entity: M['entity'], ...args: A) => M },
+        ...args: A
+    ) {
+        return this.addCompRaw(Comp.create(this, ...args))
     }
-    removeComp<C extends Comp>(sel: CompSelector<C>) {
+    removeComp<M extends Comp>(sel: CompSelector<M>) {
         return this.afterStart(() => {
             this.comps = this.comps.filter(Comp.runSelector(sel))
         })
     }
-    getComp<C extends Comp>(sel: CompSelector<C>): C | undefined {
+    getComp<M extends Comp>(sel: CompSelector<M>): M | undefined {
         return this.comps.find(Comp.runSelector(sel))
     }
-    withComp<C extends Comp>(Comp: CompSelector<C>, fn: (comp: C) => void) {
+    withComp<M extends Comp>(Comp: CompSelector<M>, fn: (comp: M) => void) {
         return this.afterStart(() => {
             const comp = this.getComp(Comp)
             if (comp) fn(comp)
         })
     }
-    withComps<const Cs extends Comp[]>(Comps: { [I in keyof Cs]: CompSelector<Cs[I]> }, fn: (...comps: Cs) => void) {
+    withComps<const Ms extends Comp[]>(Comps: { [I in keyof Ms]: CompSelector<Ms[I]> }, fn: (...comps: Ms) => void) {
         return this.afterStart(() => {
             const comps = Comps.map(this.getComp.bind(this))
-            if (comps.every(comp => comp)) fn(...comps as Cs)
+            if (comps.every(comp => comp)) fn(...comps as Ms)
         })
     }
-    getComps<C extends Comp>(Comp: CompCtor<C>): C[] {
-        return this.comps.filter((comp): comp is C => comp instanceof Comp)
+    getComps<M extends Comp>(Comp: CompCtor<M>): M[] {
+        return this.comps.filter((comp): comp is M => comp instanceof Comp)
     }
 
     runRender() {
@@ -321,24 +298,6 @@ export class Entity<
         return this
     }
 
-    updateTimer<K extends keyof S>(
-        timerName: K,
-        { interval, once = false }: { interval: number, once?: boolean },
-        onTimer: () => void
-    ) {
-        let timer = this.state[timerName] as number
-        if (timer === interval && once) return 0
-
-        timer += this.game.mspf
-        if (timer > interval) {
-            if (! once) timer -= interval
-            else timer = interval
-            onTimer()
-        }
-
-        (this.state[timerName] as number) = timer
-        return interval - timer
-    }
     updatePosition(delta: Position) {
         this.emit('position-update', delta)
         this.state.position = positionAdd(this.state.position, delta)

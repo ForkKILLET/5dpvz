@@ -13,5 +13,5 @@ export const PeaEntity = defineBullet(class PeaEntity extends BulletEntity<PeaSt
     static readonly animes = {
         common: { fpaf: 8, frameNum: 1 },
     }
-    static readonly shapeFactory = (entity: Entity) => new CircleShape(entity, { radius: 9 })
+    static readonly shapeFactory = (entity: Entity) => CircleShape.create(entity, { radius: 9 })
 })
