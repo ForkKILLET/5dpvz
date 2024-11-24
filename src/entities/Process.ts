@@ -17,7 +17,7 @@ import { BulletId } from '@/data/bullets'
 import { BulletEntity } from '@/entities/bullets/Bullet'
 import { RectShape } from '@/comps/Shape'
 import { TextureEntity } from './Texture'
-import { RandomComp } from '@/utils/rng'
+import { RngComp } from '@/utils/rng'
 
 export interface ProcessConfig {
     plantSlots: PlantSlotsConfig
@@ -84,6 +84,7 @@ export interface ProcessUniqueState {
     wave: number
     waveZombieInitHP: number
 
+    paused: boolean
     finished: boolean
 }
 export interface ProcessState extends ProcessUniqueState, EntityState {}
@@ -95,18 +96,24 @@ export const kProcess = injectKey<ProcessEntity>('kProcess')
 export class ProcessEntity extends Entity<ProcessConfig, ProcessState, ProcessEvents> {
     static initState = <S>(state: S): S & ProcessUniqueState => ({
         ...state,
+
         sun: 0,
         sunDropTimer: 0,
+
         plantSlotsData: [],
         holdingObject: null,
         plantsData: [],
         plantsOnBlocks: placeholder,
+
         sunsData: [],
         zombiesData: [],
         bulletsData: [],
+
         waveTimer: 0,
         wave: 0,
         waveZombieInitHP: 0,
+
+        paused: false,
         finished: false,
     })
     private bgmPlayBack: AudioPlayback = placeholder
@@ -151,7 +158,7 @@ export class ProcessEntity extends Entity<ProcessConfig, ProcessState, ProcessEv
         this.width = 10 + config.lawn.width * 80
         this.height = 150 + config.lawn.height * 80
         this.addComp(RectShape, { width: this.width, height: this.height, origin: 'top-left' })
-        this.addComp(RandomComp, random(2 ** 32))
+        this.addComp(RngComp, random(2 ** 32))
 
         this.provide(kProcess, this)
 
@@ -273,14 +280,14 @@ export class ProcessEntity extends Entity<ProcessConfig, ProcessState, ProcessEv
         })
 
         const pause = () => {
-            this.freeze()
+            this.state.paused = true
             this.bgmPlayBack?.toggleEffect()
             pauseButton.deactivate()
             resumeButton.activate()
         }
 
         const resume = () => {
-            this.unfreeze()
+            this.state.paused = false
             this.bgmPlayBack?.toggleEffect()
             resumeButton.deactivate()
             pauseButton.activate()
@@ -288,7 +295,7 @@ export class ProcessEntity extends Entity<ProcessConfig, ProcessState, ProcessEv
 
         this.game.emitter.on('keydown', (ev: KeyboardEvent) => {
             if (ev.key === 'Escape') {
-                if (this.frozen) resume()
+                if (this.state.paused) resume()
                 else pause()
             }
         })
@@ -395,9 +402,10 @@ export class ProcessEntity extends Entity<ProcessConfig, ProcessState, ProcessEv
 
     dropSun() {
         const { x: x0, y: y0 } = this.lawn.state.position
-        const x = x0 + this.getComp(RandomComp)!.random((this.config.lawn.width - 1) * 80)
-        const y = y0 + this.getComp(RandomComp)!.random(1 * 80)
-        const deltaY = this.getComp(RandomComp)!.random(1 * 80, (this.config.lawn.height - 2) * 80)
+        const rng = this.getComp(RngComp)!
+        const x = x0 + rng.random((this.config.lawn.width - 1) * 80)
+        const y = y0 + rng.random(1 * 80)
+        const deltaY = rng.random(1 * 80, (this.config.lawn.height - 2) * 80)
         const targetY = y + deltaY
         const life = deltaY / this.config.sun.sunDroppingVelocity + 4000
 
@@ -430,7 +438,7 @@ export class ProcessEntity extends Entity<ProcessConfig, ProcessState, ProcessEv
 
     getZombieSpawningRow(zombieId: ZombieId) {
         void zombieId
-        return this.getComp(RandomComp)!.random(this.lawn.config.height)
+        return this.getComp(RngComp)!.random(this.lawn.config.height)
     }
 
     nextWave() {
@@ -439,7 +447,7 @@ export class ProcessEntity extends Entity<ProcessConfig, ProcessState, ProcessEv
         const zombieList: ZombieId[] = replicateBy(currentWave.zombieCount, () => {
             const probs = currentWave.zombieProbs
             const total = sum(Object.values(probs))
-            const rand = this.getComp(RandomComp)!.random(total)
+            const rand = this.getComp(RngComp)!.random(total)
             let acc = 0
             for (const [ zombieId, prob ] of Object.entries(probs)) {
                 acc += prob
@@ -500,7 +508,7 @@ export class ProcessEntity extends Entity<ProcessConfig, ProcessState, ProcessEv
         alert('lose')
     }
 
-    frozenUpdate() {
+    updateWhenPaused() {
         if (this.holdingImage) {
             const { x, y } = this.game.mouse.position
             this.holdingImage.updatePositionTo({ x: x - 40, y: y - 40 })
@@ -508,6 +516,9 @@ export class ProcessEntity extends Entity<ProcessConfig, ProcessState, ProcessEv
     }
 
     update() {
+        this.updateWhenPaused()
+        if (this.state.paused) return
+
         if (! this.state.finished) {
             if (this.config.stage.hasWon(this)) {
                 this.state.finished = true
@@ -532,8 +543,13 @@ export class ProcessEntity extends Entity<ProcessConfig, ProcessState, ProcessEv
         return this.state
     }
 
+    postUpdate() {
+        if (this.state.paused) return
+        super.postUpdate()
+    }
+
     preRender() {
-        if (this.frozen) this.addRenderJob(() => {
+        if (this.state.paused) this.addRenderJob(() => {
             const { ctx } = this.game
             const { x, y } = this.state.position
             ctx.fillStyle = 'rgba(0, 32, 255, .3)'

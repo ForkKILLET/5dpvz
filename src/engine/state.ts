@@ -23,4 +23,8 @@ export class State<S> {
         (this.state[timerName] as number) = timer
         return interval - timer
     }
+
+    cloneState(): S {
+        return structuredClone(this.state)
+    }
 }

@@ -350,7 +350,6 @@ export const loadDebugWindow = (game: Game) => {
     const getEntityAttrs = (entity: Entity) => {
         return [
             game.hoveringEntity === entity ? 'hovering' : null,
-            entity.frozen && 'frozen',
             ! entity.started && 'unstarted',
         ].filter(c => c)
     }

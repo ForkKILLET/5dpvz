@@ -43,12 +43,16 @@ export class Entity<
     }
     activate() {
         this.active = true
+        this.emitter.activate()
         this.game.emitter.emit('entityActivate', this)
         return this
     }
     deactivate() {
         this.active = false
-        this.game.emitter.emit('entityDeactivate', this)
+        this.afterStart(() => {
+            this.emitter.deactivate()
+            this.game.emitter.emit('entityDeactivate', this)
+        })
         return this
     }
 
@@ -245,36 +249,16 @@ export class Entity<
     }
     render() {}
 
-    frozen = false
-    unfreezable = false
-    get deepFrozen(): boolean {
-        return ! this.unfreezable
-            && (this.frozen || (this.superEntity?.deepFrozen ?? false))
-    }
-    setUnfreezable() {
-        this.unfreezable = true
-        return this
-    }
-    freeze() {
-        if (! this.unfreezable) this.frozen = true
-        return this
-    }
-    unfreeze() {
-        this.frozen = false
-        return this
-    }
-
     runUpdate() {
         if (! this.active || this.disposed) return
-        this.frozenUpdate()
-        this.comps.forEach(comp => comp.frozenUpdate())
-        this.attachedEntities.forEach(entity => entity.runUpdate())
-        if (this.deepFrozen) return
         this.update()
+        this.postUpdate()
+    }
+    postUpdate() {
+        this.attachedEntities.forEach(entity => entity.runUpdate())
         this.comps.forEach(comp => comp.update())
     }
     update() {}
-    frozenUpdate() {}
 
     protected emitter = new Emitter<V>()
     emit<K extends keyof RemoveIndex<V>>(event: K, ...args: V[K]) {
@@ -309,6 +293,14 @@ export class Entity<
             x: x - this.state.position.x,
             y: y - this.state.position.y,
         })
+    }
+
+    cloneEntity(): Entity<C, S, V> {
+        const Ctor = this.constructor as EntityCtor<Entity<C, S, V>>
+        const clone = new Ctor(this.config, this.cloneState())
+        this.comps.forEach(comp => clone.addCompRaw(comp.cloneComp(clone)))
+        this.attachedEntities.map(entity => clone.attach(entity.cloneEntity()))
+        return clone
     }
 }
 

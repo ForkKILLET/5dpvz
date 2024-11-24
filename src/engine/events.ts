@@ -9,6 +9,14 @@ export interface ListenerOptions {
 }
 
 export class Emitter<V extends Events> {
+    private active = true
+    activate() {
+        this.active = true
+    }
+    deactivate() {
+        this.active = false
+    }
+
     listeners: Partial<{
         [K in keyof V]: {
             normal: Listener<V, K>[]
@@ -17,6 +25,8 @@ export class Emitter<V extends Events> {
     }> = {}
 
     emit<K extends keyof RemoveIndex<V>>(event: K, ...args: V[K]) {
+        if (! this.active) return
+
         const listeners = this.listeners[event]
         if (! listeners) return
         for (const listener of listeners.capture)

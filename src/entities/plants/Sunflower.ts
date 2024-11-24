@@ -6,7 +6,7 @@ import { FilterComp } from '@/comps/Filter'
 import { UpdaterComp } from '@/comps/Updater'
 import { StrictOmit } from '@/utils'
 import { PLANTS } from '@/data/plants'
-import { RandomComp } from '@/utils/rng'
+import { RngComp } from '@/utils/rng'
 
 void PLANTS
 
@@ -45,15 +45,16 @@ export const SunflowerEntity = definePlant(class SunflowerEntity extends PlantEn
             () => {
                 const process = this.inject(kProcess)!
 
+                const rng = process.getComp(RngComp)!
                 const { x: x0, y: y0 } = this.state.position
-                const startOffsetX = process.getComp(RandomComp)!.random(- 5, + 5)
+                const startOffsetX = rng.random(- 5, + 5)
                 const startX = x0 + 40 + startOffsetX
-                const startY = y0 + 40 + process.getComp(RandomComp)!.random(- 5, + 5)
+                const startY = y0 + 40 + rng.random(- 5, + 5)
 
                 const symbolX = Math.sign(startOffsetX)
-                const topDeltaX = process.getComp(RandomComp)!.random(5, 20)
-                const topDeltaY = - process.getComp(RandomComp)!.random(40, 50)
-                const targetDeltaY = process.getComp(RandomComp)!.random(5, 20)
+                const topDeltaX = rng.random(5, 20)
+                const topDeltaY = - rng.random(40, 50)
+                const targetDeltaY = rng.random(5, 20)
                 const a = - topDeltaY / topDeltaX ** 2
                 const targetDeltaX = Math.sqrt((targetDeltaY - topDeltaY) / a)
                 const deltaX = topDeltaX + targetDeltaX
