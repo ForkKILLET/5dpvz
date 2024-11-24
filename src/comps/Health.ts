@@ -22,9 +22,9 @@ export class HealthComp<E extends Entity = Entity> extends Comp<HealthConfig, He
     }
 
     takeDamage(damage: number) {
-        this.config.maxHp -= damage
+        this.state.hp -= damage
         this.emitter.emit('takeDamage', damage)
-        if (this.config.maxHp <= 0) {
+        if (this.state.hp <= 0) {
             this.emitter.emit('die')
             this.entity.dispose()
         }
