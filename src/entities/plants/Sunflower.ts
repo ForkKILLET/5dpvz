@@ -4,8 +4,9 @@ import { kProcess } from '@/entities/Process'
 import { SunEntity } from '@/entities/Sun'
 import { FilterComp } from '@/comps/Filter'
 import { UpdaterComp } from '@/comps/Updater'
-import { random, StrictOmit } from '@/utils'
+import { StrictOmit } from '@/utils'
 import { PLANTS } from '@/data/plants'
+import { RandomComp } from '@/utils/rng'
 
 void PLANTS
 
@@ -45,14 +46,14 @@ export const SunflowerEntity = definePlant(class SunflowerEntity extends PlantEn
                 const process = this.inject(kProcess)!
 
                 const { x: x0, y: y0 } = this.state.position
-                const startOffsetX = random(- 5, + 5)
+                const startOffsetX = process.getComp(RandomComp)!.random(- 5, + 5)
                 const startX = x0 + 40 + startOffsetX
-                const startY = y0 + 40 + random(- 5, + 5)
+                const startY = y0 + 40 + process.getComp(RandomComp)!.random(- 5, + 5)
 
                 const symbolX = Math.sign(startOffsetX)
-                const topDeltaX = random(5, 20)
-                const topDeltaY = - random(40, 50)
-                const targetDeltaY = random(5, 20)
+                const topDeltaX = process.getComp(RandomComp)!.random(5, 20)
+                const topDeltaY = - process.getComp(RandomComp)!.random(40, 50)
+                const targetDeltaY = process.getComp(RandomComp)!.random(5, 20)
                 const a = - topDeltaY / topDeltaX ** 2
                 const targetDeltaX = Math.sqrt((targetDeltaY - topDeltaY) / a)
                 const deltaX = topDeltaX + targetDeltaX

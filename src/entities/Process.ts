@@ -17,6 +17,7 @@ import { BulletId } from '@/data/bullets'
 import { BulletEntity } from '@/entities/bullets/Bullet'
 import { RectShape } from '@/comps/Shape'
 import { TextureEntity } from './Texture'
+import { RandomComp } from '@/utils/rng'
 
 export interface ProcessConfig {
     plantSlots: PlantSlotsConfig
@@ -150,6 +151,7 @@ export class ProcessEntity extends Entity<ProcessConfig, ProcessState, ProcessEv
         this.width = 10 + config.lawn.width * 80
         this.height = 150 + config.lawn.height * 80
         this.addComp(RectShape, { width: this.width, height: this.height, origin: 'top-left' })
+        this.addComp(RandomComp, random(2 ** 32))
 
         this.provide(kProcess, this)
 
@@ -393,9 +395,9 @@ export class ProcessEntity extends Entity<ProcessConfig, ProcessState, ProcessEv
 
     dropSun() {
         const { x: x0, y: y0 } = this.lawn.state.position
-        const x = x0 + random((this.config.lawn.width - 1) * 80)
-        const y = y0 + random(1 * 80)
-        const deltaY = random(1 * 80, (this.config.lawn.height - 2) * 80)
+        const x = x0 + this.getComp(RandomComp)!.random((this.config.lawn.width - 1) * 80)
+        const y = y0 + this.getComp(RandomComp)!.random(1 * 80)
+        const deltaY = this.getComp(RandomComp)!.random(1 * 80, (this.config.lawn.height - 2) * 80)
         const targetY = y + deltaY
         const life = deltaY / this.config.sun.sunDroppingVelocity + 4000
 
@@ -428,7 +430,7 @@ export class ProcessEntity extends Entity<ProcessConfig, ProcessState, ProcessEv
 
     getZombieSpawningRow(zombieId: ZombieId) {
         void zombieId
-        return random(this.lawn.config.height)
+        return this.getComp(RandomComp)!.random(this.lawn.config.height)
     }
 
     nextWave() {
@@ -437,7 +439,7 @@ export class ProcessEntity extends Entity<ProcessConfig, ProcessState, ProcessEv
         const zombieList: ZombieId[] = replicateBy(currentWave.zombieCount, () => {
             const probs = currentWave.zombieProbs
             const total = sum(Object.values(probs))
-            const rand = random(total)
+            const rand = this.getComp(RandomComp)!.random(total)
             let acc = 0
             for (const [ zombieId, prob ] of Object.entries(probs)) {
                 acc += prob
