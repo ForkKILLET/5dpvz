@@ -4,7 +4,7 @@ import { kProcess } from '@/entities/Process'
 import { SunEntity } from '@/entities/Sun'
 import { FilterComp } from '@/comps/Filter'
 import { UpdaterComp } from '@/comps/Updater'
-import { StrictOmit } from '@/utils'
+import { placeholder, StrictOmit } from '@/utils'
 import { PLANTS } from '@/data/plants'
 import { RngComp } from '@/utils/rng'
 
@@ -13,7 +13,13 @@ void PLANTS
 export interface SunflowerUniqueState {
     sunProduceTimer: number
 }
-export interface SunflowerState extends SunflowerUniqueState, PlantState {}
+export interface SunflowerState extends SunflowerUniqueState, PlantState {
+    sunProduceTransition: {
+        f: number
+        x: number
+        y: number
+    }
+}
 
 export interface SunflowerEvents extends PlantEvents {}
 
@@ -29,9 +35,13 @@ export const SunflowerEntity = definePlant(class SunflowerEntity extends PlantEn
     }
     static readonly sunProduceInterval = 15000
 
-    constructor(config: PlantConfig, state: StrictOmit<SunflowerState, 'sunProduceTimer'>) {
+    constructor(
+        config: PlantConfig,
+        state: StrictOmit<SunflowerState, 'sunProduceTimer' | 'sunProduceTransition'>
+    ) {
         super(config, {
             sunProduceTimer: 0,
+            sunProduceTransition: placeholder,
             ...state,
         })
     }
@@ -44,8 +54,9 @@ export const SunflowerEntity = definePlant(class SunflowerEntity extends PlantEn
             { interval: SunflowerEntity.sunProduceInterval },
             () => {
                 const process = this.inject(kProcess)!
-
                 const rng = process.getComp(RngComp)!
+
+                // TODO: extract to movement helper
                 const { x: x0, y: y0 } = this.state.position
                 const startOffsetX = rng.random(- 5, + 5)
                 const startX = x0 + 40 + startOffsetX
@@ -63,10 +74,11 @@ export const SunflowerEntity = definePlant(class SunflowerEntity extends PlantEn
                 const totalF = Math.round(totalT / this.game.mspf)
                 const stepX = deltaX / totalF
 
-                // TODO: closure to state
-                let f = 0
-                let x = - topDeltaX
-                let y = - topDeltaY
+                this.state.sunProduceTransition = {
+                    f: 0,
+                    x: - topDeltaX,
+                    y: - topDeltaY,
+                }
 
                 SunEntity
                     .createSun(
@@ -80,21 +92,22 @@ export const SunflowerEntity = definePlant(class SunflowerEntity extends PlantEn
                         }
                     )
                     .addComp(UpdaterComp, entity => {
-                        if (f === totalF) return
-                        f ++
-                        const newX = x + stepX
+                        const trans = this.state.sunProduceTransition
+                        if (trans.f === totalF) return
+                        trans.f ++
+                        const newX = trans.x + stepX
                         const newY = a * newX ** 2
-                        const delta = { x: symbolX * (newX - x), y: newY - y }
-                        x = newX
-                        y = newY
+                        const delta = { x: symbolX * (newX - trans.x), y: newY - trans.y }
+                        trans.x = newX
+                        trans.y = newY
                         entity.updatePosition(delta)
-                        entity.state.scale = easeOutExpo(f / totalF)
+                        entity.state.scale = easeOutExpo(trans.f / totalF)
                     })
                     .attachTo(process)
             }
         )
         this.withComp(FilterComp, ({ state: { filters } }) => {
-            filters['nearProduce'] = sunProduceEta < 1000
+            filters.nearProduce = sunProduceEta < 1000
                 ? `brightness(${ 1.5 - 0.5 * sunProduceEta / 1000 })`
                 : null
         })
