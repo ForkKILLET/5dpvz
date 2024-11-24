@@ -1,4 +1,4 @@
-import { Entity, State } from '@/engine'
+import { Entity, EntityCloneMap, State } from '@/engine'
 
 export class Comp<C = any, S = any, E extends Entity = Entity> extends State<S> {
     static readonly dependencies: CompSelector<any>[] = []
@@ -28,9 +28,9 @@ export class Comp<C = any, S = any, E extends Entity = Entity> extends State<S> 
 
     update() {}
 
-    cloneComp(targetEntity: E): Comp<C, S, E> {
+    cloneComp(entityMap: EntityCloneMap, targetEntity: E): Comp<C, S, E> {
         const Ctor = this.constructor as CompCtor<Comp<C, S, E>>
-        return new Ctor(targetEntity, this.config, this.cloneState())
+        return new Ctor(targetEntity, this.config, this.cloneState(entityMap))
     }
 }
 

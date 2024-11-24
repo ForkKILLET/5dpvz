@@ -1,4 +1,5 @@
-import { Game } from '@/engine'
+import { Entity, Game } from '@/engine'
+import { isPrimitive } from '@/utils'
 
 export class State<S> {
     constructor(public state: S) {}
@@ -24,7 +25,16 @@ export class State<S> {
         return interval - timer
     }
 
-    cloneState(): S {
-        return structuredClone(this.state)
+    cloneState(entityMap: Map<number, Entity>): S {
+        const _cloneState = <T>(state: T): T => {
+            if (isPrimitive(state)) return state
+            if (state instanceof Array) return state.map(_cloneState) as T
+            if (state instanceof Set) return new Set(Array.from(state).map(_cloneState)) as T
+            if (state instanceof Entity) return entityMap.get(state.id) as T
+            return Object.fromEntries(
+                Object.entries(state as {}).map(([ k, v ]) => [ k, _cloneState(v) ])
+            ) as T
+        }
+        return _cloneState(this.state)
     }
 }

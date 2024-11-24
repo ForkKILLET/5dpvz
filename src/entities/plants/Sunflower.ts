@@ -6,7 +6,7 @@ import { FilterComp } from '@/comps/Filter'
 import { UpdaterComp } from '@/comps/Updater'
 import { placeholder, StrictOmit } from '@/utils'
 import { PLANTS } from '@/data/plants'
-import { RngComp } from '@/utils/rng'
+import { RngComp } from '@/comps/Rng'
 
 void PLANTS
 

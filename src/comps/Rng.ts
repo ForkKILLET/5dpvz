@@ -1,6 +1,4 @@
-import { Comp, CompCtor, EntityEvents } from '@/engine'
-
-export interface RandomEvents extends EntityEvents {}
+import { Comp, CompCtor } from '@/engine'
 
 export interface RandomConfig {}
 

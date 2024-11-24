@@ -24,6 +24,8 @@ export interface EntityEvents extends Events {
 export type InjectKey<T> = symbol & { __injectType: T }
 export const injectKey = <T>(description: string) => Symbol(description) as InjectKey<T>
 
+export type EntityCloneMap = Map<number, Entity>
+
 export class Entity<
     C = any,
     S extends EntityState = EntityState,
@@ -31,11 +33,11 @@ export class Entity<
 > extends State<S> {
     static generateEntityId = createIdGenerator()
 
-    readonly id = Entity.generateEntityId()
-
     constructor(public config: C, state: S) {
         super(state)
     }
+
+    readonly id = Entity.generateEntityId()
 
     active = true
     get deepActive(): boolean {
@@ -295,12 +297,14 @@ export class Entity<
         })
     }
 
-    cloneEntity(): Entity<C, S, V> {
+    cloneEntity(entityMap: EntityCloneMap = new Map): Entity<C, S, V> {
         const Ctor = this.constructor as EntityCtor<Entity<C, S, V>>
-        const clone = new Ctor(this.config, this.cloneState())
-        this.comps.forEach(comp => clone.addCompRaw(comp.cloneComp(clone)))
-        this.attachedEntities.map(entity => clone.attach(entity.cloneEntity()))
-        return clone
+        const newAttachedEntitie = this.attachedEntities.map(entity => entity.cloneEntity(entityMap))
+        const newEntity = new Ctor(this.config, this.cloneState(entityMap))
+        newEntity.attach(...newAttachedEntitie)
+        this.comps.forEach(comp => newEntity.addCompRaw(comp.cloneComp(entityMap, newEntity)))
+        entityMap.set(this.id, newEntity)
+        return newEntity
     }
 }
 

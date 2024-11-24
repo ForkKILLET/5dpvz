@@ -1,10 +1,9 @@
-import { CursorComp } from '@/comps/Cursor'
 import { UpdaterComp } from '@/comps/Updater'
 import { PLANTS, plantTextures, PlantId, PlantMetadata } from '@/data/plants'
 import { shovelTextures, ShovelId } from '@/data/shovels'
 import { StageData } from '@/data/stages'
 import { ZombieId } from '@/data/zombies'
-import { AudioPlayback, Entity, EntityEvents, EntityState, injectKey } from '@/engine'
+import { Entity, EntityEvents, EntityState, injectKey } from '@/engine'
 import { LawnConfig, LawnEntity } from '@/entities/Lawn'
 import { LawnBlockEntity } from '@/entities/LawnBlock'
 import { PlantEntity } from '@/entities/plants/Plant'
@@ -17,7 +16,7 @@ import { BulletId } from '@/data/bullets'
 import { BulletEntity } from '@/entities/bullets/Bullet'
 import { RectShape } from '@/comps/Shape'
 import { TextureEntity } from './Texture'
-import { RngComp } from '@/utils/rng'
+import { RngComp } from '@/comps/Rng'
 
 export interface ProcessConfig {
     plantSlots: PlantSlotsConfig
@@ -25,7 +24,6 @@ export interface ProcessConfig {
     lawn: LawnConfig
     sun: SunGlobalConfig
     stage: StageData
-    bgm: string
 }
 
 export interface SunGlobalConfig {
@@ -116,7 +114,6 @@ export class ProcessEntity extends Entity<ProcessConfig, ProcessState, ProcessEv
         paused: false,
         finished: false,
     })
-    private bgmPlayBack: AudioPlayback = placeholder
 
     static create<C extends ProcessConfig, S extends EntityState>(config: C, state: S) {
         return new this(config, this.initState(state))
@@ -233,10 +230,6 @@ export class ProcessEntity extends Entity<ProcessConfig, ProcessState, ProcessEv
 
         this.attach(this.ui, this.lawn)
 
-        if (! this.game.config.noAudio) this.afterStart(() => {
-            this.bgmPlayBack = this.game.audioManager.playAudio(`./assets/audio/${ this.config.bgm }.mp3`)
-        })
-
         this.game.emitter.on('hoverTargetChange', target => {
             if (this.state.holdingObject === null) return
 
@@ -278,54 +271,6 @@ export class ProcessEntity extends Entity<ProcessConfig, ProcessState, ProcessEv
         this.game.emitter.on('rightclick', () => {
             if (this.state.holdingObject !== null) this.cancelHolding()
         })
-
-        const pause = () => {
-            this.state.paused = true
-            this.bgmPlayBack?.toggleEffect()
-            pauseButton.deactivate()
-            resumeButton.activate()
-        }
-
-        const resume = () => {
-            this.state.paused = false
-            this.bgmPlayBack?.toggleEffect()
-            resumeButton.deactivate()
-            pauseButton.activate()
-        }
-
-        this.game.emitter.on('keydown', (ev: KeyboardEvent) => {
-            if (ev.key === 'Escape') {
-                if (this.state.paused) resume()
-                else pause()
-            }
-        })
-
-        const pauseButton = TextureEntity
-            .createButtonFromImage(
-                './assets/ui/pause_button.png',
-                {},
-                {
-                    position: { x: this.width - 32, y: 5 },
-                    zIndex: this.state.zIndex + 11,
-                },
-            )
-            .addComp(CursorComp, 'pointer')
-            .attachTo(this)
-            .on('click', pause)
-
-        const resumeButton = TextureEntity
-            .createButtonFromImage(
-                './assets/ui/resume_button.png',
-                {},
-                {
-                    position: { x: this.width - 32, y: 5 },
-                    zIndex: this.state.zIndex + 11,
-                },
-            )
-            .addComp(CursorComp, 'pointer')
-            .deactivate()
-            .attachTo(this)
-            .on('click', resume)
     }
 
     plant(slotId: number, i: number, j: number) {
@@ -362,12 +307,6 @@ export class ProcessEntity extends Entity<ProcessConfig, ProcessState, ProcessEv
         this.state.plantsOnBlocks[i][j] = newPlantData
 
         this.cancelHolding()
-    }
-
-    async start() {
-        await super.start()
-        if (! this.game.config.noAudio)
-            await this.game.audioManager.loadAudio(`./assets/audio/${ this.config.bgm }.mp3`)
     }
 
     kill(i: number, j: number) {
