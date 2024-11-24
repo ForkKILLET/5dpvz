@@ -82,6 +82,8 @@ export interface LevelUniqueState {
     waveTimer: number
     wave: number
     waveZombieInitHP: number
+
+    finished: boolean
 }
 export interface LevelState extends LevelUniqueState, EntityState {}
 
@@ -104,6 +106,7 @@ export class LevelEntity extends Entity<LevelConfig, LevelState, LevelEvents> {
         waveTimer: 0,
         wave: 0,
         waveZombieInitHP: 0,
+        finished: false,
     })
     private bgmPlayBack: AudioPlayback = placeholder
 
@@ -503,8 +506,16 @@ export class LevelEntity extends Entity<LevelConfig, LevelState, LevelEvents> {
     }
 
     update() {
-        if (this.config.stage.hasWon(this)) this.win()
-        else if (this.config.stage.hasLost(this)) this.lose()
+        if (! this.state.finished) {
+            if (this.config.stage.hasWon(this)) {
+                this.state.finished = true
+                this.win()
+            }
+            else if (this.config.stage.hasLost(this)) {
+                this.state.finished = true
+                this.lose()
+            }
+        }
 
         this.updatePlantSlot()
 

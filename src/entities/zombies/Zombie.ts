@@ -1,6 +1,7 @@
 import { CollidableComp } from '@/comps/Collidable'
 import { FilterComp } from '@/comps/Filter'
 import { ContinuousDamagingComp, DamageEffectComp, HealthComp } from '@/comps/Health'
+import { RectShape } from '@/comps/Shape'
 import { PLANTS } from '@/data/plants'
 import { ZombieId, ZombieMetadata, ZombieMovingState, ZombiePlace, ZOMBIES, zombieTextures } from '@/data/zombies'
 import { Entity, EntityCtor, EntityState, Position } from '@/engine'
@@ -97,7 +98,12 @@ export class ZombieEntity<
 
     update() {
         super.update()
-        this.updatePosition(this.nextMove())
+        if (! this.state.enteredHouse && this.state.position.x < 0) {
+            this.state.enteredHouse = true
+        }
+        if (this.state.position.x > - this.getComp(RectShape)!.rect.width) {
+            this.updatePosition(this.nextMove())
+        }
     }
 }
 
