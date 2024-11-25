@@ -3,7 +3,7 @@ import { HoverableComp } from '@/comps/Hoverable'
 import { AnyShape, OriginConfig, RectShape, ShapeComp } from '@/comps/Shape'
 import { TextureSet } from '@/data/textures'
 import {
-    Entity, EntityCtor, EntityEvents, EntityState,
+    Entity, EntityConfig, EntityCtor, EntityEvents, EntityState,
     getImageOutline, getImagePixels, Outline
 } from '@/engine'
 import { elem, PartialBy, pick, placeholder, StrictOmit } from '@/utils'
@@ -18,7 +18,7 @@ export type TextureInnerState =
     }
     | { type: 'image' }
 
-export interface TextureConfig extends OriginConfig {
+export interface TextureConfig extends OriginConfig, EntityConfig {
     textures: TextureSet
     defaultTextureName: string
     strictShape?: boolean
@@ -57,7 +57,7 @@ export class TextureEntity<
 
     constructor(config: C, state: S) {
         super(config, state)
-        this.state.textureName = config.defaultTextureName
+        this.state.textureName ??= config.defaultTextureName
     }
 
     static createTexture<E extends TextureEntity = TextureEntity>(
@@ -95,7 +95,7 @@ export class TextureEntity<
                 },
                 ...config,
             } as PartialBy<E['config'], 'origin' | 'defaultTextureName'>,
-            state
+            state,
         )
     }
 
@@ -153,7 +153,7 @@ export class TextureEntity<
             }
         }
 
-        this.switchTexture(this.state.textureName)
+        if (this.state.innerState === placeholder) this.switchTexture(this.state.textureName)
     }
 
     initInnerState(textureName: string): TextureInnerState {

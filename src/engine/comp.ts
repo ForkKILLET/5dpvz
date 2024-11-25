@@ -28,13 +28,14 @@ export class Comp<C = any, S = any, E extends Entity = Entity> extends State<S> 
 
     update() {}
 
-    cloneComp(entityMap: EntityCloneMap, targetEntity: E): Comp<C, S, E> {
-        const Ctor = this.constructor as CompCtor<Comp<C, S, E>>
+    cloneComp(entityMap: EntityCloneMap, targetEntity: E): this {
+        const Ctor = this.constructor as CompCtor<this>
         return new Ctor(targetEntity, this.config, this.cloneState(entityMap))
     }
 }
 
 export interface CompCtor<M extends Comp = Comp> {
+    dependencies: CompSelector[]
     new (entity: M['entity'], config: M['config'], state: M['state']): M
 }
 

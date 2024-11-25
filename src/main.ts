@@ -32,6 +32,7 @@ void async function() {
 
         './assets/ui/pause_button.png',
         './assets/ui/resume_button.png',
+        './assets/ui/fork_button.png',
 
         './assets/sun.png',
 

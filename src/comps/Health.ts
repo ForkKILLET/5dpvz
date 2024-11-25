@@ -63,8 +63,8 @@ export class DamageEffectComp extends Comp<DamageEffectConfig, DamageEffectState
         this.updateTimer(
             'damageEffectTimer',
             { interval: this.config.duration, once: true },
-            () => this.entity.withComp(FilterComp, filter => {
-                filter.state.filters.damageEffect = null
+            () => this.entity.withComp(FilterComp, ({ state: { filters } }) => {
+                filters.damageEffect = null
             })
         )
     }

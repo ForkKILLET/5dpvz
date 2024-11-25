@@ -1,24 +1,26 @@
+import { RngComp } from '@/comps/Rng'
+import { RectShape } from '@/comps/Shape'
 import { UpdaterComp } from '@/comps/Updater'
-import { PLANTS, plantTextures, PlantId, PlantMetadata } from '@/data/plants'
-import { shovelTextures, ShovelId } from '@/data/shovels'
+import { BulletId } from '@/data/bullets'
+import { PlantId, PLANTS, plantTextures } from '@/data/plants'
+import { ShovelId, shovelTextures } from '@/data/shovels'
 import { StageData } from '@/data/stages'
 import { ZombieId } from '@/data/zombies'
-import { Entity, EntityEvents, EntityState, injectKey } from '@/engine'
+import { Entity, EntityConfig, EntityEvents, EntityState, injectKey } from '@/engine'
+import { BulletEntity } from '@/entities/bullets/Bullet'
 import { LawnConfig, LawnEntity } from '@/entities/Lawn'
 import { LawnBlockEntity } from '@/entities/LawnBlock'
 import { PlantEntity } from '@/entities/plants/Plant'
-import { ShovelSlotConfig } from '@/entities/ui/ShovelSlot'
 import { SunEntity } from '@/entities/Sun'
+import { TextureEntity } from '@/entities/Texture'
+import { ProcessLabelEntity } from '@/entities/ui/ProcessLabel'
+import { ShovelSlotConfig } from '@/entities/ui/ShovelSlot'
 import { PlantSlotsConfig, UIEntity } from '@/entities/ui/UI'
 import { ZombieEntity } from '@/entities/zombies/Zombie'
-import { eq, matrix, Nullable, placeholder, random, remove, replicateBy, sum } from '@/utils'
-import { BulletId } from '@/data/bullets'
-import { BulletEntity } from '@/entities/bullets/Bullet'
-import { RectShape } from '@/comps/Shape'
-import { TextureEntity } from './Texture'
-import { RngComp } from '@/comps/Rng'
+import { eq, matrix, Nullable, pick, placeholder, random, remove, replicateBy, sum } from '@/utils'
 
-export interface ProcessConfig {
+export interface ProcessConfig extends EntityConfig {
+    processId: number
     plantSlots: PlantSlotsConfig
     shovelSlot: ShovelSlotConfig
     lawn: LawnConfig
@@ -35,6 +37,7 @@ export interface SunGlobalConfig {
 }
 
 export interface PlantSlotData {
+    id: PlantId
     cd: number
     isCooledDown: boolean
     isSunEnough: boolean
@@ -80,7 +83,7 @@ export interface ProcessUniqueState {
 
     waveTimer: number
     wave: number
-    waveZombieInitHP: number
+    waveZombieInitHp: number
 
     paused: boolean
     finished: boolean
@@ -92,42 +95,38 @@ export interface ProcessEvents extends EntityEvents {}
 export const kProcess = injectKey<ProcessEntity>('kProcess')
 
 export class ProcessEntity extends Entity<ProcessConfig, ProcessState, ProcessEvents> {
-    static initState = <S>(state: S): S & ProcessUniqueState => ({
-        ...state,
+    static createProcess<C extends ProcessConfig, S extends EntityState>(config: C, state: S) {
+        return new this(config, {
+            sun: config.sun.sunAtStart,
+            sunDropTimer: config.sun.sunDroppingInterval - config.sun.firstSunDroppingTime,
 
-        sun: 0,
-        sunDropTimer: 0,
+            plantSlotsData: placeholder,
+            holdingObject: null,
 
-        plantSlotsData: [],
-        holdingObject: null,
-        plantsData: [],
-        plantsOnBlocks: placeholder,
+            plantsData: [],
+            plantsOnBlocks: placeholder,
+            sunsData: [],
+            zombiesData: [],
+            bulletsData: [],
 
-        sunsData: [],
-        zombiesData: [],
-        bulletsData: [],
+            waveTimer: 30000,
+            wave: 0,
+            waveZombieInitHp: 0,
 
-        waveTimer: 0,
-        wave: 0,
-        waveZombieInitHP: 0,
+            paused: false,
+            finished: false,
 
-        paused: false,
-        finished: false,
-    })
-
-    static create<C extends ProcessConfig, S extends EntityState>(config: C, state: S) {
-        return new this(config, this.initState(state))
+            ...state,
+        })
     }
 
-    ui: UIEntity
-    lawn: LawnEntity
+    ui: UIEntity = placeholder
+    lawn: LawnEntity = placeholder
     phantomImage: Nullable<TextureEntity> = null
     holdingImage: Nullable<TextureEntity> = null
 
-    width: number
-    height: number
-
-    plantMetadatas: PlantMetadata[] = []
+    static width = 730
+    static height = 550
 
     getPlantIdBySlotId(slotId: number) {
         return this.config.plantSlots.plantIds[slotId]
@@ -136,36 +135,87 @@ export class ProcessEntity extends Entity<ProcessConfig, ProcessState, ProcessEv
     constructor(config: ProcessConfig, state: ProcessState) {
         super(config, state)
 
-        this.state.plantSlotsData = this.config.plantSlots.plantIds.map((plantName, i) => {
-            const metadata = this.plantMetadatas[i] = PLANTS[plantName]
+        this.state.plantSlotsData ??= config.plantSlots.plantIds.map((plantId): PlantSlotData => {
+            const Plant = PLANTS[plantId]
             return {
+                id: plantId,
                 cd: 0,
-                isSunEnough: metadata.cost <= this.state.sun,
+                isSunEnough: Plant.cost <= this.state.sun,
                 isCooledDown: true,
-                isPlantable: metadata.isPlantableAtStart,
+                isPlantable: Plant.isPlantableAtStart,
             }
         })
-        this.state.plantsOnBlocks = matrix(config.lawn.width, config.lawn.height, () => null)
 
-        this.state.sun = config.sun.sunAtStart
-        this.state.sunDropTimer = config.sun.sunDroppingInterval - config.sun.firstSunDroppingTime
+        this.state.plantsOnBlocks ??= matrix(config.lawn.width, config.lawn.height, () => null)
 
-        this.state.waveTimer = 30000
-
-        this.width = 10 + config.lawn.width * 80
-        this.height = 150 + config.lawn.height * 80
-        this.addComp(RectShape, { width: this.width, height: this.height, origin: 'top-left' })
+        this.addComp(RectShape, { ...pick(ProcessEntity, [ 'width', 'height' ]), origin: 'top-left' })
         this.addComp(RngComp, random(2 ** 32))
 
         this.provide(kProcess, this)
 
-        this.ui = new UIEntity(
-            config.plantSlots,
+        new ProcessLabelEntity(
+            { processId: config.processId },
             {
-                position: { x: 5, y: 5 },
-                zIndex: 1,
-            },
-        )
+                position: { x: ProcessEntity.width - 64 - 5, y: 5 + 32 + 5 },
+                zIndex: this.state.zIndex + 11,
+            }
+        ).attachTo(this)
+
+        // FIXME: safe global listener
+        this.game.emitter.on('hoverTargetChange', target => {
+            if (this.state.holdingObject === null) return
+
+            const { holdingObject } = this.state
+            if (holdingObject?.type === 'plant') {
+                if (target instanceof LawnBlockEntity) {
+                    const { i, j } = target.config
+                    if (this.isOccupied(i, j)) {
+                        this.phantomImage!.deactivate()
+                        return
+                    }
+
+                    const { x, y } = target.state.position
+                    this.phantomImage!.activate().state.position = { x, y }
+                }
+                else this.phantomImage!.deactivate()
+            }
+        })
+
+        this.game.emitter.on('click', target => {
+            if (! this.active) return
+
+            if (this.state.holdingObject === null) return
+
+            const { holdingObject } = this.state
+            if (target instanceof LawnBlockEntity) {
+                if (holdingObject?.type === 'plant') {
+                    const { i, j } = target.config
+                    this.plant(holdingObject.slotId, i, j)
+                }
+            }
+            else if (target instanceof PlantEntity) {
+                if (holdingObject?.type === 'shovel') {
+                    this.kill(target.state.i, target.state.j)
+                    this.cancelHolding()
+                }
+            }
+            else this.cancelHolding()
+        })
+
+        this.game.emitter.on('rightclick', () => {
+            if (this.state.holdingObject !== null) this.cancelHolding()
+        })
+    }
+
+    build() {
+        this.ui = this
+            .useBuilder('UI', () => new UIEntity(
+                this.config.plantSlots,
+                {
+                    position: { x: 5, y: 5 },
+                    zIndex: 1,
+                },
+            ))
             .on('choose-plant', slotId => {
                 const slot = this.state.plantSlotsData[slotId]
                 if (! slot.isPlantable) return
@@ -220,57 +270,14 @@ export class ProcessEntity extends Entity<ProcessConfig, ProcessState, ProcessEv
                     .attachTo(this)
             })
 
-        this.lawn = new LawnEntity(
-            config.lawn,
-            {
-                position: { x: 5, y: 150 },
-                zIndex: this.state.zIndex + 1,
-            },
-        )
-
-        this.attach(this.ui, this.lawn)
-
-        this.game.emitter.on('hoverTargetChange', target => {
-            if (this.state.holdingObject === null) return
-
-            const { holdingObject } = this.state
-            if (holdingObject?.type === 'plant') {
-                if (target instanceof LawnBlockEntity) {
-                    const { i, j } = target.config
-                    if (this.isOccupied(i, j)) {
-                        this.phantomImage!.deactivate()
-                        return
-                    }
-
-                    const { x, y } = target.state.position
-                    this.phantomImage!.activate().state.position = { x, y }
-                }
-                else this.phantomImage!.deactivate()
-            }
-        })
-
-        this.game.emitter.on('click', target => {
-            if (this.state.holdingObject === null) return
-
-            const { holdingObject } = this.state
-            if (target instanceof LawnBlockEntity) {
-                if (holdingObject?.type === 'plant') {
-                    const { i, j } = target.config
-                    this.plant(holdingObject.slotId, i, j)
-                }
-            }
-            else if (target instanceof PlantEntity) {
-                if (holdingObject?.type === 'shovel') {
-                    this.kill(target.state.i, target.state.j)
-                    this.cancelHolding()
-                }
-            }
-            else this.cancelHolding()
-        })
-
-        this.game.emitter.on('rightclick', () => {
-            if (this.state.holdingObject !== null) this.cancelHolding()
-        })
+        this.lawn = this
+            .useBuilder('Lawn', () => new LawnEntity(
+                this.config.lawn,
+                {
+                    position: { x: 5, y: 150 },
+                    zIndex: this.state.zIndex + 1,
+                },
+            ))
     }
 
     plant(slotId: number, i: number, j: number) {
@@ -278,8 +285,8 @@ export class ProcessEntity extends Entity<ProcessConfig, ProcessState, ProcessEv
         if (! slot.isPlantable || this.isOccupied(i, j)) return
 
         const plantId = this.getPlantIdBySlotId(slotId)
-        const metadata = PLANTS[plantId]
-        const cost = metadata.cost
+        const Plant = PLANTS[plantId]
+        const cost = Plant.cost
 
         slot.cd = 0
         slot.isCooledDown = false
@@ -295,14 +302,13 @@ export class ProcessEntity extends Entity<ProcessConfig, ProcessState, ProcessEv
                 position: this.getLawnBlockPosition(i, j),
                 zIndex: this.state.zIndex + 3,
             }
-        )
+        ).attachTo(this)
 
         const newPlantData: PlantData = {
             id: plantId,
             position: { i, j },
             entity: newPlant,
         }
-        this.attach(newPlant)
         this.state.plantsData.push(newPlantData)
         this.state.plantsOnBlocks[i][j] = newPlantData
 
@@ -421,11 +427,13 @@ export class ProcessEntity extends Entity<ProcessConfig, ProcessState, ProcessEv
     }
 
     updatePlantSlot(runCoolDown = true) {
-        this.state.plantSlotsData.forEach((slot, i) => {
+        this.state.plantSlotsData.forEach(slot => {
             let { cd, isCooledDown } = slot
 
+            const Plant = PLANTS[slot.id]
+
             if (runCoolDown && ! isCooledDown) {
-                const { cd: maxCd } = this.plantMetadatas[i]
+                const { cd: maxCd } = Plant
                 cd += this.game.mspf
                 if (cd > maxCd) {
                     cd = maxCd
@@ -434,7 +442,7 @@ export class ProcessEntity extends Entity<ProcessConfig, ProcessState, ProcessEv
                 slot.cd = cd
             }
 
-            slot.isSunEnough = this.state.sun >= this.plantMetadatas[i].cost
+            slot.isSunEnough = this.state.sun >= Plant.cost
 
             slot.isPlantable = slot.isCooledDown && slot.isSunEnough
         })
@@ -471,7 +479,9 @@ export class ProcessEntity extends Entity<ProcessConfig, ProcessState, ProcessEv
 
         this.updatePlantSlot()
 
-        this.updateTimer('waveTimer', { interval: 25000 }, () => this.nextWave())
+        this.updateTimer('waveTimer', { interval: 25000 }, () => {
+            this.nextWave()
+        })
 
         this.updateTimer(
             'sunDropTimer',
@@ -492,7 +502,7 @@ export class ProcessEntity extends Entity<ProcessConfig, ProcessState, ProcessEv
             const { ctx } = this.game
             const { x, y } = this.state.position
             ctx.fillStyle = 'rgba(0, 32, 255, .3)'
-            ctx.fillRect(x, y, this.width, this.height)
+            ctx.fillRect(x, y, ProcessEntity.width, ProcessEntity.height)
         }, 10)
 
         super.preRender()

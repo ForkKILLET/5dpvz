@@ -47,10 +47,10 @@ export class StartScene extends Scene {
                 window.open('https://github.com/ForkKILLET/5dpvz', '_blank')
             })
 
-        super([
+        super(
             background,
             startButton,
             githubButton,
-        ])
+        )
     }
 }

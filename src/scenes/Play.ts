@@ -1,4 +1,4 @@
-import { AudioPlayback, Scene } from '@/engine'
+import { AudioPlayback, injectKey, Scene } from '@/engine'
 import { ProcessEntity } from '@/entities/Process'
 import { Stage1_1 } from '@/data/stages'
 import { CursorComp } from '@/comps/Cursor'
@@ -8,12 +8,15 @@ import { placeholder } from '@/utils'
 // TODO: BGM config
 const BGM = 'day'
 
+export const kGetCurrentProcess = injectKey<() => ProcessEntity>('kGetCurrentProcess')
+
 export class PlayScene extends Scene {
     bgmPlayBack: AudioPlayback = placeholder
 
     constructor() {
-        const process = ProcessEntity.create(
+        const process0 = ProcessEntity.createProcess(
             {
+                processId: 0,
                 plantSlots: {
                     slotNum: 2,
                     plantIds: [ 'pea_shooter', 'sunflower' ],
@@ -39,24 +42,25 @@ export class PlayScene extends Scene {
                 zIndex: 0,
             }
         )
+        super(process0)
 
-        super([
-            process,
-        ])
+        const processes = [ process0 ]
+        let currentProcess = process0
+        this.provide(kGetCurrentProcess, () => currentProcess)
 
         if (! this.game.config.noAudio) this.afterStart(() => {
             this.bgmPlayBack = this.game.audioManager.playAudio(`./assets/audio/${ BGM }.mp3`)
         })
 
         const pause = () => {
-            process.state.paused = true
+            currentProcess.state.paused = true
             this.bgmPlayBack?.toggleEffect()
             pauseButton.deactivate()
             resumeButton.activate()
         }
 
         const resume = () => {
-            process.state.paused = false
+            currentProcess.state.paused = false
             this.bgmPlayBack?.toggleEffect()
             resumeButton.deactivate()
             pauseButton.activate()
@@ -64,7 +68,7 @@ export class PlayScene extends Scene {
 
         this.game.emitter.on('keydown', (ev: KeyboardEvent) => {
             if (ev.key === 'Escape') {
-                if (process.state.paused) resume()
+                if (currentProcess.state.paused) resume()
                 else pause()
             }
         })
@@ -74,7 +78,7 @@ export class PlayScene extends Scene {
                 './assets/ui/pause_button.png',
                 {},
                 {
-                    position: { x: process.width - 32, y: 5 },
+                    position: { x: ProcessEntity.width - 32, y: 5 },
                     zIndex: this.state.zIndex + 11,
                 },
             )
@@ -87,7 +91,7 @@ export class PlayScene extends Scene {
                 './assets/ui/resume_button.png',
                 {},
                 {
-                    position: { x: process.width - 32, y: 5 },
+                    position: { x: ProcessEntity.width - 32, y: 5 },
                     zIndex: this.state.zIndex + 11,
                 },
             )
@@ -95,6 +99,26 @@ export class PlayScene extends Scene {
             .deactivate()
             .attachTo(this)
             .on('click', resume)
+
+        TextureEntity
+            .createButtonFromImage(
+                './assets/ui/fork_button.png',
+                {},
+                {
+                    position: { x: ProcessEntity.width - 64 - 5, y: 5 },
+                    zIndex: this.state.zIndex + 11,
+                },
+            )
+            .addComp(CursorComp, 'pointer')
+            .attachTo(this)
+            .on('click', () => {
+                const processIds = processes.map(process => process.config.processId).filter(id => id >= 0)
+                const newProcessId = Math.max(...processIds) + 1
+                currentProcess.deactivate()
+                currentProcess = currentProcess.cloneEntity()
+                currentProcess.config.processId = newProcessId
+                processes.push(currentProcess.attachTo(this))
+            })
     }
 
     async start() {

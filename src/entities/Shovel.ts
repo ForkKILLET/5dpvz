@@ -1,5 +1,5 @@
 import { shovelTextures, ShovelId } from '@/data/shovels'
-import { TextureConfig, TextureEntity, TextureEvents, TextureState } from './Texture'
+import { TextureConfig, TextureEntity, TextureEvents, TextureState } from '@/entities/Texture'
 
 export interface ShovelUniqueConfig {
     shovelId: ShovelId

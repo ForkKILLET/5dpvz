@@ -1,18 +1,23 @@
+import { kDebugFold } from '@/debug'
 import {
     createIdGenerator, Position, positionAdd,
     Emitter, Events, ListenerOptions,
     State, Comp, CompCtor, CompSelector
 } from '@/engine'
-import { Disposer, remove, RemoveIndex } from '@/utils'
+import { Disposer, eq, mapk, remove, RemoveIndex } from '@/utils'
+
+export interface EntityConfig {}
 
 export interface EntityState {
     position: Position
     zIndex: number
     scale?: number
+    cloning?: boolean
 }
 
 export interface EntityEvents extends Events {
     'start': []
+    'clone-finish': []
     'before-render': []
     'after-render': []
     'attach': [ superEntity: Entity ]
@@ -21,13 +26,13 @@ export interface EntityEvents extends Events {
     'position-update': [ delta: Position ]
 }
 
-export type InjectKey<T> = symbol & { __injectType: T }
+export type InjectKey<T> = symbol & { _injectType: T }
 export const injectKey = <T>(description: string) => Symbol(description) as InjectKey<T>
 
 export type EntityCloneMap = Map<number, Entity>
 
 export class Entity<
-    C = any,
+    C extends EntityConfig = EntityConfig,
     S extends EntityState = EntityState,
     V extends EntityEvents = EntityEvents
 > extends State<S> {
@@ -35,7 +40,11 @@ export class Entity<
 
     constructor(public config: C, state: S) {
         super(state)
+        if (state.cloning) this.on('clone-finish', () => this.build())
+        else this.afterStart(() => this.build())
     }
+
+    [kDebugFold] = false
 
     readonly id = Entity.generateEntityId()
 
@@ -58,20 +67,31 @@ export class Entity<
         return this
     }
 
+    buildName: string | null = null
+    build() {}
+    useBuilder<E extends Entity>(buildName: string, builder: () => E): E {
+        const buildClone = this.attachedEntities.find(mapk('buildName', eq(buildName))) as E | undefined
+        if (buildClone) return buildClone
+        const build = builder().attachTo(this)
+        build.buildName = buildName
+        return build
+    }
+
     startedToStart = false
     started = false
     starters: (() => void)[] = []
     async start(): Promise<void> {
         this.game.allEntities.push(this)
-        await Promise.all(this.starters.map(fn => fn()))
     }
     runStart() {
         this.startedToStart = true
-        this.start().then(() => {
+        void (async () => {
+            await this.start()
+            await Promise.all(this.starters.map(fn => fn()))
             this.started = true
             this.emit('start')
             this.game.emitter.emit('entityStart', this)
-        })
+        })()
         return this
     }
     beforeStart(fn: () => void) {
@@ -105,21 +125,16 @@ export class Entity<
     superEntity: Entity | null = null
     attachedEntities: Entity[] = []
     attach(...entities: Entity[]) {
-        entities.forEach(entity => this.beforeStart(() => new Promise<void>(res => {
+        if (this.state.cloning) return this
+        entities.forEach(entity => this.beforeStart(async () => {
+            await entity.runStart().toStart()
+            entity.superEntity = this
+            this.attachedEntities.push(entity)
             entity
-                .runStart()
-                .afterStart(() => {
-                    entity.superEntity = this
-                    this.attachedEntities.push(entity)
-                    entity
-                        .emit('attach', this)
-                        .on('dispose', () => {
-                            this.unattach(entity)
-                        })
-                    this.game.emitter.emit('entityAttach', entity)
-                    res()
-                })
-        })))
+                .emit('attach', this)
+                .on('dispose', () => this.unattach(entity))
+            this.game.emitter.emit('entityAttach', entity)
+        }))
         return this
     }
     attachTo(superEntity: Entity) {
@@ -185,8 +200,9 @@ export class Entity<
         return sels.every(sel => this.comps.some(Comp.runSelector(sel)))
     }
     addCompRaw(comp: Comp) {
+        if (this.state.cloning) return this
         const _addComp = () => {
-            const { dependencies } = comp.constructor as any as { dependencies: CompSelector[] }
+            const { dependencies } = comp.constructor as CompCtor
             if (! this.hasComp(...dependencies))
                 this.error(`Component missing dependencies: ${
                     dependencies.map(dep => Comp.getCtorFromSelector(dep).name).join(', ')
@@ -297,13 +313,20 @@ export class Entity<
         })
     }
 
-    cloneEntity(entityMap: EntityCloneMap = new Map): Entity<C, S, V> {
-        const Ctor = this.constructor as EntityCtor<Entity<C, S, V>>
-        const newAttachedEntitie = this.attachedEntities.map(entity => entity.cloneEntity(entityMap))
-        const newEntity = new Ctor(this.config, this.cloneState(entityMap))
-        newEntity.attach(...newAttachedEntitie)
-        this.comps.forEach(comp => newEntity.addCompRaw(comp.cloneComp(entityMap, newEntity)))
+    cloneEntity(entityMap: EntityCloneMap = new Map): this {
+        const Ctor = this.constructor as EntityCtor<this>
+        const newAttachedEntities = this.attachedEntities.map(entity => entity.cloneEntity(entityMap))
+        const newEntity = new Ctor(this.config, { ...this.cloneState(entityMap), cloning: true })
         entityMap.set(this.id, newEntity)
+        newEntity.afterStart(() => {
+            newEntity.state.cloning = false
+            newEntity.buildName = this.buildName
+            Promise.all(newAttachedEntities.map(entity => new Promise(res => entity
+                .attachTo(newEntity)
+                .on('attach', res)
+            ))).then(() => newEntity.emit('clone-finish'))
+            this.comps.forEach(comp => newEntity.addCompRaw(comp.cloneComp(entityMap, newEntity)))
+        })
         return newEntity
     }
 }

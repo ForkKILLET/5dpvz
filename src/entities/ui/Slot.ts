@@ -1,9 +1,9 @@
 
-import { Entity, EntityEvents, EntityState } from '@/engine'
+import { Entity, EntityConfig, EntityEvents, EntityState } from '@/engine'
 import { HoverableComp, HoverableEvents } from '@/comps/Hoverable'
 import { RectShape } from '@/comps/Shape'
 
-export interface SlotConfig {}
+export interface SlotConfig extends EntityConfig {}
 
 export interface SlotState extends EntityState {}
 

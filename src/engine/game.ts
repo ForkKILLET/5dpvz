@@ -140,7 +140,7 @@ export class Game {
 
         const floor = new class Floor extends Scene {
             constructor() {
-                super([])
+                super()
 
                 this
                     .addComp(AnyShape, { contains: () => true })

@@ -1,8 +1,10 @@
 /* eslint-disable @stylistic/ts/indent */
 
-import { Entity, Game, Scene } from '@/engine'
+import { Comp, Entity, Game, Scene } from '@/engine'
 import { by, eq, neq } from '@/utils'
 import { ShapeComp } from '@/comps/Shape'
+
+export const kDebugFold = Symbol('kDebugFold')
 
 export const loadDebugWindow = (game: Game) => {
     const $debugWindow = document.querySelector('#debug-window') as HTMLDivElement
@@ -51,6 +53,7 @@ export const loadDebugWindow = (game: Game) => {
             }
 
             debug-button, tab-header {
+                color: blue;
                 user-select: none;
             }
             debug-button::before {
@@ -68,10 +71,6 @@ export const loadDebugWindow = (game: Game) => {
             debug-button:not(.disabled):hover {
                 cursor: pointer;
                 text-decoration: underline;
-            }
-
-            debug-button.show-entity-detail {
-                color: green;
             }
 
             debug-input::before {
@@ -120,6 +119,9 @@ export const loadDebugWindow = (game: Game) => {
                 background-color: rgba(0, 0, 255, 0.1);
             }
 
+            entity-id {
+                color: fuchsia;
+            }
             entity-attr {
                 color: blue;
             }
@@ -162,7 +164,7 @@ export const loadDebugWindow = (game: Game) => {
                 color: blue;
             }
             json-symbol {
-                color: purple;
+                color: fuchsia;
             }
             json-string::before {
                 content: '"';
@@ -189,6 +191,7 @@ export const loadDebugWindow = (game: Game) => {
 
         <tab-header data-tab="entity-tree">Entity Tree</tab-header>
         <tab-header data-tab="entity-detail">Entity Detail</tab-header>
+        <tab-header data-tab="comp-detail">Comp Detail</tab-header>
         <tab-header data-tab="loop">Loop</tab-header>
         <br /><br />
         <tab-content data-tab="entity-tree">
@@ -204,6 +207,12 @@ export const loadDebugWindow = (game: Game) => {
             <debug-button id="refresh-entity-detail">Refresh</debug-button>
             <br /><br />
             <div id="entity-detail-content"></div>
+        </tab-content>
+        <tab-content data-tab="comp-detail">
+            <debug-button id="back-to-entity-detail">&lt;</debug-button>
+            <debug-button id="refresh-comp-detail">Refresh</debug-button>
+            <br /><br />
+            <div id="comp-detail-content"></div>
         </tab-content>
         <tab-content data-tab="loop">
             <debug-button id="pause-start">Pause</debug-button>
@@ -222,7 +231,7 @@ export const loadDebugWindow = (game: Game) => {
     const $loopDuration = $('#loop-duration')!
     class DebugHandle extends Scene {
         constructor() {
-            super([])
+            super()
 
             this.state.zIndex = Infinity
 
@@ -359,14 +368,14 @@ export const loadDebugWindow = (game: Game) => {
             entity.active ? null : 'inactive',
             entity === watchingEntity ? 'watching' : null,
         ].filter(neq(null)).join(' ')
-        const isFolden = entityFoldState.get(entity.id)
+        const isFolden = entityFoldState.get(entity.id) ?? entity[kDebugFold]
         const hasAttached = entity.attachedEntities.length > 0
         return `<li class="${ className }" data-id="${ entity.id }">
             ${ hasAttached
                 ? `<debug-button class="fold-entity">${ isFolden ? '+' : '-' }</debug-button>`
                 : ''
             }
-            ${ showEntityLink(entity) }
+            ${ showEntityHeader(entity) }
             ${ hasAttached && ! isFolden
                 ? `<ul>
                     ${ entity.attachedEntities
@@ -384,8 +393,10 @@ export const loadDebugWindow = (game: Game) => {
     }
 
     let watchingEntity: Entity | null = null
+    let watchingComp: Comp | null = null
     const unsetWatchingEntity = () => {
         watchingEntity = null
+        watchingComp = null
         switchTab('entity-tree')
     }
     const setWatchingEntity = (entity: Entity) => {
@@ -397,6 +408,14 @@ export const loadDebugWindow = (game: Game) => {
         entity.on('dispose', () => {
             if (watchingEntity === entity) unsetWatchingEntity()
         })
+    }
+    const unsetWatchingComp = () => {
+        watchingComp = null
+        switchTab('entity-detail')
+    }
+    const setWatchingComp = (comp: Comp) => {
+        watchingComp = comp
+        Object.assign(window, { c: comp })
     }
     let autoRefreshEntityTree = true
     const refreshEntityTree = () => {
@@ -436,13 +455,14 @@ export const loadDebugWindow = (game: Game) => {
         typeof obj === 'symbol' ? `<json-symbol>${ obj.description }</json-symbol>` :
         typeof obj === 'function' ? `<json-function>${ showFunction(obj) }</json-function>` :
         obj === null ? '<json-null></json-null>' :
+        obj instanceof Entity ? showEntityHeader(obj) :
+        obj instanceof Comp ? showCompLink(obj) :
         Array.isArray(obj) ? `
             <json-array>${ obj
                 .map((child): string => `<json-item>${ showJson(child) }</json-item>`)
                 .join('')
             }</json-array>
-        `.trim() :
-        obj instanceof Entity ? showEntityLink(obj) : `
+        `.trim() : `
             <json-object>${ Object
                 .entries(obj)
                 .map(([ key, value ]): string => `
@@ -466,31 +486,57 @@ export const loadDebugWindow = (game: Game) => {
         }
 
         $entityDetailContent.innerHTML = `
-            ${ e.constructor.name } <debug-button class="show-entity-detail">#${ e.id }</debug-button>
+            ${ showEntityHeader(e, false) }
             ${ showEntityAttrs(attrs) }<br />
+            <b>buildName</b> ${ showJson(e.buildName) }<br />
             <b>state</b> ${ showJson(e.state) }<br />
             <b>config</b> ${ showJson(e.config) }<br />
             <b>providedKeys</b> ${ showJson(Object.getOwnPropertySymbols(e.providedValues)) }<br />
             <b>injectableKeys</b> ${ showJson(e.injectableKeys) }<br />
-            <b>comps</b> ${ showJson(e.comps.map(comp => comp.constructor)) }<br />
+            <b>comps</b> ${ showJson(e.comps) }<br />
             <b>superEntity</b> ${ showJson(e.superEntity) }<br />
             <b>protoChain</b> ${ showJson(protoChain) }<br />
             <b>attachedEntities</b> <div id="entity-detail-tree-content"></div>
         `
         refreshEntityTree()
     }
-    const $entityDetailContent = $('#entity-detail-content')!
-    $('#back-to-entity-tree')!.addEventListener('click', unsetWatchingEntity)
-    $('#refresh-entity-detail')!.addEventListener('click', refreshEntityDetail)
-    const showEntityLink = (entity: Entity) => {
-        const attrs = getEntityAttrs(entity)
-        return `
-            ${ showFunction(entity.constructor) }
-            ${ showEntityAttrs(attrs) }
-            <debug-button class="show-entity-detail">#${ entity.id }</debug-button>
+    const refreshCompDetail = () => {
+        const c = watchingComp
+        if (! c) return $compDetailContent.innerHTML = 'No comp selected'
+        $compDetailContent.innerHTML = `
+            ${ showCompLink(c, false) }
+            <b>state</b> ${ showJson(c.state) }<br />
+            <b>config</b> ${ showJson(c.config) }<br />
+            <b>entity</b> ${ showJson(c.entity) }<br />
         `
     }
-    refreshEntityDetail()
+    const $entityDetailContent = $('#entity-detail-content')!
+    const $compDetailContent = $('#comp-detail-content')!
+    $('#back-to-entity-tree')!.addEventListener('click', unsetWatchingEntity)
+    $('#back-to-entity-detail')!.addEventListener('click', unsetWatchingComp)
+    $('#refresh-entity-detail')!.addEventListener('click', refreshEntityDetail)
+    const showEntityHeader = (entity: Entity, hasLink = true) => {
+        const attrs = getEntityAttrs(entity)
+        const { id } = entity
+        return `
+            ${ showFunction(entity.constructor) }<entity-id>#${ id }</entity-id>
+            ${ showEntityAttrs(attrs) }
+            ${ hasLink ?
+                `<debug-button data-id="${ id }" class="show-entity-detail">&gt;</debug-button>`
+                : ''
+            }
+        `
+    }
+    const showCompLink = (comp: Comp, hasLink = true) => {
+        const index = comp.entity.comps.indexOf(comp)
+        return `
+            ${ showFunction(comp.constructor) }
+            ${ hasLink
+                ? `<debug-button data-index="${ index }" class="show-comp-detail">&gt;</debug-button>`
+                : ''
+            }
+        `
+    }
 
     $debugWindow.addEventListener('click', ({ target: $el }) => {
         if (! ($el instanceof HTMLElement)) return
@@ -501,12 +547,21 @@ export const loadDebugWindow = (game: Game) => {
                 refreshEntityTree()
             }
             else if ($el.classList.contains('show-entity-detail')) {
-                const id = + $el.innerText.slice(1)
+                const id = + $el.dataset.id!
                 const entity = game.getEntityById(id)
                 if (entity) {
                     setWatchingEntity(entity)
                     switchTab('entity-detail')
                     refreshEntityDetail()
+                }
+            }
+            else if ($el.classList.contains('show-comp-detail')) {
+                const index = + $el.dataset.index!
+                const comp = watchingEntity?.comps[index]
+                if (comp) {
+                    setWatchingComp(comp)
+                    switchTab('comp-detail')
+                    refreshCompDetail()
                 }
             }
         }
