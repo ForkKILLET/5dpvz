@@ -84,6 +84,8 @@ export interface ProcessUniqueState {
     waveTimer: number
     wave: number
     waveZombieInitHp: number
+    waveZombieList: ZombieId[]
+    zombieSpawnTimer: number
 
     paused: boolean
     finished: boolean
@@ -112,6 +114,8 @@ export class ProcessEntity extends Entity<ProcessConfig, ProcessState, ProcessEv
             waveTimer: 30000,
             wave: 0,
             waveZombieInitHp: 0,
+            waveZombieList: [],
+            zombieSpawnTimer: 0,
 
             paused: false,
             finished: false,
@@ -386,6 +390,39 @@ export class ProcessEntity extends Entity<ProcessConfig, ProcessState, ProcessEv
         return this.getComp(RngComp)!.random(this.lawn.config.height)
     }
 
+    spawnZombieGroup() {
+        const groupSize = 1
+        const group = this.state.waveZombieList.splice(0, groupSize)
+
+        group.forEach(zombieId => this.spawnZombie(zombieId))
+
+        if (! this.state.waveZombieList.length) this.state.zombieSpawnTimer = 0
+    }
+
+    spawnZombie(zombieId: ZombieId) {
+        const row = this.getZombieSpawningRow(zombieId)
+        const { x, y } = this.getLawnBlockPosition(this.lawn.config.width - 1, row)
+
+        const zombie = ZombieEntity.createZombie(
+            zombieId,
+            {},
+            {
+                j: row,
+                position: { x, y: y - 40 },
+                zIndex: this.lawn.state.zIndex + 2 + row * 0.1,
+            }
+        )
+            .attachTo(this)
+            .on('dispose', () => {
+                remove(this.state.zombiesData, ({ entity }) => entity.id === zombie.id)
+            })
+
+        this.state.zombiesData.push({
+            id: zombieId,
+            entity: zombie,
+        })
+    }
+
     nextWave() {
         if (this.state.wave === this.wavesData.waveCount) return
         const currentWave = this.wavesData.waves[this.state.wave ++]
@@ -401,29 +438,8 @@ export class ProcessEntity extends Entity<ProcessConfig, ProcessState, ProcessEv
             return zombieList[0]
         })
 
-        zombieList.forEach(zombieId => {
-            const row = this.getZombieSpawningRow(zombieId)
-            const { x, y } = this.getLawnBlockPosition(this.lawn.config.width - 1, row)
-
-            const zombie = ZombieEntity.createZombie(
-                zombieId,
-                {},
-                {
-                    j: row,
-                    position: { x, y: y - 40 },
-                    zIndex: this.lawn.state.zIndex + 2 + row * 0.1,
-                }
-            )
-                .attachTo(this)
-                .on('dispose', () => {
-                    remove(this.state.zombiesData, ({ entity }) => entity.id === zombie.id)
-                })
-
-            this.state.zombiesData.push({
-                id: zombieId,
-                entity: zombie,
-            })
-        })
+        this.state.waveZombieList = zombieList
+        this.state.zombieSpawnTimer = 0
     }
 
     updatePlantSlot(runCoolDown = true) {
@@ -482,6 +498,12 @@ export class ProcessEntity extends Entity<ProcessConfig, ProcessState, ProcessEv
         this.updateTimer('waveTimer', { interval: 25000 }, () => {
             this.nextWave()
         })
+
+        if (this.state.waveZombieList.length) {
+            this.updateTimer('zombieSpawnTimer', { interval: 1000 }, () => {
+                this.spawnZombieGroup()
+            })
+        }
 
         this.updateTimer(
             'sunDropTimer',
