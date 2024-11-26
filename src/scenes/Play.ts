@@ -5,9 +5,6 @@ import { CursorComp } from '@/comps/Cursor'
 import { TextureEntity } from '@/entities/Texture'
 import { placeholder } from '@/utils'
 
-// TODO: BGM config
-const BGM = 'day'
-
 export const kGetCurrentProcess = injectKey<() => ProcessEntity>('kGetCurrentProcess')
 
 export class PlayScene extends Scene {
@@ -49,7 +46,7 @@ export class PlayScene extends Scene {
         this.provide(kGetCurrentProcess, () => currentProcess)
 
         if (! this.game.config.noAudio) this.afterStart(() => {
-            this.bgmPlayBack = this.game.audioManager.playAudio(`./assets/audio/${ BGM }.mp3`)
+            this.bgmPlayBack = this.game.audioManager.playAudio(`./assets/audio/${ Stage1_1.bgm }.mp3`) // TODO: better
         })
 
         const pause = () => {
@@ -124,6 +121,6 @@ export class PlayScene extends Scene {
     async start() {
         await super.start()
         if (! this.game.config.noAudio)
-            await this.game.audioManager.loadAudio(`./assets/audio/${ BGM }.mp3`)
+            await this.game.audioManager.loadAudio(`./assets/audio/${ Stage1_1.bgm }.mp3`) // TODO: better
     }
 }

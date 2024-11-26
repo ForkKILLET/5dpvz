@@ -13,10 +13,14 @@ export interface WavesData {
     waves: WaveData[]
 }
 
+export const BGM_NAMES = [ 'day' ] as const
+export type BGMId = typeof BGM_NAMES[number]
+
 export interface StageData {
     id: string
     chapter: number
     track: number
+    bgm: BGMId
     wavesData: WavesData
     hasWon: (process: ProcessEntity) => boolean
     hasLost: (process: ProcessEntity) => boolean
@@ -36,6 +40,7 @@ export const Stage1_1: StageData = {
     id: '1-1',
     chapter: 1,
     track: 1,
+    bgm: 'day',
     wavesData: {
         zombieType: [ 'normal_zombie' ],
         waveCount: 3,
