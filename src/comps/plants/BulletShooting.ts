@@ -1,6 +1,6 @@
 import { BULLETS } from '@/data/bullets'
 import { PLANTS } from '@/data/plants'
-import { Comp, CompCtor } from '@/engine'
+import { Comp, CompCtor, CompEvents } from '@/engine'
 import { BulletEntity } from '@/entities/bullets/Bullet'
 import { kProcess } from '@/entities/Process'
 import { PlantEntity } from '@/entities/plants/Plant'
@@ -9,7 +9,7 @@ import { remove } from '@/utils'
 void PLANTS
 void BULLETS
 
-export class BulletShootingBehavior<E extends PlantEntity = PlantEntity> extends Comp<{}, {}, E> {
+export class BulletShootingComp<E extends PlantEntity = PlantEntity> extends Comp<{}, {}, CompEvents, E> {
     static create<M extends Comp>(this: CompCtor<M>, entity: M['entity']) {
         return new this(entity, {}, {})
     }

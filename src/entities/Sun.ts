@@ -3,7 +3,7 @@ import { kProcess } from '@/entities/Process'
 import { CursorComp } from '@/comps/Cursor'
 import { LifeComp } from '@/comps/Life'
 import { FilterComp } from '@/comps/Filter'
-import { ButtonEvents } from '@/comps/Button'
+import { ButtonLikeEvents } from '@/comps/Button'
 import { TextureConfig, TextureEntity, TextureEvents, TextureState } from '@/entities/Texture'
 import { HoverableComp } from '@/comps/Hoverable'
 
@@ -16,7 +16,7 @@ interface SunConfig extends SunUniqueConfig, TextureConfig {}
 interface SunUniqueState {}
 interface SunState extends SunUniqueState, TextureState {}
 
-interface SunEvents extends TextureEvents, ButtonEvents {}
+interface SunEvents extends TextureEvents, ButtonLikeEvents {}
 
 export class SunEntity extends TextureEntity<SunConfig, SunState, SunEvents> {
     constructor(config: SunConfig, state: SunState) {

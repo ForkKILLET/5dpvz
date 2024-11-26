@@ -25,17 +25,22 @@ export class BulletEntity<
 
         const { shapeFactory } = this.config.metadata
         if (shapeFactory) this
-            .addCompRaw(shapeFactory(this).setTag('hitbox'))
+            .addRawComp(shapeFactory(this).setTag('hitbox'))
 
         this
             .addComp(CollidableComp, {
-                groups: new Set([ 'bullets' ] as const),
-                targetGroups: new Set([ 'zombies' ] as const),
-                onCollide: (target: Entity) => {
-                    if (target instanceof ZombieEntity) this.hit(target)
-                },
+                groups: [ 'bullet' ],
+                target: { ty: 'has', group: 'zombie' },
             })
             .addComp(FilterComp)
+            .withComp(CollidableComp, colliable => {
+                Object.assign(window, { [`c${ this.id }`]: colliable })
+                console.log('Bullet %o with Collidable %o', this, colliable)
+                colliable.emitter.on('collide', (target: Entity) => {
+                    console.log('hit', this.id)
+                    if (target instanceof ZombieEntity) this.hit(target)
+                })
+            })
     }
 
     static createBullet<

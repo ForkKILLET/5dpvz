@@ -1,38 +1,66 @@
-import { Comp, CompCtor, Emitter, Entity, Events } from '@/engine'
-import { CollidableGroup } from '@/data/collidableGroups'
+import { Comp, CompCtor, CompEvents, Entity } from '@/engine'
 import { ShapeComp } from '@/comps/Shape'
-import { eq, remove, intersect, placeholder, elem } from '@/utils'
+import { eq, remove, placeholder, elem } from '@/utils'
+import { getProcessId } from '@/entities/Process'
 
-export interface CollidableEvents extends Events {
-    collide: [ Entity ]
+export type CollidableGroup = 'plant' | 'zombie' | 'bullet'
+
+export type TargetFilter =
+| {
+    ty: 'and'
+    filters: TargetFilter[]
+}
+| {
+    ty: 'or'
+    filters: TargetFilter[]
+}
+| {
+    ty: 'not'
+    filter: TargetFilter
+}
+| {
+    ty: 'has'
+    group: CollidableGroup
+}
+| {
+    ty: 'has-some'
+    groups: CollidableGroup[]
+}
+| {
+    ty: 'has-all'
+    groups: CollidableGroup[]
 }
 
 export interface CollidableConfig {
-    groups: Set<CollidableGroup>
-    targetGroups: Set<CollidableGroup>
-    onCollide?: (otherEntity: Entity) => void
+    groups: CollidableGroup[]
+    target: TargetFilter
+    crossProcess?: boolean
 }
 
 export interface CollidableState {}
 
-export class CollidableComp extends Comp<CollidableConfig, CollidableState> {
+export interface CollidableEvents extends CompEvents {
+    collide: [ Entity ]
+}
+
+export class CollidableComp extends Comp<CollidableConfig, CollidableState, CollidableEvents> {
     static dependencies = [ ShapeComp.withTag(elem('hitbox', 'texture')) ]
 
     static collidableComps: CollidableComp[] = []
 
     shape: ShapeComp = placeholder
 
-    emitter = new Emitter<CollidableEvents>()
-
     constructor(entity: Entity, config: CollidableConfig) {
         super(entity, config, {})
 
-        this.entity.afterStart(() => {
+        this.emitter.on('attach', () => {
             this.shape = entity.getComp(ShapeComp.withTag(elem('hitbox', 'texture')))!
 
             CollidableComp.collidableComps.push(this)
-            entity.on('dispose', () => remove(CollidableComp.collidableComps, eq(this)))
-            if (config.onCollide) this.emitter.on('collide', config.onCollide)
+            entity.on('dispose', () => {
+                console.log('remove', entity.constructor.name, entity.id)
+                remove(CollidableComp.collidableComps, eq(this))
+            })
         })
     }
 
@@ -44,6 +72,7 @@ export class CollidableComp extends Comp<CollidableConfig, CollidableState> {
         for (const otherComp of CollidableComp.collidableComps) {
             if (! this.shouldCollideWith(otherComp)) continue
             if (this.shape.intersects(otherComp.shape)) {
+                console.log('emit:collide', this.entity.id, otherComp.entity.id)
                 this.emitter.emit('collide', otherComp.entity)
                 otherComp.emitter.emit('collide', this.entity)
             }
@@ -52,6 +81,20 @@ export class CollidableComp extends Comp<CollidableConfig, CollidableState> {
 
     shouldCollideWith(target: CollidableComp) {
         if (target === this) return false
-        return intersect(this.config.targetGroups, target.config.groups).size > 0
+        if (! this.config.crossProcess && getProcessId(target.entity) !== getProcessId(this.entity)) return false
+        const taregtGroups = target.config.groups
+        const _filter = (filter: TargetFilter): boolean => {
+            switch (filter.ty) {
+                case 'and': return filter.filters.every(_filter)
+                case 'or': return filter.filters.some(_filter)
+                case 'not': return ! _filter(filter.filter)
+                case 'has': return taregtGroups.includes(filter.group)
+                case 'has-some': return filter.groups.some(group => taregtGroups.includes(group))
+                case 'has-all': return filter.groups.every(group => taregtGroups.includes(group))
+            }
+        }
+        return _filter(this.config.target)
     }
 }
+
+Object.assign(window, { CollidableComp })

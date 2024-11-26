@@ -96,6 +96,8 @@ export interface ProcessEvents extends EntityEvents {}
 
 export const kProcess = injectKey<ProcessEntity>('kProcess')
 
+export const getProcessId = (entity: Entity): number => entity.inject(kProcess)!.config.processId
+
 export class ProcessEntity extends Entity<ProcessConfig, ProcessState, ProcessEvents> {
     static createProcess<C extends ProcessConfig, S extends EntityState>(config: C, state: S) {
         return new this(config, {

@@ -2,7 +2,7 @@ import { kDebugFold } from '@/debug'
 import {
     createIdGenerator, Position, positionAdd,
     Emitter, Events, ListenerOptions,
-    State, Comp, CompCtor, CompSelector
+    State, Comp, CompCtor, CompSelector,
 } from '@/engine'
 import { Disposer, eq, mapk, remove, RemoveIndex } from '@/utils'
 
@@ -77,16 +77,18 @@ export class Entity<
         return build
     }
 
-    startedToStart = false
+    startedToRunStart = false
+    startedToBeforeStart = false
     started = false
     starters: (() => void)[] = []
     async start(): Promise<void> {
         this.game.allEntities.push(this)
     }
     runStart() {
-        this.startedToStart = true
+        this.startedToRunStart = true
         void (async () => {
             await this.start()
+            this.startedToBeforeStart = true
             await Promise.all(this.starters.map(fn => fn()))
             this.started = true
             this.emit('start')
@@ -95,7 +97,7 @@ export class Entity<
         return this
     }
     beforeStart(fn: () => void) {
-        if (this.started) fn()
+        if (this.startedToBeforeStart) fn()
         else this.starters.push(fn)
         return this
     }
@@ -199,7 +201,7 @@ export class Entity<
     hasComp(...sels: CompSelector[]) {
         return sels.every(sel => this.comps.some(Comp.runSelector(sel)))
     }
-    addCompRaw(comp: Comp) {
+    addRawComp(comp: Comp) {
         if (this.state.cloning) return this
         const _addComp = () => {
             const { dependencies } = comp.constructor as CompCtor
@@ -208,16 +210,24 @@ export class Entity<
                     dependencies.map(dep => Comp.getCtorFromSelector(dep).name).join(', ')
                 }.`)
             this.comps.push(comp)
+            comp.emitter.emit('attach', this)
         }
         if (this.started) _addComp()
-        else this.afterStart(_addComp, this.startedToStart)
+        else this.afterStart(_addComp, this.startedToRunStart)
         return this
     }
-    addComp<A extends any[], M extends Comp>(
-        Comp: { create: (entity: M['entity'], ...args: A) => M },
+    addLoseComp<M extends Comp, A extends any[]>( // FIXME: infer E
+        Comp: CompCtor<any> & { create: (entity: M['entity'], ...args: A) => M },
         ...args: A
     ) {
-        return this.addCompRaw(Comp.create(this, ...args))
+        return this.addRawComp(Comp.create(this, ...args))
+    }
+    addComp<M extends Comp, A extends any[]>(
+        Comp: CompCtor<any> & { create: (entity: M['entity'], ...args: A) => M },
+        ...args: A
+    ) {
+        if (this.hasComp(Comp)) return this
+        return this.addLoseComp(Comp, ...args)
     }
     removeComp<M extends Comp>(sel: CompSelector<M>) {
         return this.afterStart(() => {
@@ -318,14 +328,18 @@ export class Entity<
         const newAttachedEntities = this.attachedEntities.map(entity => entity.cloneEntity(entityMap))
         const newEntity = new Ctor(this.config, { ...this.cloneState(entityMap), cloning: true })
         entityMap.set(this.id, newEntity)
-        newEntity.afterStart(() => {
+        newEntity.beforeStart(() => {
+            console.log('beforeStart', newEntity.id, newEntity.constructor.name)
             newEntity.state.cloning = false
             newEntity.buildName = this.buildName
             Promise.all(newAttachedEntities.map(entity => new Promise(res => entity
                 .attachTo(newEntity)
                 .on('attach', res)
             ))).then(() => newEntity.emit('clone-finish'))
-            this.comps.forEach(comp => newEntity.addCompRaw(comp.cloneComp(entityMap, newEntity)))
+            this.comps.forEach(comp => newEntity.addRawComp(comp.cloneComp(entityMap, newEntity)))
+        })
+        newEntity.afterStart(() => {
+            console.log('afterStart', newEntity.id, newEntity.constructor.name)
         })
         return newEntity
     }

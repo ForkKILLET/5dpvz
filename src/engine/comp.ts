@@ -1,6 +1,10 @@
-import { Entity, EntityCloneMap, State } from '@/engine'
+import { Emitter, Entity, EntityCloneMap, Events, State } from '@/engine'
 
-export class Comp<C = any, S = any, E extends Entity = Entity> extends State<S> {
+export interface CompEvents extends Events {
+    attach: [ Entity ]
+}
+
+export class Comp<C = any, S = any, V extends CompEvents = CompEvents, E extends Entity = Entity> extends State<S> {
     static readonly dependencies: CompSelector<any>[] = []
 
     static selector = <M extends Comp>(
@@ -18,13 +22,15 @@ export class Comp<C = any, S = any, E extends Entity = Entity> extends State<S> 
         return typeof Comp === 'function' ? Comp : Comp[0]
     }
 
+    static create<M extends Comp>(this: CompCtor<M>, entity: M['entity'], config: M['config'], state: M['state']): M {
+        return new this(entity, config, state)
+    }
+
     constructor(public readonly entity: E, public config: C, state: S) {
         super(state)
     }
 
-    static create<M extends Comp>(this: CompCtor<M>, entity: M['entity'], config: M['config'], state: M['state']): M {
-        return new this(entity, config, state)
-    }
+    emitter = new Emitter<V>()
 
     update() {}
 

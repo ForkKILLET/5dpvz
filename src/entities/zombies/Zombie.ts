@@ -8,6 +8,7 @@ import { Entity, EntityCtor, EntityState, Position } from '@/engine'
 import { PlantEntity } from '@/entities/plants/Plant'
 import { TextureConfig, TextureEntity, TextureEvents, TextureState } from '@/entities/Texture'
 import { PartialBy } from '@/utils'
+import { HpBarEntity } from '../ui/HpBar'
 
 void PLANTS
 
@@ -39,7 +40,7 @@ export class ZombieEntity<
         super(config, state)
 
         const { shapeFactory } = this.config.metadata
-        if (shapeFactory) this.addCompRaw(shapeFactory(this).setTag('hitbox'))
+        if (shapeFactory) this.addRawComp(shapeFactory(this).setTag('hitbox'))
 
         this
             .addComp(FilterComp)
@@ -47,9 +48,11 @@ export class ZombieEntity<
             .addComp(DamageEffectComp)
             .addComp(ContinuousDamagingComp, 1)
             .addComp(CollidableComp, {
-                groups: new Set([ 'zombies' ] as const),
-                targetGroups: new Set([ 'bullets', 'plants' ] as const),
-                onCollide: (target: Entity) => {
+                groups: [ 'zombie' ],
+                target: { ty: 'has-some', groups: [ 'plant', 'bullet' ] },
+            })
+            .withComp(CollidableComp, collidable => {
+                collidable.emitter.on('collide', (target: Entity) => {
                     if (! PlantEntity.isPlant(target)) return
                     if (! this.state.eatingPlant) {
                         this.withComp(ContinuousDamagingComp, ({ state: { targets } }) => {
@@ -61,8 +64,14 @@ export class ZombieEntity<
                             })
                         })
                     }
-                },
+                })
             })
+
+        if (this.game.config.isDebug)
+            this.useBuilder('HpBar', () => new HpBarEntity(
+                {},
+                { position: { ...this.state.position }, zIndex: this.state.zIndex }
+            ))
     }
 
     static createZombie<

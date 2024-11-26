@@ -1,4 +1,4 @@
-import { Position, Comp, Entity, CompSelector, CompCtor } from '@/engine'
+import { Position, Comp, Entity, CompSelector, CompCtor, CompEvents } from '@/engine'
 import { clamp, mapk, PartialBy, Pred } from '@/utils'
 
 export type ShapeTag = 'boundary' | 'texture' | 'hitbox'
@@ -9,11 +9,14 @@ export interface ShapeConfig {
 
 export interface ShapeState {}
 
+export interface ShapeEvents extends CompEvents {}
+
 export class ShapeComp<
     C extends ShapeConfig = ShapeConfig,
     S extends ShapeState = ShapeState,
+    V extends ShapeEvents = ShapeEvents,
     E extends Entity = Entity
-> extends Comp<C, S, E> {
+> extends Comp<C, S, V, E> {
     constructor(entity: E, config: C, state: S) {
         super(entity, config, state)
         this.ctx = this.game.ctx
@@ -68,7 +71,7 @@ export interface AnyShapeConfig<E extends Entity> extends ShapeConfig {
 
 export interface AnyShapeState extends ShapeState {}
 
-export class AnyShape<E extends Entity = Entity> extends ShapeComp<AnyShapeConfig<E>, AnyShapeState, E> {
+export class AnyShape<E extends Entity = Entity> extends ShapeComp<AnyShapeConfig<E>, AnyShapeState, CompEvents, E> {
     static create<C extends Comp>(
         this: CompCtor<C>,
         entity: C['entity'],

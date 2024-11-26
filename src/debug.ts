@@ -504,7 +504,7 @@ export const loadDebugWindow = (game: Game) => {
         const c = watchingComp
         if (! c) return $compDetailContent.innerHTML = 'No comp selected'
         $compDetailContent.innerHTML = `
-            ${ showCompLink(c, false) }
+            ${ showCompLink(c, false) }<br />
             <b>state</b> ${ showJson(c.state) }<br />
             <b>config</b> ${ showJson(c.config) }<br />
             <b>entity</b> ${ showJson(c.entity) }<br />

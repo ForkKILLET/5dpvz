@@ -1,4 +1,4 @@
-import { Comp, CompCtor, Entity } from '@/engine'
+import { Comp, CompCtor, CompEvents, Entity } from '@/engine'
 
 export type Updater<E extends Entity = Entity> = (entity: E) => void
 
@@ -8,7 +8,9 @@ export interface UpdaterConfig<E extends Entity = Entity> {
 
 export interface UpdaterState {}
 
-export class UpdaterComp<E extends Entity> extends Comp<UpdaterConfig<E>, UpdaterState, E> {
+export interface UpdaterEvents extends CompEvents {}
+
+export class UpdaterComp<E extends Entity> extends Comp<UpdaterConfig<E>, UpdaterState, UpdaterEvents, E> {
     static create<M extends Comp>(this: CompCtor<M>, entity: Entity, updater: Updater): M {
         return new this(entity, { updater }, {})
     }

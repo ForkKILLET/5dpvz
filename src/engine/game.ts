@@ -3,7 +3,7 @@ import { HoverableComp } from '@/comps/Hoverable'
 import { AnyShape, ShapeComp } from '@/comps/Shape'
 import {
     Emitter, Entity, Scene, Events,
-    AudioManager, useAudioManager, ImageManager, useImageManager, Mouse, useMouse
+    AudioManager, useAudioManager, ImageManager, useImageManager, Mouse, useMouse,
 } from '@/engine'
 import { by, eq, placeholder, remove } from '@/utils'
 import { Keyboard, KeyboardEvents, useKeyboard } from '@/engine/keyboard'

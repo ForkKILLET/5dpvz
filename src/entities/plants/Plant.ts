@@ -1,4 +1,4 @@
-import { ButtonEvents } from '@/comps/Button'
+import { ButtonLikeEvents } from '@/comps/Button'
 import { CollidableComp } from '@/comps/Collidable'
 import { FilterComp } from '@/comps/Filter'
 import { DamageEffectComp, HealthComp } from '@/comps/Health'
@@ -20,7 +20,7 @@ export interface PlantUniqueState {
 }
 export interface PlantState extends PlantUniqueState, TextureState {}
 
-export interface PlantEvents extends TextureEvents, ButtonEvents {}
+export interface PlantEvents extends TextureEvents, ButtonLikeEvents {}
 
 export class PlantEntity<
     S extends PlantState = PlantState,
@@ -31,12 +31,12 @@ export class PlantEntity<
 
         const { shapeFactory } = this.config.metadata
         if (shapeFactory) this
-            .addCompRaw(shapeFactory(this).setTag('hitbox'))
+            .addRawComp(shapeFactory(this).setTag('hitbox'))
 
         this
             .addComp(CollidableComp, {
-                groups: new Set([ 'plants' ] as const),
-                targetGroups: new Set([ 'zombies' ] as const),
+                groups: [ 'plant' ],
+                target: { ty: 'has', group: 'zombie' },
             })
             .addComp(HoverableComp)
             .addComp(FilterComp)

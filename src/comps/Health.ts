@@ -1,10 +1,5 @@
-import { Comp, CompCtor, Emitter, Entity, Events } from '@/engine'
+import { Comp, CompCtor, CompEvents, Entity } from '@/engine'
 import { FilterComp } from '@/comps/Filter'
-
-export interface HealthEvents extends Events {
-    takeDamage: [ number ]
-    die: []
-}
 
 export interface HealthConfig {
     maxHp: number
@@ -14,9 +9,12 @@ export interface HealthState {
     hp: number
 }
 
-export class HealthComp<E extends Entity = Entity> extends Comp<HealthConfig, HealthState, E> {
-    emitter = new Emitter<HealthEvents>()
+export interface HealthEvents extends CompEvents {
+    takeDamage: [ number ]
+    die: []
+}
 
+export class HealthComp<E extends Entity = Entity> extends Comp<HealthConfig, HealthState, HealthEvents, E> {
     static create<M extends Comp>(this: CompCtor<M>, entity: M['entity'], maxHp: number) {
         return new this(entity, { maxHp }, { hp: maxHp })
     }

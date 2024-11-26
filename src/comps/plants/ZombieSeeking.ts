@@ -1,11 +1,11 @@
 import { PLANTS } from '@/data/plants'
-import { Comp, CompCtor } from '@/engine'
+import { Comp, CompCtor, CompEvents } from '@/engine'
 import { kProcess } from '@/entities/Process'
 import { PlantEntity } from '@/entities/plants/Plant'
 
 void PLANTS
 
-export class ZombieSeekingBehavior<E extends PlantEntity = PlantEntity> extends Comp<{}, {}, E> {
+export class ZombieSeekingComp<E extends PlantEntity = PlantEntity> extends Comp<{}, {}, CompEvents, E> {
     static create<M extends Comp>(this: CompCtor<M>, entity: M['entity']) {
         return new this(entity, {}, {})
     }

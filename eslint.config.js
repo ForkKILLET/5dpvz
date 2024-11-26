@@ -45,6 +45,7 @@ export default tseslint.config({
             arrays: 'always-multiline',
             objects: 'always-multiline',
             functions: 'only-multiline',
+            imports: 'always-multiline',
         }),
         '@stylistic/js/comma-spacing': error({ before: false, after: true }),
         '@stylistic/js/comma-style': error('last'),

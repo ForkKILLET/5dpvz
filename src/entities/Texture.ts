@@ -1,10 +1,10 @@
-import { ButtonComp, ButtonEvents } from '@/comps/Button'
+import { ButtonComp, ButtonLikeEvents } from '@/comps/Button'
 import { HoverableComp } from '@/comps/Hoverable'
-import { AnyShape, OriginConfig, RectShape, ShapeComp } from '@/comps/Shape'
+import { AnyShape, AnyShapeConfig, OriginConfig, RectShape, ShapeComp } from '@/comps/Shape'
 import { TextureSet } from '@/data/textures'
 import {
     Entity, EntityConfig, EntityCtor, EntityEvents, EntityState,
-    getImageOutline, getImagePixels, Outline
+    getImageOutline, getImagePixels, Outline,
 } from '@/engine'
 import { elem, PartialBy, pick, placeholder, StrictOmit } from '@/utils'
 
@@ -106,7 +106,7 @@ export class TextureEntity<
         state: StrictOmit<E['state'], 'textureName' | 'innerState'>
     ) {
         type Button = E extends TextureEntity<infer C, infer S, infer V>
-            ? TextureEntity<C, S & { hovering: boolean }, V & ButtonEvents>
+            ? TextureEntity<C, S & { hovering: boolean }, V & ButtonLikeEvents>
             : never
 
         const button = this
@@ -206,15 +206,16 @@ export class TextureEntity<
                 }
                 this
                     .removeComp(ShapeComp.withTag(elem('texture', 'boundary')))
-                    .addComp(RectShape, {
+                    .addLoseComp(RectShape, {
                         tag: 'texture',
                         ...shapeConfig,
                     })
 
                 if (this.config.strictShape)
-                    this.addComp(AnyShape, {
+                    // TODO: infer type
+                    this.addLoseComp<AnyShape<this>, [ AnyShapeConfig<this> ]>(AnyShape, {
                         tag: 'boundary',
-                        contains: point => {
+                        contains(point) {
                             const rectShape = this.getComp(RectShape)!
                             if (! rectShape.contains(point)) return false
                             const { x, y, width } = rectShape.rect
@@ -224,20 +225,22 @@ export class TextureEntity<
                             const alpha = pixels[ry * width * 4 + rx * 4 + 3]
                             return alpha > 0
                         },
-                        intersects: () => false,
-                        stroke: () => {
+                        intersects() {
+                            return false
+                        },
+                        stroke() {
                             const outline = this.outlines[this.textureName][this.f]
                             const { x, y } = this.getComp(RectShape)!.rect
                             outline.outline.forEach(dot => this.game.ctx.strokeRect(dot.x + x, dot.y + y, 1, 1))
                         },
-                        fill: () => {
+                        fill() {
                             const outline = this.outlines[this.textureName][this.f]
                             const { x, y } = this.getComp(RectShape)!.rect
                             outline.inner.forEach(dot => this.game.ctx.fillRect(dot.x + x, dot.y + y, 1, 1))
                         },
                     })
                 else
-                    this.addComp(RectShape, shapeConfig)
+                    this.addLoseComp(RectShape, shapeConfig)
             },
             true
         )

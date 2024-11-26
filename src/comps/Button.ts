@@ -1,15 +1,18 @@
-import { Comp, CompCtor, Entity, EntityEvents, EntityState } from '@/engine'
+import { Comp, CompCtor, CompEvents, Entity, EntityEvents, EntityState } from '@/engine'
 import { HoverableComp, HoverableEvents } from '@/comps/Hoverable'
-
-export interface ButtonEvents extends HoverableEvents, EntityEvents {}
 
 export interface ButtonConfig {}
 
 export interface ButtonState {}
 
-export type ButtonLikeEntity = Entity<any, EntityState, ButtonEvents>
+export interface ButtonEvents extends CompEvents {}
 
-export class ButtonComp<E extends ButtonLikeEntity = ButtonLikeEntity> extends Comp<ButtonConfig, ButtonState, E> {
+export interface ButtonLikeEvents extends HoverableEvents, EntityEvents {}
+export type ButtonLikeEntity = Entity<any, EntityState, ButtonLikeEvents>
+
+export class ButtonComp<
+    E extends ButtonLikeEntity = ButtonLikeEntity
+> extends Comp<ButtonConfig, ButtonState, ButtonEvents, E> {
     static dependencies = [ HoverableComp ]
 
     constructor(entity: E, config: ButtonConfig, state: ButtonState) {
