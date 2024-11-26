@@ -10,6 +10,7 @@ export interface WaveData {
 export interface WavesData {
     zombieType: ZombieId[]
     waveCount: number
+    bigWaveIndex: number[]
     waves: WaveData[]
 }
 
@@ -44,6 +45,7 @@ export const Stage1_1: StageData = {
     wavesData: {
         zombieType: [ 'normal_zombie' ],
         waveCount: 3,
+        bigWaveIndex: [ 3 ],
         waves: [
             {
                 zombieCount: 1,

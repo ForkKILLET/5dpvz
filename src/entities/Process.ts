@@ -441,7 +441,17 @@ export class ProcessEntity extends Entity<ProcessConfig, ProcessState, ProcessEv
         })
 
         this.state.waveZombieList = zombieList
-        this.state.zombieSpawnTimer = 0
+        if (this.wavesData.bigWaveIndex.includes(this.state.wave)) {
+            this.bigWave()
+            this.state.zombieSpawnTimer = - 5000
+        }
+        else {
+            this.state.zombieSpawnTimer = 0
+        }
+    }
+
+    bigWave() {
+        console.log('big wave')
     }
 
     updatePlantSlot(runCoolDown = true) {
