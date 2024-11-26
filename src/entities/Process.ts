@@ -412,6 +412,7 @@ export class ProcessEntity extends Entity<ProcessConfig, ProcessState, ProcessEv
                 j: row,
                 position: { x: x + 80, y: y - 40 },
                 zIndex: this.lawn.state.zIndex + 2 + row * 0.1,
+                speedRatio: this.getComp(RngComp)!.random(95, 105) / 100,
             }
         )
             .attachTo(this)

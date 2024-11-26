@@ -20,6 +20,7 @@ export interface ZombieConfig extends ZombieUniqueConfig, TextureConfig {}
 export interface ZombieAutoState {
     movingState: ZombieMovingState
     place: ZombiePlace
+    speedRatio: number
     damageFilterTimer: number
     eatingPlant: PlantEntity | null
     enteredHouse: boolean
@@ -101,7 +102,7 @@ export class ZombieEntity<
     nextMove(): Position {
         const x = this.state.eatingPlant
             ? 0
-            : - this.config.metadata.speed * this.game.mspf
+            : - this.config.metadata.speed * this.state.speedRatio * this.game.mspf
         return { x, y: 0 }
     }
 
