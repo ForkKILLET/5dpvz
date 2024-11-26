@@ -4,11 +4,13 @@ export interface AudioPlayback {
     toggleEffect: () => void
     stop: () => void
     isEffectApplied: boolean
+    setVolume: (volume: number) => void
 }
 
 export interface AudioPlayOptions {
     loop?: boolean
     playbackRate?: number
+    volume?: number
 }
 
 export interface AudioManager {
@@ -63,11 +65,15 @@ export const useAudioManager = ({ noAudio }: GameConfig): AudioManager => {
         effectNode.type = 'lowpass'
         effectNode.frequency.value = 2000
 
+        const volumeGainNode = audioContext.createGain()
+        volumeGainNode.gain.value = options.volume ?? 1.0
+
         sourceNode.connect(dryGainNode)
         sourceNode.connect(effectNode)
         effectNode.connect(wetGainNode)
         dryGainNode.connect(audioContext.destination)
         wetGainNode.connect(audioContext.destination)
+        volumeGainNode.connect(audioContext.destination)
 
         sourceNode.start(0)
 
@@ -94,12 +100,18 @@ export const useAudioManager = ({ noAudio }: GameConfig): AudioManager => {
             dryGainNode.disconnect()
             wetGainNode.disconnect()
             effectNode.disconnect()
+            volumeGainNode.disconnect()
+        }
+
+        const setVolume = (volume: number) => {
+            volumeGainNode.gain.setValueAtTime(volume, audioContext.currentTime)
         }
 
         return {
             toggleEffect,
             stop,
             isEffectApplied,
+            setVolume,
         }
     }
 
