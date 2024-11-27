@@ -326,7 +326,7 @@ export class Entity<
     cloneEntity(entityMap: EntityCloneMap = new Map): this {
         const Ctor = this.constructor as EntityCtor<this>
         const newAttachedEntities = this.attachedEntities.map(entity => entity.cloneEntity(entityMap))
-        const newEntity = new Ctor(this.config, { ...this.cloneState(entityMap), cloning: true })
+        const newEntity = new Ctor({ ...this.config }, { ...this.cloneState(entityMap), cloning: true })
         entityMap.set(this.id, newEntity)
         newEntity.beforeStart(() => {
             newEntity.state.cloning = false

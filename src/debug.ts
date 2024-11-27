@@ -261,7 +261,7 @@ export const loadDebugWindow = (game: Game) => {
 
             watchingEntity?.withComp(ShapeComp.withTag(eq('boundary')), shape => {
                 const { entity } = shape
-                if (! entity.deepActive) {
+                if (entity.disposed) {
                     unsetWatchingEntity()
                     return
                 }

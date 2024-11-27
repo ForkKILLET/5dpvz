@@ -212,7 +212,6 @@ export class TextureEntity<
                     })
 
                 if (this.config.strictShape)
-                    // TODO: infer type
                     this.addLoseComp<AnyShape<this>, [ AnyShapeConfig<this> ]>(AnyShape, {
                         tag: 'boundary',
                         contains(point) {
