@@ -10,6 +10,21 @@ void BULLETS
 void PLANTS
 
 void async function() {
+    const $about = document.querySelector<HTMLDivElement>('#about')!
+    const buildTime = import.meta.env.VITE_BUILD_TIME ?? 'now'
+    const buildEnv = import.meta.env.VITE_BUILD_ENV ?? 'local'
+    const [ commitHash, commitMsg ] = import.meta.env.VITE_LAST_COMMIT?.split(/(?<! .*) /) ?? []
+    const repoUrl = 'https://github.com/ForkKILLET/5dPvZ'
+    $about.innerHTML = `
+        <b>5DPvZ</b> built at <b>${ buildTime }</b> on <b>${ buildEnv }</b>
+        by <a href="https://github.com/ForkKILLET/" target="_blank">ForkKILLET</a>
+        &amp; <a href="https://github.com/Luna5akura" target="_blank">Luna5akura</a> with &lt;3 <br />
+        ${ commitHash
+                ? `<a href="${ repoUrl }/commit/${ commitHash }" target="_blank">${ commitHash }</a>: ${ commitMsg }`
+                : ''
+        }
+    `
+
     const canvas = document.querySelector<HTMLCanvasElement>('#game')!
     const ctx = canvas.getContext('2d')!
 
