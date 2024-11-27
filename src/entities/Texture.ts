@@ -7,6 +7,7 @@ import {
     getImageOutline, getImagePixels, Outline,
 } from '@/engine'
 import { elem, PartialBy, pick, placeholder, StrictOmit } from '@/utils'
+import { ImageNode } from '@/engine/imageNode'
 
 export type TextureInnerState =
     | {
@@ -53,7 +54,9 @@ export class TextureEntity<
     S extends TextureState = TextureState,
     V extends TextureEvents = TextureEvents
 > extends Entity<C, S, V> {
-    frames: Record<string, HTMLImageElement[]> = {}
+    frames: Record<string, ImageData[]> = {}
+    processingPipeline: ImageNode | null = null
+    processedImageBitmap: ImageBitmap | null = null
 
     constructor(config: C, state: S) {
         super(config, state)
@@ -131,7 +134,8 @@ export class TextureEntity<
             switch (texture.type) {
                 case 'image': {
                     const img = await this.game.imageManager.loadImage(texture.src)
-                    this.frames[name] = [ img ]
+                    const imageData = this.getImageDataFromImage(img)
+                    this.frames[name] = [ imageData ]
                     if (strictShape) {
                         const pixels = getImagePixels(img)
                         this.pixels[name] = [ pixels ]
@@ -143,7 +147,8 @@ export class TextureEntity<
                     const frames = await Promise.all(
                         texture.srcs.map(src => this.game.imageManager.loadImage(src))
                     )
-                    this.frames[name] = frames
+                    const imageDataFrames = frames.map(img => this.getImageDataFromImage(img))
+                    this.frames[name] = imageDataFrames
                     if (strictShape) {
                         this.pixels[name] = frames.map(getImagePixels)
                         this.outlines[name] = frames.map((frame, i) => getImageOutline(frame, this.pixels[name][i]))
@@ -154,6 +159,15 @@ export class TextureEntity<
         }
 
         if (this.state.innerState === placeholder) this.switchTexture(this.state.textureName)
+    }
+
+    getImageDataFromImage(img: HTMLImageElement): ImageData {
+        const canvas = document.createElement('canvas')
+        canvas.width = img.width
+        canvas.height = img.height
+        const ctx = canvas.getContext('2d')!
+        ctx.drawImage(img, 0, 0)
+        return ctx.getImageData(0, 0, img.width, img.height)
     }
 
     initInnerState(textureName: string): TextureInnerState {
@@ -187,7 +201,7 @@ export class TextureEntity<
                 return this.getInnerState<'anime'>().af
         }
     }
-    get frame(): HTMLImageElement {
+    get frame(): ImageData {
         return this.frames[this.textureName][this.f]
     }
     get size() {
@@ -253,10 +267,31 @@ export class TextureEntity<
         return this.state.innerState as Extract<TextureInnerState, { type: T }>
     }
 
-    render() {
+    async render() {
         const rectShape = this.getComp(RectShape)!
         const { x, y, width, height } = rectShape.rect
-        this.game.ctx.drawImage(this.frame, x, y, width, height)
+        // const { x, y } = rectShape.rect
+        if (! this.processedImageBitmap) {
+            const processedFrame = this.getProcessedFrame()
+            this.processedImageBitmap = await createImageBitmap(processedFrame)
+        }
+        this.game.ctx.drawImage(this.processedImageBitmap, x, y, width, height)
+    }
+
+    invalidateProcessedImageBitmap() {
+        if (this.processedImageBitmap) {
+            this.processedImageBitmap.close()
+            this.processedImageBitmap = null
+        }
+    }
+
+    private getProcessedFrame(): ImageData {
+        if (! this.processingPipeline) {
+            return this.frame
+        }
+        else {
+            return this.processingPipeline.getOutput()
+        }
     }
 
     update() {
@@ -276,6 +311,7 @@ export class TextureEntity<
                     const af = animeState.af += direction
                     if (af === frameCount || af === - 1)
                         animeState.af -= frameCount * direction
+                    this.processedImageBitmap = null
                 }
                 break
             }
