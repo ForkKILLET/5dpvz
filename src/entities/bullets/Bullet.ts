@@ -5,6 +5,7 @@ import { ZombieEntity } from '@/entities/zombies/Zombie'
 import { CollidableComp } from '@/comps/Collidable'
 import { TextureConfig, TextureState, TextureEvents, TextureEntity } from '@/entities/Texture'
 import { HealthComp } from '@/comps/Health'
+import { kProcess } from '../Process'
 
 export interface BulletUniqueConfig {
     metadata: BulletMetadata
@@ -34,10 +35,7 @@ export class BulletEntity<
             })
             .addComp(FilterComp)
             .withComp(CollidableComp, colliable => {
-                Object.assign(window, { [`c${ this.id }`]: colliable })
-                console.log('Bullet %o with Collidable %o', this, colliable)
                 colliable.emitter.on('collide', (target: Entity) => {
-                    console.log('hit', this.id)
                     if (target instanceof ZombieEntity) this.hit(target)
                 })
             })
@@ -77,6 +75,7 @@ export class BulletEntity<
     update() {
         super.update()
         this.updatePosition(this.nextMove())
+        if (! this.inject(kProcess)!.isInsideLawn(this.state.position)) this.dispose()
     }
 }
 

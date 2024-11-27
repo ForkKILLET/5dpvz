@@ -1,11 +1,9 @@
-import { AudioPlayback, injectKey, Scene } from '@/engine'
+import { AudioPlayback, Scene } from '@/engine'
 import { ProcessEntity } from '@/entities/Process'
 import { Stage1_1 } from '@/data/stages'
 import { CursorComp } from '@/comps/Cursor'
 import { TextureEntity } from '@/entities/Texture'
 import { placeholder } from '@/utils'
-
-export const kGetCurrentProcess = injectKey<() => ProcessEntity>('kGetCurrentProcess')
 
 export class PlayScene extends Scene {
     bgmPlayBack: AudioPlayback = placeholder
@@ -43,7 +41,6 @@ export class PlayScene extends Scene {
 
         const processes = [ process0 ]
         let currentProcess = process0
-        this.provide(kGetCurrentProcess, () => currentProcess)
 
         if (! this.game.config.noAudio) this.afterStart(() => {
             this.bgmPlayBack = this.game.audioManager.playAudio(`./assets/audio/${ Stage1_1.bgm }.mp3`) // TODO: better

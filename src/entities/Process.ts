@@ -6,7 +6,7 @@ import { PlantId, PLANTS, plantTextures } from '@/data/plants'
 import { ShovelId, shovelTextures } from '@/data/shovels'
 import { StageData } from '@/data/stages'
 import { ZombieId } from '@/data/zombies'
-import { Entity, EntityConfig, EntityEvents, EntityState, injectKey } from '@/engine'
+import { Entity, EntityConfig, EntityEvents, EntityState, injectKey, Position } from '@/engine'
 import { BulletEntity } from '@/entities/bullets/Bullet'
 import { LawnConfig, LawnEntity } from '@/entities/Lawn'
 import { LawnBlockEntity } from '@/entities/LawnBlock'
@@ -131,7 +131,7 @@ export class ProcessEntity extends Entity<ProcessConfig, ProcessState, ProcessEv
     phantomImage: Nullable<TextureEntity> = null
     holdingImage: Nullable<TextureEntity> = null
 
-    static width = 730
+    static width = 770
     static height = 550
 
     getPlantIdBySlotId(slotId: number) {
@@ -154,7 +154,7 @@ export class ProcessEntity extends Entity<ProcessConfig, ProcessState, ProcessEv
 
         this.state.plantsOnBlocks ??= matrix(config.lawn.width, config.lawn.height, () => null)
 
-        this.addComp(RectShape, { ...pick(ProcessEntity, [ 'width', 'height' ]), origin: 'top-left' })
+        this.addComp(RectShape, pick(ProcessEntity, [ 'width', 'height' ]))
         this.addComp(RngComp, random(2 ** 32))
 
         this.provide(kProcess, this)
@@ -525,6 +525,10 @@ export class ProcessEntity extends Entity<ProcessConfig, ProcessState, ProcessEv
         )
 
         return this.state
+    }
+
+    isInsideLawn(position: Position) {
+        return this.getComp(RectShape)!.contains(position)
     }
 
     postUpdate() {
