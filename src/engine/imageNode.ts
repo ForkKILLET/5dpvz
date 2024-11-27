@@ -302,3 +302,65 @@ export class BrightnessNode extends ImageNode {
         }
     }
 }
+
+export class ScalingNode extends ImageNode {
+    constructor(private scaleX: number, private scaleY?: number) {
+        super(input => this.scaleImage(input, scaleX, scaleY === undefined ? scaleX : scaleY))
+    }
+
+    private _left: ImageNode[] = []
+    get lefts(): ImageNode[] {
+        return this._left
+    }
+    set lefts(node: ImageNode[]) {
+        if (node.length > 1) {
+            throw new Error('Left length must be 0 or 1')
+        }
+        this._left = node
+    }
+
+    private _right: ImageNode[] = []
+    get rights(): ImageNode[] {
+        return this._right
+    }
+    set rights(node: ImageNode[]) {
+        if (node.length > 1) {
+            throw new Error('Right length must be 0 or 1')
+        }
+        this._right = node
+    }
+
+    private scaleImage(imageData: ImageData, scaleX: number, scaleY: number): ImageData {
+        const width = imageData.width
+        const height = imageData.height
+        const newWidth = Math.floor(width * scaleX)
+        const newHeight = Math.floor(height * scaleY)
+
+        const sourceCanvas = document.createElement('canvas')
+        sourceCanvas.width = width
+        sourceCanvas.height = height
+        const sourceCtx = sourceCanvas.getContext('2d')!
+        sourceCtx.putImageData(imageData, 0, 0)
+
+        const scaledCanvas = document.createElement('canvas')
+        scaledCanvas.width = newWidth
+        scaledCanvas.height = newHeight
+        const scaledCtx = scaledCanvas.getContext('2d')!
+
+        scaledCtx.drawImage(sourceCanvas, 0, 0, width, height, 0, 0, newWidth, newHeight)
+
+        const scaledImageData = scaledCtx.getImageData(0, 0, newWidth, newHeight)
+
+        console.log('scaling')
+
+        return scaledImageData
+    }
+
+    setScale(scaleX: number, scaleY: number) {
+        if (this.scaleX !== scaleX || this.scaleY !== scaleY) {
+            this.scaleX = scaleX
+            this.scaleY = scaleY
+            this.clearCache()
+        }
+    }
+}
