@@ -7,7 +7,7 @@ import {
     getImageOutline, getImagePixels, Outline,
 } from '@/engine'
 import { elem, PartialBy, pick, placeholder, StrictOmit } from '@/utils'
-import { ImageNode } from '@/engine/imageNode'
+import { ProcessingPipeline, InputNode } from '@/engine/imageNode'
 
 export type TextureInnerState =
     | {
@@ -54,8 +54,11 @@ export class TextureEntity<
     S extends TextureState = TextureState,
     V extends TextureEvents = TextureEvents
 > extends Entity<C, S, V> {
-    frames: Record<string, ImageData[]> = {}
-    processingPipeline: ImageNode | null = null
+    frames: Record<
+        string,
+        { images: HTMLImageElement[], imageData: ImageData[] }
+    > = {}
+    processingPipeline: ProcessingPipeline = placeholder
     offScreenCanvas: HTMLCanvasElement = document.createElement('canvas')
     offScreenCtx: CanvasRenderingContext2D = this.offScreenCanvas.getContext('2d')!
 
@@ -136,7 +139,10 @@ export class TextureEntity<
                 case 'image': {
                     const img = await this.game.imageManager.loadImage(texture.src)
                     const imageData = this.getImageDataFromImage(img)
-                    this.frames[name] = [ imageData ]
+                    this.frames[name] = {
+                        images: [ img ],
+                        imageData: [ imageData ],
+                    }
                     if (strictShape) {
                         const pixels = getImagePixels(img)
                         this.pixels[name] = [ pixels ]
@@ -145,14 +151,17 @@ export class TextureEntity<
                     break
                 }
                 case 'anime': {
-                    const frames = await Promise.all(
+                    const images = await Promise.all(
                         texture.srcs.map(src => this.game.imageManager.loadImage(src))
                     )
-                    const imageDataFrames = frames.map(img => this.getImageDataFromImage(img))
-                    this.frames[name] = imageDataFrames
+                    const imageData = images.map(img => this.getImageDataFromImage(img))
+                    this.frames[name] = {
+                        images,
+                        imageData,
+                    }
                     if (strictShape) {
-                        this.pixels[name] = frames.map(getImagePixels)
-                        this.outlines[name] = frames.map((frame, i) => getImageOutline(frame, this.pixels[name][i]))
+                        this.pixels[name] = images.map(getImagePixels)
+                        this.outlines[name] = images.map((frame, i) => getImageOutline(frame, this.pixels[name][i]))
                     }
                     break
                 }
@@ -160,6 +169,11 @@ export class TextureEntity<
         }
 
         if (this.state.innerState === placeholder) this.switchTexture(this.state.textureName)
+
+        this.processingPipeline = new ProcessingPipeline()
+
+        const sourceNode = new InputNode(this)
+        this.processingPipeline.setStartNode(sourceNode)
     }
 
     getImageDataFromImage(img: HTMLImageElement): ImageData {
@@ -168,7 +182,11 @@ export class TextureEntity<
         canvas.height = img.height
         const ctx = canvas.getContext('2d')!
         ctx.drawImage(img, 0, 0)
-        return ctx.getImageData(0, 0, img.width, img.height)
+        return ctx.getImageData(0, 0, canvas.width, canvas.height)
+    }
+
+    getFrameImageData(frameIndex: number): ImageData {
+        return this.frames[this.textureName].imageData[frameIndex]
     }
 
     initInnerState(textureName: string): TextureInnerState {
@@ -202,11 +220,11 @@ export class TextureEntity<
                 return this.getInnerState<'anime'>().af
         }
     }
-    get frame(): ImageData {
-        return this.frames[this.textureName][this.f]
+    get currentFrameImageData(): ImageData {
+        return this.frames[this.textureName].imageData[this.f]
     }
     get size() {
-        return pick(this.frame, [ 'width', 'height' ])
+        return pick(this.currentFrameImageData, [ 'width', 'height' ])
     }
 
     switchTexture(name: string) {
@@ -273,7 +291,7 @@ export class TextureEntity<
         const { x, y, width, height } = rectShape.rect
         // const { x, y } = rectShape.rect
 
-        const processedFrame = this.getProcessedFrame()
+        const processedFrame = this.processingPipeline.getOutput(this.f)
 
         this.offScreenCanvas.width = processedFrame.width
         this.offScreenCanvas.height = processedFrame.height
@@ -286,10 +304,10 @@ export class TextureEntity<
 
     private getProcessedFrame(): ImageData {
         if (! this.processingPipeline) {
-            return this.frame
+            return this.currentFrameImageData
         }
         else {
-            return this.processingPipeline.getOutput()
+            return this.processingPipeline.getOutput(this.f)
         }
     }
 
@@ -306,7 +324,7 @@ export class TextureEntity<
                 if (++ animeState.f === texture.fpaf) {
                     this.emit('anime-finish')
                     animeState.f = 0
-                    const frameCount = this.frames[this.textureName].length
+                    const frameCount = this.frames[this.textureName].imageData.length
                     const af = animeState.af += direction
                     if (af === frameCount || af === - 1)
                         animeState.af -= frameCount * direction
