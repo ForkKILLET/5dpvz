@@ -115,7 +115,7 @@ export class ProcessingPipeline {
     private startNode: ImageNode | null = null
     private endNode: ImageNode | null = null
 
-    addNode(node: ImageNode): this {
+    private addNode(node: ImageNode): this {
         this.nodes.push(node)
         return this
     }
@@ -240,6 +240,64 @@ export class GaussianBlurNode extends ImageNode {
     setRadius(radius: number) {
         if (this.radius !== radius) {
             this.radius = radius
+            this.clearCache()
+        }
+    }
+}
+
+export class BrightnessNode extends ImageNode {
+    constructor(private brightness: number) {
+        super(input => this.adjustBrightness(input, brightness))
+    }
+
+    private _left: ImageNode[] = []
+    get lefts(): ImageNode[] {
+        return this._left
+    }
+    set lefts(node: ImageNode[]) {
+        if (node.length > 1) {
+            throw new Error('Left length must be 0 or 1')
+        }
+        this._left = node
+    }
+
+    private _right: ImageNode[] = []
+    get rights(): ImageNode[] {
+        return this._right
+    }
+    set rights(node: ImageNode[]) {
+        if (node.length > 1) {
+            throw new Error('Right length must be 0 or 1')
+        }
+        this._right = node
+    }
+
+    private adjustBrightness(imageData: ImageData, adjustment: number): ImageData {
+        const width = imageData.width
+        const height = imageData.height
+
+        const sourceCanvas = document.createElement('canvas')
+        sourceCanvas.width = width
+        sourceCanvas.height = height
+        const SourceCtx = sourceCanvas.getContext('2d')!
+        SourceCtx.putImageData(imageData, 0, 0)
+
+        const brightnessCanvas = document.createElement('canvas')
+        brightnessCanvas.width = width
+        brightnessCanvas.height = height
+        const brightnessCtx = brightnessCanvas.getContext('2d')!
+
+        brightnessCtx.filter = `brightness(${ adjustment })`
+        brightnessCtx.drawImage(sourceCanvas, 0, 0)
+        const brightnessImageData = brightnessCtx.getImageData(0, 0, width, height)
+        console.log('brightness')
+
+        return brightnessImageData
+    }
+
+    setAdjustment(adjustment: number) {
+        if (this.brightness !== adjustment) {
+            this.brightness = adjustment
             this.clearCache()
         }
     }

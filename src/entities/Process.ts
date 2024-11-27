@@ -18,6 +18,7 @@ import { ShovelSlotConfig } from '@/entities/ui/ShovelSlot'
 import { PlantSlotsConfig, UIEntity } from '@/entities/ui/UI'
 import { ZombieEntity } from '@/entities/zombies/Zombie'
 import { eq, matrix, Nullable, pick, placeholder, random, remove, replicateBy, sum } from '@/utils'
+import { BrightnessNode, GaussianBlurNode } from '@/engine/imageNode'
 
 export interface ProcessConfig extends EntityConfig {
     processId: number
@@ -317,6 +318,12 @@ export class ProcessEntity extends Entity<ProcessConfig, ProcessState, ProcessEv
         }
         this.state.plantsData.push(newPlantData)
         this.state.plantsOnBlocks[i][j] = newPlantData
+
+        newPlant.afterStart(() => {
+            newPlant.processingPipeline
+                .appendNode(new GaussianBlurNode(2))
+                .appendNode(new BrightnessNode(0.5))
+        })
 
         this.cancelHolding()
     }
