@@ -69,7 +69,7 @@ export class BulletEntity<
 
     nextMove(): Position {
         return {
-            x: this.config.metadata.speed * this.game.mspf,
+            x: this.config.metadata.speed * this.game.mspf0,
             y: 0,
         }
     }

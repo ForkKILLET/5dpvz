@@ -71,7 +71,7 @@ export const SunflowerEntity = definePlant(class SunflowerEntity extends PlantEn
                 const deltaX = topDeltaX + targetDeltaX
                 const v = 90 / 1000
                 const totalT = (targetDeltaY - 2 * topDeltaY) / v
-                const totalF = Math.round(totalT / this.game.mspf)
+                const totalF = Math.round(totalT / this.game.mspf0)
                 const stepX = deltaX / totalF
 
                 this.state.sunProduceTransition = {

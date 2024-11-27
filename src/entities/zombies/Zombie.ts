@@ -102,7 +102,7 @@ export class ZombieEntity<
     nextMove(): Position {
         const x = this.state.eatingPlant
             ? 0
-            : - this.config.metadata.speed * this.state.speedRatio * this.game.mspf
+            : - this.config.metadata.speed * this.state.speedRatio * this.game.mspf0
         return { x, y: 0 }
     }
 

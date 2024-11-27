@@ -42,6 +42,7 @@ export class Game {
     readonly keyboard: Keyboard
 
     mspf: number
+    mspf0: number
 
     allEntities: Entity[] = []
     scenes: Scene[] = []
@@ -123,7 +124,10 @@ export class Game {
         }, this.mspf)
     }
     pause() {
-        if (this.loopTimerId !== null) clearInterval(this.loopTimerId)
+        if (this.loopTimerId !== null) {
+            clearInterval(this.loopTimerId)
+            this.loopTimerId = null
+        }
     }
 
     static defaultGame: Game = placeholder
@@ -136,7 +140,7 @@ export class Game {
         this.audioManager = useAudioManager(this.config)
         this.mouse = useMouse(this.config)
         this.keyboard = useKeyboard()
-        this.mspf = 1000 / config.fps
+        this.mspf0 = this.mspf = 1000 / config.fps
 
         const floor = new class Floor extends Scene {
             constructor() {
