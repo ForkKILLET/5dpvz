@@ -56,7 +56,8 @@ export class TextureEntity<
 > extends Entity<C, S, V> {
     frames: Record<string, ImageData[]> = {}
     processingPipeline: ImageNode | null = null
-    processedImageBitmap: ImageBitmap | null = null
+    offScreenCanvas: HTMLCanvasElement = document.createElement('canvas')
+    offScreenCtx: CanvasRenderingContext2D = this.offScreenCanvas.getContext('2d')!
 
     constructor(config: C, state: S) {
         super(config, state)
@@ -271,18 +272,16 @@ export class TextureEntity<
         const rectShape = this.getComp(RectShape)!
         const { x, y, width, height } = rectShape.rect
         // const { x, y } = rectShape.rect
-        if (! this.processedImageBitmap) {
-            const processedFrame = this.getProcessedFrame()
-            this.processedImageBitmap = await createImageBitmap(processedFrame)
-        }
-        this.game.ctx.drawImage(this.processedImageBitmap, x, y, width, height)
-    }
 
-    invalidateProcessedImageBitmap() {
-        if (this.processedImageBitmap) {
-            this.processedImageBitmap.close()
-            this.processedImageBitmap = null
-        }
+        const processedFrame = this.getProcessedFrame()
+
+        this.offScreenCanvas.width = processedFrame.width
+        this.offScreenCanvas.height = processedFrame.height
+
+        this.offScreenCtx.clearRect(0, 0, this.offScreenCanvas.width, this.offScreenCanvas.height)
+        this.offScreenCtx.putImageData(processedFrame, 0, 0)
+
+        this.game.ctx.drawImage(this.offScreenCanvas, x, y, width, height)
     }
 
     private getProcessedFrame(): ImageData {
@@ -311,7 +310,6 @@ export class TextureEntity<
                     const af = animeState.af += direction
                     if (af === frameCount || af === - 1)
                         animeState.af -= frameCount * direction
-                    this.processedImageBitmap = null
                 }
                 break
             }

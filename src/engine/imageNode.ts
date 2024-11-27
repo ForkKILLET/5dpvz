@@ -1,3 +1,4 @@
+import { shearImage } from '@/utils/imageOperation'
 
 type ImageNodeInput = ImageData | Node
 type ImageNodeOutput = ImageData
@@ -51,5 +52,30 @@ export class ImageNode {
 
     addDependent(node: Node) {
         this.dependents.push(node)
+    }
+}
+
+export class ShearImageNode extends ImageNode {
+    private shearX: number
+    private shearY: number
+
+    constructor(input: ImageNodeInput, shearX: number = 0, shearY: number = 0) {
+        super(input, imageData => this.shearImage(imageData))
+        this.shearX = shearX
+        this.shearY = shearY
+    }
+
+    private shearImage(imageData: ImageData): ImageData {
+        return shearImage(imageData, this.shearX, this.shearY)
+    }
+
+    setShearX(shearX: number) {
+        this.shearX = shearX
+        this.markDirty()
+    }
+
+    setShearY(shearY: number) {
+        this.shearY = shearY
+        this.markDirty()
     }
 }

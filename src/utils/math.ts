@@ -5,3 +5,6 @@ export const fixed = (value: number, precision = 2): number => {
 
 export const clamp = (value: number, min: number, max: number): number =>
     Math.min(Math.max(value, min), max)
+
+export const abs = (value: number): number =>
+    Math.abs(value)
