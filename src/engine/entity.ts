@@ -332,7 +332,6 @@ export class Entity<
         const newEntity = new Ctor(this.config, { ...this.cloneState(entityMap), cloning: true })
         entityMap.set(this.id, newEntity)
         newEntity.beforeStart(() => {
-            console.log('beforeStart', newEntity.id, newEntity.constructor.name)
             newEntity.state.cloning = false
             newEntity.buildName = this.buildName
             Promise.all(newAttachedEntities.map(entity => new Promise(res => entity
@@ -340,9 +339,6 @@ export class Entity<
                 .on('attach', res)
             ))).then(() => newEntity.emit('clone-finish'))
             this.comps.forEach(comp => newEntity.addRawComp(comp.cloneComp(entityMap, newEntity)))
-        })
-        newEntity.afterStart(() => {
-            console.log('afterStart', newEntity.id, newEntity.constructor.name)
         })
         return newEntity
     }

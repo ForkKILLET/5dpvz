@@ -58,7 +58,6 @@ export class CollidableComp extends Comp<CollidableConfig, CollidableState, Coll
 
             CollidableComp.collidableComps.push(this)
             entity.on('dispose', () => {
-                console.log('remove', entity.constructor.name, entity.id)
                 remove(CollidableComp.collidableComps, eq(this))
             })
         })
@@ -72,7 +71,6 @@ export class CollidableComp extends Comp<CollidableConfig, CollidableState, Coll
         for (const otherComp of CollidableComp.collidableComps) {
             if (! this.shouldCollideWith(otherComp)) continue
             if (this.shape.intersects(otherComp.shape)) {
-                console.log('emit:collide', this.entity.id, otherComp.entity.id)
                 this.emitter.emit('collide', otherComp.entity)
                 otherComp.emitter.emit('collide', this.entity)
             }
