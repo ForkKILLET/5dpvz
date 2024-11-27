@@ -373,7 +373,7 @@ export class ProcessEntity extends Entity<ProcessConfig, ProcessState, ProcessEv
             .addComp(UpdaterComp, entity => {
                 if (entity.state.position.y < targetY) entity.updatePosition({
                     x: 0,
-                    y: this.config.sun.sunDroppingVelocity * this.game.mspf,
+                    y: this.config.sun.sunDroppingVelocity * this.game.mspf0,
                 })
             })
             .attachTo(this)

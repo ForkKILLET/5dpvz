@@ -20,7 +20,7 @@ export class LifeComp extends Comp<LifeConfig, LifeState> {
     emitter = new Emitter<LifeEvents>()
 
     update() {
-        this.state.life -= this.entity.game.mspf
+        this.state.life -= this.entity.game.mspf0
         if (this.state.life <= 0) {
             this.entity.dispose()
             this.emitter.emit('expire')

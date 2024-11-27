@@ -14,7 +14,7 @@ export class State<S> {
         let timer = this.state[timerName] as number
         if (timer === interval && once) return 0
 
-        timer += this.game.mspf
+        timer += this.game.mspf0
         if (timer > interval) {
             if (! once) timer -= interval
             else timer = interval
