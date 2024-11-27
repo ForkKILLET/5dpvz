@@ -30,12 +30,9 @@ export class LawnEntity extends Entity<LawnConfig, LawnState, LawnEvents> {
                 }
             ))
         )
-        this
-            .attach(...this.lawnBlocks.flat())
-            .addComp(RectShape, {
-                width: this.config.width * 80,
-                height: this.config.height * 80,
-                origin: 'top-left',
-            })
+        this.addComp(RectShape, {
+            width: this.config.width * 80,
+            height: this.config.height * 80,
+        })
     }
 }
