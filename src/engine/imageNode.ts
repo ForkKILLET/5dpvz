@@ -3,39 +3,35 @@ import { TextureEntity } from '@/entities/Texture'
 type ProcessFunc = (input: ImageData) => ImageData
 
 export class ImageNode {
-    dependencies: ImageNode[] = []
-    dependents: ImageNode[] = []
+    private _lefts: ImageNode[] = []
+    public get lefts(): ImageNode[] {
+        return this._lefts
+    }
+    public set lefts(value: ImageNode[]) {
+        this._lefts = value
+    }
+
+    private _rights: ImageNode[] = []
+    public get rights(): ImageNode[] {
+        return this._rights
+    }
+    public set rights(value: ImageNode[]) {
+        this._rights = value
+    }
     private cache: Map<number, ImageData> = new Map()
 
     constructor(protected processFunc: ProcessFunc) {}
-
-    connect(inputNode: ImageNode): this {
-        this.dependencies.push(inputNode)
-        inputNode.dependents.push(this)
-        return this
-    }
-
-    removeDependency(node: ImageNode): void {
-        const index = this.dependencies.indexOf(node)
-        if (index !== - 1) {
-            this.dependencies.splice(index, 1)
-            const depIndex = node.dependents.indexOf(this)
-            if (depIndex !== - 1) {
-                node.dependents.splice(depIndex, 1)
-            }
-        }
-    }
 
     getOutput(frameeIndex: number): ImageData {
         if (this.cache.has(frameeIndex)) {
             return this.cache.get(frameeIndex)!
         }
 
-        if (this.dependencies.length === 0) {
+        if (this.lefts.length === 0) {
             throw new Error('No input node provided.')
         }
 
-        const inputData = this.dependencies[0].getOutput(frameeIndex)
+        const inputData = this.lefts[0].getOutput(frameeIndex)
         const output = this.processFunc(inputData)
         this.cache.set(frameeIndex, output)
         return output
@@ -53,8 +49,26 @@ export class InputNode extends ImageNode {
         })
     }
 
-    connect(): this {
-        throw new Error('SourceNode cannot have dependencies')
+    private _left: ImageNode[] = []
+    get lefts(): ImageNode[] {
+        return this._left
+    }
+    set lefts(node: ImageNode[]) {
+        if (node.length !== 0) {
+            throw new Error('Left length must be 0')
+        }
+        this._left = node
+    }
+
+    private _right: ImageNode[] = []
+    get rights(): ImageNode[] {
+        return this._right
+    }
+    set rights(node: ImageNode[]) {
+        if (node.length > 1) {
+            throw new Error('Right length must be 0 or 1')
+        }
+        this._right = node
     }
 
     getOutput(frameeIndex: number): ImageData {
@@ -67,9 +81,26 @@ export class OutputNode extends ImageNode {
         super(input => input)
     }
 
-    connect(inputNode: ImageNode): this {
-        super.connect(inputNode)
-        return this
+    private _left: ImageNode[] = []
+    get lefts(): ImageNode[] {
+        return this._left
+    }
+    set lefts(node: ImageNode[]) {
+        if (node.length > 1) {
+            throw new Error('Left length must be 0 or 1')
+        }
+        this._left = node
+    }
+
+    private _right: ImageNode[] = []
+    get rights(): ImageNode[] {
+        return this._right
+    }
+    set rights(node: ImageNode[]) {
+        if (node.length !== 0) {
+            throw new Error('Right length must be 0')
+        }
+        this._right = node
     }
 }
 
@@ -91,19 +122,23 @@ export class ProcessingPipeline {
 
     setStartNode(node: ImageNode): this {
         this.startNode = node
+        this.addNode(node)
         this.ensureEndNode()
         return this
     }
 
     appendNode(node: ImageNode): this {
-        if (this.endNode && this.endNode.dependencies.length > 0) {
-            const lastNode = this.endNode.dependencies[0]
-            node.connect(lastNode)
-            this.endNode.connect(node)
+        if (this.endNode && this.endNode.lefts.length > 0) {
+            const lastNode = this.endNode.lefts[0]
+            this.insertNodeBetween(node, lastNode, this.endNode)
+
+            console.log(22222)
+            console.log(this.nodes)
+            console.log(this.endNode)
+            console.log(this.startNode)
         }
         else if (this.startNode) {
-            node.connect(this.startNode)
-            this.endNode?.connect(node)
+            this.appendAfter(node, this.startNode)
         }
         else {
             throw new Error('Pipeline has no start node.')
@@ -112,45 +147,29 @@ export class ProcessingPipeline {
         return this
     }
 
-    insertNodeBefore(nodeToInsert: ImageNode, targetNode: ImageNode): this {
-        this.nodes.forEach(node => {
-            if (node.dependencies.includes(targetNode)) {
-                node.removeDependency(targetNode)
-                node.connect(nodeToInsert)
-            }
-        })
-        nodeToInsert.connect(targetNode)
-        this.nodes.push(nodeToInsert)
-        return this
-    }
-
-    insertNodeAfter(targetNode: ImageNode, nodeToInsert: ImageNode): this {
-        const dependencies = targetNode.dependencies.slice()
-        targetNode.dependencies = []
-        dependencies.forEach((dep: ImageNode) => dep.dependents.splice(dep.dependents.indexOf(targetNode), 1))
-
-        dependencies.forEach((dep: ImageNode) => nodeToInsert.connect(dep))
-
-        targetNode.connect(nodeToInsert)
-
-        this.nodes.push(nodeToInsert)
-        return this
-    }
-
-    insertNodeeBetween(newNode: ImageNode, beforeNode: ImageNode, afterNode: ImageNode): this {
-        beforeNode.removeDependency(afterNode)
-        newNode.connect(beforeNode)
-        afterNode.connect(newNode)
-        return this
-    }
-
     private ensureEndNode() {
         if (! this.endNode) {
             this.endNode = new OutputNode()
             if (this.startNode) {
-                this.endNode!.connect(this.startNode)
+                this.appendAfter(this.endNode, this.startNode)
             }
         }
+    }
+
+    private appendAfter(newNode: ImageNode, left: ImageNode) {
+        newNode.lefts = [ left ]
+        left.rights = [ newNode ]
+        this.addNode(newNode)
+        return this
+    }
+
+    private insertNodeBetween(node: ImageNode, left: ImageNode, right: ImageNode): this {
+        left.rights = [ node ]
+        node.lefts = [ left ]
+        node.rights = [ right ]
+        right.lefts = [ node ]
+        this.addNode(node)
+        return this
     }
 
     getOutput(frameIndex: number): ImageData {
@@ -165,5 +184,63 @@ export class ProcessingPipeline {
     clearCache() {
         this.nodes.forEach(node => node.clearCache())
         if (this.endNode) this.endNode.clearCache()
+    }
+}
+
+export class GaussianBlurNode extends ImageNode {
+    constructor(private radius: number) {
+        super(input => this.applyBlur(input, radius))
+    }
+
+    private _left: ImageNode[] = []
+    get lefts(): ImageNode[] {
+        return this._left
+    }
+    set lefts(node: ImageNode[]) {
+        if (node.length > 1) {
+            throw new Error('Left length must be 0 or 1')
+        }
+        this._left = node
+    }
+
+    private _right: ImageNode[] = []
+    get rights(): ImageNode[] {
+        return this._right
+    }
+    set rights(node: ImageNode[]) {
+        if (node.length > 1) {
+            throw new Error('Right length must be 0 or 1')
+        }
+        this._right = node
+    }
+
+    private applyBlur(imageData: ImageData, radius: number): ImageData {
+        const width = imageData.width
+        const height = imageData.height
+
+        const sourceCanvas = document.createElement('canvas')
+        sourceCanvas.width = width
+        sourceCanvas.height = height
+        const SourceCtx = sourceCanvas.getContext('2d')!
+        SourceCtx.putImageData(imageData, 0, 0)
+
+        const blurCanvas = document.createElement('canvas')
+        blurCanvas.width = width
+        blurCanvas.height = height
+        const blurCtx = blurCanvas.getContext('2d')!
+
+        blurCtx.filter = `blur(${ radius }px)`
+        blurCtx.drawImage(sourceCanvas, 0, 0)
+        const blurredImageData = blurCtx.getImageData(0, 0, width, height)
+        console.log('gaussian blur')
+
+        return blurredImageData
+    }
+
+    setRadius(radius: number) {
+        if (this.radius !== radius) {
+            this.radius = radius
+            this.clearCache()
+        }
     }
 }
