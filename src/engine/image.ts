@@ -1,6 +1,6 @@
 import { Size } from '@/comps/Shape'
 import { Position } from '@/engine'
-import { matrix } from '@/utils'
+import { abs, matrix } from '@/utils'
 
 export interface ImageManager {
     imgs: Record<string, HTMLImageElement>
@@ -35,9 +35,7 @@ export const useImageManager = (): ImageManager => {
 }
 
 export const getImagePixels = (img: HTMLImageElement): Uint8ClampedArray => {
-    const canvas = document.createElement('canvas')
-    canvas.width = img.width
-    canvas.height = img.height
+    const canvas = new OffscreenCanvas(img.width, img.height)
     const ctx = canvas.getContext('2d')!
     ctx.drawImage(img, 0, 0)
     return ctx.getImageData(0, 0, img.width, img.height).data
@@ -62,4 +60,41 @@ export const getImageOutline = ({ width, height }: Size, pixels: Uint8ClampedArr
         else inner.push({ x, y })
     })
     return { outline, inner }
+}
+
+export function shearImage(
+    imageData: ImageData,
+    shearX: number,
+    shearY: number,
+): ImageData {
+    const originalWidth = imageData.width
+    const originalHeight = imageData.height
+
+    const newWidth = originalWidth + abs(shearX) * originalHeight
+    const newHeight = originalHeight + abs(shearY) * originalHeight
+
+    const canvas = document.createElement('canvas')
+    canvas.width = newWidth
+    canvas.height = newHeight
+    const ctx = canvas.getContext('2d')!
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height)
+
+    const offsetX = shearX < 0 ? - shearX * originalHeight : 0
+    const offsetY = shearY < 0 ? - shearY * originalHeight : 0
+    ctx.translate(offsetX, offsetY)
+
+    ctx.transform(1, shearY, shearX, 1, 0, 0)
+
+    const tempCanvas = document.createElement('canvas')
+    tempCanvas.width = originalWidth
+    tempCanvas.height = originalHeight
+    const tempCtx = tempCanvas.getContext('2d')!
+    tempCtx.putImageData(imageData, 0, 0)
+
+    ctx.drawImage(tempCanvas, 0, 0)
+
+    const transformedImageData = ctx.getImageData(0, 0, canvas.width, canvas.height)
+
+    return transformedImageData
 }
