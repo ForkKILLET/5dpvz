@@ -95,7 +95,9 @@ export interface ProcessUniqueState {
 }
 export interface ProcessState extends ProcessUniqueState, EntityState {}
 
-export interface ProcessEvents extends EntityEvents {}
+export interface ProcessEvents extends EntityEvents {
+    'switch-process': [ processId: number ]
+}
 
 export const kProcess = injectKey<ProcessEntity>('kProcess')
 
@@ -131,6 +133,7 @@ export class ProcessEntity extends Entity<ProcessConfig, ProcessState, ProcessEv
 
     ui: UIEntity = placeholder
     lawn: LawnEntity = placeholder
+    label: ProcessLabelEntity = placeholder
     phantomImage: Nullable<TextureEntity> = null
     holdingImage: Nullable<TextureEntity> = null
 
@@ -161,14 +164,6 @@ export class ProcessEntity extends Entity<ProcessConfig, ProcessState, ProcessEv
         this.addComp(RngComp, random(2 ** 32))
 
         this.provide(kProcess, this)
-
-        new ProcessLabelEntity(
-            { processId: config.processId },
-            {
-                position: { x: ProcessEntity.width - 64 - 5, y: 5 + 32 + 5 },
-                zIndex: this.state.zIndex + 11,
-            }
-        ).attachTo(this)
 
         // FIXME: safe global listener
         this.game.emitter.on('hoverTargetChange', target => {
@@ -287,6 +282,16 @@ export class ProcessEntity extends Entity<ProcessConfig, ProcessState, ProcessEv
                     zIndex: this.state.zIndex + 1,
                 },
             ))
+
+        this.label = this
+            .useBuilder('ProcessLabel', () => new ProcessLabelEntity(
+                {},
+                {
+                    position: { x: ProcessEntity.width - 64 - 5, y: 5 + 32 + 5 },
+                    zIndex: this.state.zIndex + 11,
+                }
+            ))
+            .on('click', () => this.emit('switch-process', this.config.processId))
     }
 
     plant(slotId: number, i: number, j: number) {

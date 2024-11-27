@@ -1,13 +1,18 @@
 import { RectShape } from '@/comps/Shape'
-import { Entity, EntityState } from '@/engine'
+import { Entity, EntityEvents, EntityState } from '@/engine'
 import { pick } from '@/utils'
-import { kProcess } from '../Process'
+import { kProcess } from '@/entities/Process'
+import { ButtonComp, ButtonLikeEvents } from '@/comps/Button'
+import { HoverableComp } from '@/comps/Hoverable'
+import { CursorComp } from '@/comps/Cursor'
 
 export interface ProcessLabelConfig {}
 
 export interface ProcessLabelState extends EntityState {}
 
-export class ProcessLabelEntity extends Entity<ProcessLabelConfig> {
+export interface ProcessLabelEvents extends ButtonLikeEvents, EntityEvents {}
+
+export class ProcessLabelEntity extends Entity<ProcessLabelConfig, ProcessLabelState, ProcessLabelEvents> {
     width = 64 + 5
     height = 20
 
@@ -16,6 +21,9 @@ export class ProcessLabelEntity extends Entity<ProcessLabelConfig> {
 
         this
             .addComp(RectShape, pick(this, [ 'width', 'height' ]))
+            .addComp(HoverableComp)
+            .addComp(CursorComp, 'pointer')
+            .addComp(ButtonComp)
     }
 
     get processId() {
