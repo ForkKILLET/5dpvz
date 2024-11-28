@@ -1,3 +1,4 @@
+import { Game } from '@/engine'
 import { fixed } from '@/utils'
 
 export interface Position {
@@ -15,41 +16,97 @@ export const positionAdd = (p1: Position, p2: Position): Position => ({
     y: p1.y + p2.y,
 })
 
-export type Movement = () => Position | null
+export type Motion<S extends {}> = (state: S) => Position | null
 
-export const linear = (speed: number, angle: number): Movement => () => ({
-    x: speed * fixed(Math.cos(angle)),
-    y: speed * fixed(Math.sin(angle)),
-})
-
-export const linearWithDistance = (speed: number, angle: number, distance: number) =>
-    withCount(linear(speed, angle), distance / speed)
-
-export const linearTo = (speed: number, from: Position, to: Position): Movement => {
-    const delta = positionSubtract(to, from)
-    const angle = Math.atan2(delta.y, delta.x)
-    const distance = Math.hypot(delta.x, delta.y)
-    return linearWithDistance(speed, angle, distance)
+export interface FrameState {
+    frame: number
 }
 
-export const withCount = (movement: Movement, count: number) => {
-    let i = 0
-    return () => ++ i < count ? movement() : null
+export interface MotionTimeConfig {
+    time: number
+}
+export interface MotionSpeedConfig {
+    speed: number
 }
 
-export const concat = (movements: Movement[]): Movement => () => {
-    for (const movement of movements) {
-        const delta = movement()
-        if (delta !== null) return delta
+export const useMotion = (game: Game) => {
+    const withFrame = <T extends {}>(motion: Motion<T>, totalFrame: number): Motion<FrameState & T> => {
+        totalFrame = Math.ceil(totalFrame)
+        return (state: FrameState & T) => {
+            if (state.frame === totalFrame) return null
+            const delta = motion(state)
+            state.frame ++
+            return delta
+        }
     }
-    return null
-}
 
-export const movement = {
-    linear,
-    linearWithDistance,
-    withCount,
-    concat,
+    const concat = <T extends {}>(motions: Motion<T>[]): Motion<T> => (state: T) => {
+        for (const motion of motions) {
+            const delta = motion(state)
+            if (delta !== null) return delta
+        }
+        return null
+    }
+
+    const linearOnce = (speed: number, angle: number): Motion<{}> => () => ({
+        x: speed * fixed(Math.cos(angle)),
+        y: speed * fixed(Math.sin(angle)),
+    })
+
+    const linear = (speed: number, angle: number, distance: number): Motion<FrameState> =>
+        withFrame(linearOnce(speed, angle), distance / speed)
+
+    const linearTo = (
+        config: MotionTimeConfig | MotionSpeedConfig,
+        from: Position,
+        to: Position
+    ): Motion<FrameState> => {
+        const delta = positionSubtract(to, from)
+        const angle = Math.atan2(delta.y, delta.x)
+        const distance = Math.hypot(delta.x, delta.y)
+        const speed = game.mspf0 * ('speed' in config
+            ? config.speed
+            : distance / config.time)
+        return linear(speed, angle, distance)
+    }
+
+    const parabola = (a: number, g: number, x1: number, x2: number): {
+        totalFrame: number
+        motion: Motion<FrameState>
+    } => {
+        const y1 = a * x1 ** 2
+        const y2 = a * x2 ** 2
+        const t1 = Math.sqrt(2 * y1 / g)
+        const t2 = Math.sqrt(2 * y2 / g)
+        const t = t1 + t2
+        const f = Math.ceil(t / game.mspf0)
+        const dx = (x2 - x1) / f
+
+        return {
+            totalFrame: f,
+            motion: (state: FrameState) => {
+                if (state.frame === f) return null
+                const x = x1 + state.frame * dx
+                const y = a * x ** 2
+                const yLast = a * (x - dx) ** 2
+                state.frame ++
+                return {
+                    x: dx,
+                    y: y - yLast,
+                }
+            },
+        }
+    }
+
+    return {
+        withFrame,
+        concat,
+
+        linearOnce,
+        linear,
+        linearTo,
+        parabola,
+    }
 }
 
 export const ANGLES = {

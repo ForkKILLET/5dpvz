@@ -1,7 +1,9 @@
 import { Emitter, Entity, EntityCloneMap, Events, State } from '@/engine'
+import { eq } from '@/utils'
 
 export interface CompEvents extends Events {
-    attach: [ Entity ]
+    attach: [ entity: Entity ]
+    dispose: []
 }
 
 export class Comp<C = any, S = any, V extends CompEvents = CompEvents, E extends Entity = Entity> extends State<S> {
@@ -24,6 +26,11 @@ export class Comp<C = any, S = any, V extends CompEvents = CompEvents, E extends
 
     static create<M extends Comp>(this: CompCtor<M>, entity: M['entity'], config: M['config'], state: M['state']): M {
         return new this(entity, config, state)
+    }
+
+    dispose() {
+        this.emitter.emit('dispose')
+        this.entity.removeComp([ Comp, eq(this) ])
     }
 
     constructor(public readonly entity: E, public config: C, state: S) {

@@ -9,6 +9,8 @@ export const eq =
 export const neq =
     <X extends Y, Y>(x: X) => (y: Y): y is Exclude<Y, X> => x !== y
 
+export const not = <X>(f: Pred<X>): Pred<X> => x => ! f(x)
+
 export type Pred<X> = (x: X) => boolean
 
 export type Primitive = string | number | boolean | null | undefined | symbol | bigint

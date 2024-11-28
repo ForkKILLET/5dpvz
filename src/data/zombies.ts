@@ -22,6 +22,6 @@ export type ZombieId = typeof ZOMBIE_NAMES[number]
 
 export const ZOMBIES = {
     normal_zombie: NormalZombieEntity,
-} as Record<ZombieId, ZombieMetadata & typeof ZombieEntity>
+} as any as Record<ZombieId, ZombieMetadata & typeof ZombieEntity>
 
 export const zombieTextures = useTextures('zombies', ZOMBIES)

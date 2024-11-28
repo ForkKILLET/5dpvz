@@ -14,7 +14,6 @@ export class PlayScene extends Scene {
         const switchProcess = (currentProcessId: number) => {
             const nextProcess = getProcessById(currentProcessId + 1) ?? (currentProcessId === 0 ? undefined : process0)
             if (! nextProcess) return
-            console.log(`Switching from ${ currentProcessId } to ${ nextProcess.config.processId }`)
             getProcessById(currentProcessId)!.deactivate()
             currentProcess = nextProcess.activate()
         }
@@ -34,7 +33,7 @@ export class PlayScene extends Scene {
                     sun: {
                         sunDroppingInterval: 10000,
                         firstSunDroppingTime: 6000,
-                        sunDroppingVelocity: 30 / 1000,
+                        sunDroppingSpeed: 30 / 1000,
                         sunLife: 8000,
                         sunAtStart: 200,
                     },

@@ -1,4 +1,4 @@
-import { Emitter, Events, GameConfig, Position } from '@/engine'
+import { Emitter, Events, Game, Position } from '@/engine'
 
 export interface MouseEvents extends Events {
     click: [ MouseEvent ]
@@ -10,7 +10,8 @@ export interface Mouse {
     emitter: Emitter<MouseEvents>
 }
 
-export const useMouse = ({ ctx }: GameConfig): Mouse => {
+export const useMouse = (game: Game): Mouse => {
+    const { ctx } = game
     const position: Position = { x: 0, y: 0 }
 
     document.addEventListener('mousemove', ev => {

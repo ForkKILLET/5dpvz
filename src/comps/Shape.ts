@@ -72,10 +72,10 @@ export interface AnyShapeConfig<E extends Entity> extends ShapeConfig {
 export interface AnyShapeState extends ShapeState {}
 
 export class AnyShape<E extends Entity = Entity> extends ShapeComp<AnyShapeConfig<E>, AnyShapeState, CompEvents, E> {
-    static create<C extends Comp>(
+    static create<E extends Entity, C extends Comp<any, any, CompEvents, E>>(
         this: CompCtor<C>,
-        entity: C['entity'],
-        config: PartialBy<AnyShapeConfig<C['entity']>, 'tag' | 'intersects' | 'fill' | 'stroke'>,
+        entity: E,
+        config: PartialBy<AnyShapeConfig<E>, 'tag' | 'intersects' | 'fill' | 'stroke'>,
     ) {
         return super.create<C>(
             entity,

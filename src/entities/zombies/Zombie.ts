@@ -36,7 +36,6 @@ export class ZombieEntity<
     S extends ZombieState = ZombieState,
     V extends ZombieEvents = ZombieEvents
 > extends TextureEntity<ZombieConfig, S, V> {
-
     constructor(config: ZombieConfig, state: S) {
         super(config, state)
 

@@ -1,6 +1,9 @@
 import { kProcess } from '@/entities/Process'
 import { SlotConfig, SlotEntity, SlotEvents, SlotState } from '@/entities/ui/Slot'
 import { TextureEntity } from '../Texture'
+import { TransitionComp } from '@/comps/Transition'
+import { easeInSine } from '@/engine'
+import { placeholder } from '@/utils'
 
 export interface SunSlotConfig extends SlotConfig {}
 
@@ -9,22 +12,33 @@ export interface SunSlotState extends SlotState {}
 export interface SunSlotEvents extends SlotEvents {}
 
 export class SunSlotEntity extends SlotEntity<SunSlotConfig, SunSlotState, SunSlotEvents> {
-    sumImage: TextureEntity
+    sunImage: TextureEntity = placeholder
 
     constructor(config: SunSlotConfig, state: SunSlotState) {
         super(config, state)
+    }
 
+    build() {
         const { position: { x, y }, zIndex } = this.state
 
-        this.sumImage = TextureEntity.createTextureFromImage(
-            './assets/sun.png',
-            {},
-            {
-                position: { x: x + 1, y: y + 1 },
-                zIndex: zIndex + 1,
-            },
-        )
-        this.attach(this.sumImage)
+        this.sunImage = this.useBuilder('SunImage', () => TextureEntity
+            .createTextureFromImage(
+                './assets/sun.png',
+                {
+                    origin: 'center',
+                },
+                {
+                    position: { x: x + 1 + 40, y: y + 1 + 40 },
+                    zIndex: zIndex + 1,
+                    scale: 1,
+                },
+            ))
+            .addComp(TransitionComp, {
+                transition: (image, t) => {
+                    image.state.scale = 1 + 0.3 * easeInSine(t)
+                },
+                defaultTotalFrame: this.game.unit.ms2f(200),
+            })
     }
 
     render() {

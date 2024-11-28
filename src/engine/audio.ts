@@ -1,4 +1,4 @@
-import { GameConfig } from '@/engine'
+import { Game } from '@/engine'
 
 export interface AudioPlayback {
     toggleEffect: () => void
@@ -21,12 +21,12 @@ export interface AudioManager {
     playAudio: (src: string, options?: AudioPlayOptions) => AudioPlayback
 }
 
-export const useAudioManager = ({ noAudio }: GameConfig): AudioManager => {
+export const useAudioManager = (game: Game): AudioManager => {
     const audioContext = new AudioContext()
     const audios: Record<string, AudioBuffer> = {}
     const loadingAudios: Record<string, Promise<AudioBuffer>> = {}
 
-    if (! noAudio) document.addEventListener('click', () => {
+    if (! game.config.noAudio) document.addEventListener('click', () => {
         if (audioContext.state === 'suspended') {
             audioContext.resume()
         }
