@@ -17,6 +17,6 @@ export type BulletId = typeof BULLET_NAMES[number]
 
 export const BULLETS = {
     pea: PeaEntity,
-} as Record<BulletId, BulletMetadata & typeof BulletEntity>
+} as any as Record<BulletId, BulletMetadata & typeof BulletEntity>
 
 export const bulletTextures = useTextures('bullets', BULLETS)

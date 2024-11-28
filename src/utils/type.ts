@@ -18,3 +18,5 @@ export type RequiredBy<T, K extends keyof T> = StrictOmit<T, K> & Required<Pick<
 
 export type StrictOmit<T, K extends keyof T> = Omit<T, K>
 export type StrictPick<T, K extends keyof T> = Pick<T, K>
+
+export type Direction = 1 | - 1

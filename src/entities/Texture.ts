@@ -1,13 +1,13 @@
 import { ButtonComp, ButtonLikeEvents } from '@/comps/Button'
 import { HoverableComp } from '@/comps/Hoverable'
-import { AnyShape, AnyShapeConfig, OriginConfig, RectShape, ShapeComp } from '@/comps/Shape'
+import { AnyShape, OriginConfig, RectShape, ShapeComp } from '@/comps/Shape'
 import { TextureSet } from '@/data/textures'
 import {
     Entity, EntityConfig, EntityCtor, EntityEvents, EntityState,
     getImageOutline, getImagePixels, Outline, positionAdd,
+    InputNode,
 } from '@/engine'
-import { elem, PartialBy, pick, placeholder, StrictOmit } from '@/utils'
-import { InputNode } from '@/engine/pipeline'
+import { Direction, elem, PartialBy, pick, placeholder, StrictOmit } from '@/utils'
 
 export type TextureInnerState =
     | {
@@ -15,9 +15,11 @@ export type TextureInnerState =
         f: number
         af: number
         isPlaying: boolean
-        direction: 1 | - 1
+        direction: Direction
     }
-    | { type: 'image' }
+    | {
+        type: 'image'
+    }
 
 export interface TextureConfig extends OriginConfig, EntityConfig {
     textures: TextureSet
@@ -242,7 +244,7 @@ export class TextureEntity<
                     })
 
                 if (this.config.strictShape)
-                    this.addLoseComp<AnyShape<this>, [ AnyShapeConfig<this> ]>(AnyShape, {
+                    this.addRawComp(AnyShape.create(this, {
                         tag: 'boundary',
                         contains(point) {
                             const rectShape = this.getComp(RectShape)!
@@ -267,7 +269,7 @@ export class TextureEntity<
                             const { x, y } = this.getComp(RectShape)!.rect
                             outline.inner.forEach(dot => this.game.ctx.fillRect(dot.x + x, dot.y + y, 1, 1))
                         },
-                    })
+                    }))
                 else
                     this.addLoseComp(RectShape, shapeConfig)
             },

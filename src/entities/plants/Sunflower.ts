@@ -1,25 +1,21 @@
-import { easeOutExpo } from '@/engine'
+// import { easeOutExpo } from '@/engine'
 import { definePlant, PlantConfig, PlantEntity, PlantEvents, PlantState } from '@/entities/plants/Plant'
 import { kProcess } from '@/entities/Process'
 import { SunEntity } from '@/entities/Sun'
 import { FilterComp } from '@/comps/Filter'
-import { UpdaterComp } from '@/comps/Updater'
-import { placeholder, StrictOmit } from '@/utils'
+import { StrictOmit } from '@/utils'
 import { PLANTS } from '@/data/plants'
 import { RngComp } from '@/comps/Rng'
+import { MotionComp } from '@/comps/Motion'
+import { UpdaterComp } from '@/comps/Updater'
+import { FrameState, easeOutExpo } from '@/engine'
 
 void PLANTS
 
 export interface SunflowerUniqueState {
     sunProduceTimer: number
 }
-export interface SunflowerState extends SunflowerUniqueState, PlantState {
-    sunProduceTransition: {
-        f: number
-        x: number
-        y: number
-    }
-}
+export interface SunflowerState extends SunflowerUniqueState, PlantState {}
 
 export interface SunflowerEvents extends PlantEvents {}
 
@@ -37,13 +33,46 @@ export const SunflowerEntity = definePlant(class SunflowerEntity extends PlantEn
 
     constructor(
         config: PlantConfig,
-        state: StrictOmit<SunflowerState, 'sunProduceTimer' | 'sunProduceTransition'>
+        state: StrictOmit<SunflowerState, 'sunProduceTimer'>
     ) {
         super(config, {
             sunProduceTimer: 0,
-            sunProduceTransition: placeholder,
             ...state,
         })
+    }
+
+    produceSun() {
+        const process = this.inject(kProcess)!
+        const rng = process.getComp(RngComp)!
+
+        const { x: x0, y: y0 } = this.state.position
+        const startOffsetX = rng.random(- 5, + 5)
+        const startX = x0 + 40 + startOffsetX
+        const startY = y0 + 40 + rng.random(- 5, + 5)
+        const signX = startOffsetX >= 0 ? 1 : - 1
+        const x1 = - signX * rng.random(10, 20)
+        const x2 = signX * (5 + rng.random(10, 20))
+
+        const { motion, totalFrame } = this.game.motion.parabola(0.1, 0.001, x1, x2)
+
+        SunEntity
+            .createSun(
+                { sun: 25 },
+                {
+                    position: { x: startX, y: startY },
+                    zIndex: process.state.zIndex + 4,
+                }
+            )
+            .addLazyComp(sun => MotionComp.create(sun, { motion }, { frame: 0 }))
+            .addComp(UpdaterComp, sun => {
+                sun.withComp(MotionComp<FrameState>, ({ state }) => {
+                    sun.state.scale = easeOutExpo(state.frame / totalFrame)
+                })
+            })
+            .withComp(MotionComp, ({ emitter }) => {
+                emitter.on('motion-finish', sun => sun.as<SunEntity>().settle())
+            })
+            .attachTo(process)
     }
 
     update() {
@@ -52,59 +81,7 @@ export const SunflowerEntity = definePlant(class SunflowerEntity extends PlantEn
         const sunProduceEta = this.updateTimer(
             'sunProduceTimer',
             { interval: SunflowerEntity.sunProduceInterval },
-            () => {
-                const process = this.inject(kProcess)!
-                const rng = process.getComp(RngComp)!
-
-                // TODO: extract to movement helper
-                const { x: x0, y: y0 } = this.state.position
-                const startOffsetX = rng.random(- 5, + 5)
-                const startX = x0 + 40 + startOffsetX
-                const startY = y0 + 40 + rng.random(- 5, + 5)
-
-                const symbolX = Math.sign(startOffsetX)
-                const topDeltaX = rng.random(5, 20)
-                const topDeltaY = - rng.random(40, 50)
-                const targetDeltaY = rng.random(5, 20)
-                const a = - topDeltaY / topDeltaX ** 2
-                const targetDeltaX = Math.sqrt((targetDeltaY - topDeltaY) / a)
-                const deltaX = topDeltaX + targetDeltaX
-                const v = 90 / 1000
-                const totalT = (targetDeltaY - 2 * topDeltaY) / v
-                const totalF = Math.round(totalT / this.game.mspf0)
-                const stepX = deltaX / totalF
-
-                this.state.sunProduceTransition = {
-                    f: 0,
-                    x: - topDeltaX,
-                    y: - topDeltaY,
-                }
-
-                SunEntity
-                    .createSun(
-                        {
-                            sun: 25,
-                            life: 4000 + totalT,
-                        },
-                        {
-                            position: { x: startX, y: startY },
-                            zIndex: process.state.zIndex + 4,
-                        }
-                    )
-                    .addComp(UpdaterComp, entity => {
-                        const trans = this.state.sunProduceTransition
-                        if (trans.f === totalF) return
-                        trans.f ++
-                        const newX = trans.x + stepX
-                        const newY = a * newX ** 2
-                        const delta = { x: symbolX * (newX - trans.x), y: newY - trans.y }
-                        trans.x = newX
-                        trans.y = newY
-                        entity.updatePosition(delta)
-                        entity.state.scale = easeOutExpo(trans.f / totalF)
-                    })
-                    .attachTo(process)
-            }
+            () => this.produceSun()
         )
         this.withComp(FilterComp, ({ state: { filters } }) => {
             filters.nearProduce = sunProduceEta < 1000

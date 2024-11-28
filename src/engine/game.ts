@@ -4,6 +4,7 @@ import { AnyShape, ShapeComp } from '@/comps/Shape'
 import {
     Emitter, Entity, Scene, Events,
     AudioManager, useAudioManager, ImageManager, useImageManager, Mouse, useMouse,
+    useMotion,
 } from '@/engine'
 import { by, eq, placeholder, remove } from '@/utils'
 import { Keyboard, KeyboardEvents, useKeyboard } from '@/engine/keyboard'
@@ -35,14 +36,63 @@ export interface GameEvents extends KeyboardEvents, Events {
 }
 
 export class Game {
+    static defaultGame: Game = placeholder
+
+    constructor(public config: GameConfig) {
+        if (config.isDefault) Game.defaultGame = this
+
+        this.ctx = config.ctx
+        this.imageManager = useImageManager()
+        this.audioManager = useAudioManager(this)
+        this.mouse = useMouse(this)
+        this.keyboard = useKeyboard()
+        this.motion = useMotion(this)
+        this.mspf0 = this.mspf = 1000 / config.fps
+
+        const floor = new class Floor extends Scene {
+            constructor() {
+                super()
+
+                this
+                    .addComp(AnyShape, { contains: () => true })
+                    .addComp(HoverableComp)
+            }
+        }
+        this.addScene(floor)
+
+        this.mouse.emitter.onSome([ 'click', 'rightclick' ], (event, ev) => {
+            if (! this.running) return
+
+            const target = this.hoveringEntity
+            if (! target) return
+
+            let stopped = false
+            target.getComp(HoverableComp)!.emitter.emit(event, {
+                stop: () => {
+                    stopped = true
+                },
+            })
+            if (! stopped) this.emitter.emit(event, target, ev)
+        })
+
+        this.emitter.forward(this.keyboard.emitter, [ 'keydown', 'keyup', 'keypress' ])
+
+        if (config.isDebug) loadDebugWindow(this)
+    }
+
     readonly ctx: CanvasRenderingContext2D
     readonly imageManager: ImageManager
     readonly audioManager: AudioManager
     readonly mouse: Mouse
     readonly keyboard: Keyboard
+    readonly motion: ReturnType<typeof useMotion>
 
     mspf: number
     mspf0: number
+    unit = {
+        ms2f: (ms: number) => ms / this.mspf0,
+        f2ms: (f: number) => f * this.mspf0,
+    }
 
     allEntities: Entity[] = []
     scenes: Scene[] = []
@@ -128,49 +178,6 @@ export class Game {
             clearInterval(this.loopTimerId)
             this.loopTimerId = null
         }
-    }
-
-    static defaultGame: Game = placeholder
-
-    constructor(public config: GameConfig) {
-        if (config.isDefault) Game.defaultGame = this
-
-        this.ctx = config.ctx
-        this.imageManager = useImageManager()
-        this.audioManager = useAudioManager(this.config)
-        this.mouse = useMouse(this.config)
-        this.keyboard = useKeyboard()
-        this.mspf0 = this.mspf = 1000 / config.fps
-
-        const floor = new class Floor extends Scene {
-            constructor() {
-                super()
-
-                this
-                    .addComp(AnyShape, { contains: () => true })
-                    .addComp(HoverableComp)
-            }
-        }
-        this.addScene(floor)
-
-        this.mouse.emitter.onSome([ 'click', 'rightclick' ], (event, ev) => {
-            if (! this.running) return
-
-            const target = this.hoveringEntity
-            if (! target) return
-
-            let stopped = false
-            target.getComp(HoverableComp)!.emitter.emit(event, {
-                stop: () => {
-                    stopped = true
-                },
-            })
-            if (! stopped) this.emitter.emit(event, target, ev)
-        })
-
-        this.emitter.forward(this.keyboard.emitter, [ 'keydown', 'keyup', 'keypress' ])
-
-        if (config.isDebug) loadDebugWindow(this)
     }
 
     addScene(scene: Scene) {

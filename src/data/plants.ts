@@ -21,6 +21,6 @@ export type PlantId = typeof PLANT_NAMES[number]
 export const PLANTS = {
     pea_shooter: PeaShooterEntity,
     sunflower: SunflowerEntity,
-} as Record<PlantId, typeof PlantEntity & PlantMetadata>
+} as any as Record<PlantId, PlantMetadata & typeof PlantEntity>
 
 export const plantTextures = useTextures('plants', PLANTS)

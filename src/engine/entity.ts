@@ -3,9 +3,9 @@ import {
     createIdGenerator, Position, positionAdd,
     Emitter, Events, ListenerOptions,
     State, Comp, CompCtor, CompSelector,
+    RenderPipeline,
 } from '@/engine'
-import { Disposer, eq, mapk, remove, RemoveIndex } from '@/utils'
-import { RenderPipeline } from './pipeline'
+import { Disposer, eq, mapk, not, remove, RemoveIndex } from '@/utils'
 
 export interface EntityConfig {}
 
@@ -217,6 +217,9 @@ export class Entity<
         else this.afterStart(_addComp, this.startedToRunStart)
         return this
     }
+    addLazyComp(compBuilder: (entity: this) => Comp) {
+        return this.addRawComp(compBuilder(this))
+    }
     addLoseComp<M extends Comp, A extends any[]>( // FIXME: infer E
         Comp: CompCtor<any> & { create: (entity: M['entity'], ...args: A) => M },
         ...args: A
@@ -232,7 +235,7 @@ export class Entity<
     }
     removeComp<M extends Comp>(sel: CompSelector<M>) {
         return this.afterStart(() => {
-            this.comps = this.comps.filter(Comp.runSelector(sel))
+            this.comps = this.comps.filter(not(Comp.runSelector(sel)))
         })
     }
     getComp<M extends Comp>(sel: CompSelector<M>): M | undefined {

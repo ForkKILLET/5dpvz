@@ -1,6 +1,6 @@
+import { MotionComp } from '@/comps/Motion'
 import { RngComp } from '@/comps/Rng'
 import { RectShape } from '@/comps/Shape'
-import { UpdaterComp } from '@/comps/Updater'
 import { BulletId } from '@/data/bullets'
 import { PlantId, PLANTS, plantTextures } from '@/data/plants'
 import { ShovelId, shovelTextures } from '@/data/shovels'
@@ -34,7 +34,7 @@ export interface ProcessConfig extends EntityConfig {
 export interface SunGlobalConfig {
     sunDroppingInterval: number
     firstSunDroppingTime: number
-    sunDroppingVelocity: number
+    sunDroppingSpeed: number
     sunLife: number
     sunAtStart: number
 }
@@ -374,12 +374,9 @@ export class ProcessEntity extends Entity<ProcessConfig, ProcessState, ProcessEv
         const x = x0 + rng.random((this.config.lawn.width - 1) * 80)
         const y = y0 + rng.random(1 * 80)
         const deltaY = rng.random(1 * 80, (this.config.lawn.height - 2) * 80)
-        const targetY = y + deltaY
-        const life = deltaY / this.config.sun.sunDroppingVelocity + 4000
 
         SunEntity.createSun(
             {
-                life,
                 sun: 25,
             },
             {
@@ -387,12 +384,20 @@ export class ProcessEntity extends Entity<ProcessConfig, ProcessState, ProcessEv
                 zIndex: this.state.zIndex + 4,
             }
         )
-            .addComp(UpdaterComp, entity => {
-                if (entity.state.position.y < targetY) entity.updatePosition({
-                    x: 0,
-                    y: this.config.sun.sunDroppingVelocity * this.game.mspf0,
-                })
-            })
+            .addLazyComp(sun => MotionComp.create(
+                sun,
+                {
+                    motion: this.game.motion.linearTo(
+                        { speed: this.config.sun.sunDroppingSpeed },
+                        { x, y },
+                        { x, y: y + deltaY }
+                    ),
+                },
+                { frame: 0 }
+            ))
+            .withComp(MotionComp, ({ emitter }) => emitter
+                .on('motion-finish', entity => entity.as<SunEntity>().settle())
+            )
             .attachTo(this)
     }
 
@@ -480,7 +485,7 @@ export class ProcessEntity extends Entity<ProcessConfig, ProcessState, ProcessEv
 
             if (runCoolDown && ! isCooledDown) {
                 const { cd: maxCd } = Plant
-                cd += this.game.mspf
+                cd += this.game.mspf0
                 if (cd > maxCd) {
                     cd = maxCd
                     slot.isCooledDown = true

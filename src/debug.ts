@@ -446,7 +446,7 @@ export const loadDebugWindow = (game: Game) => {
         if (key === '@') toggleSelecting()
     })
 
-    const showFunction = (fn: Function) => (fn.name as string)?.replace(/(^_)|(\d+$)/, '') ?? '<fn>'
+    const showFunction = (fn: Function) => (fn.name as string)?.replace(/(^_)|(\d+$)/, '') || 'function'
 
     const showJson = (obj: any) =>
         typeof obj === 'number' ? `<json-number>${ obj }</json-number>` :
@@ -515,6 +515,7 @@ export const loadDebugWindow = (game: Game) => {
     $('#back-to-entity-tree')!.addEventListener('click', unsetWatchingEntity)
     $('#back-to-entity-detail')!.addEventListener('click', unsetWatchingComp)
     $('#refresh-entity-detail')!.addEventListener('click', refreshEntityDetail)
+    $('#refresh-comp-detail')!.addEventListener('click', refreshCompDetail)
     const showEntityHeader = (entity: Entity, hasLink = true) => {
         const attrs = getEntityAttrs(entity)
         const { id } = entity
@@ -538,6 +539,8 @@ export const loadDebugWindow = (game: Game) => {
         `
     }
 
+    refreshEntityDetail()
+    refreshCompDetail()
     $debugWindow.addEventListener('click', ({ target: $el }) => {
         if (! ($el instanceof HTMLElement)) return
         if ($el.tagName === 'DEBUG-BUTTON') {
