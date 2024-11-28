@@ -288,8 +288,8 @@ export class TextureEntity<
 
     async render() {
         const rectShape = this.getComp(RectShape)!
-        const { x, y, width, height } = rectShape.rect
-        // const { x, y } = rectShape.rect
+        // const { x, y, width, height } = rectShape.rect
+        const { x, y } = rectShape.rect
 
         const processedFrame = this.processingPipeline.getOutput(this.f)
 
@@ -299,7 +299,9 @@ export class TextureEntity<
         this.offScreenCtx.clearRect(0, 0, this.offScreenCanvas.width, this.offScreenCanvas.height)
         this.offScreenCtx.putImageData(processedFrame, 0, 0)
 
-        this.game.ctx.drawImage(this.offScreenCanvas, x, y, width, height)
+        console.log(processedFrame.width, processedFrame.height)
+
+        this.game.ctx.drawImage(this.offScreenCanvas, x, y, processedFrame.width, processedFrame.height)
     }
 
     private getProcessedFrame(): ImageData {

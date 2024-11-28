@@ -349,6 +349,7 @@ export class ScalingNode extends ImageNode {
 
         scaledCtx.drawImage(sourceCanvas, 0, 0, width, height, 0, 0, newWidth, newHeight)
 
+        console.log(newWidth, newHeight)
         const scaledImageData = scaledCtx.getImageData(0, 0, newWidth, newHeight)
 
         console.log('scaling')
@@ -360,6 +361,79 @@ export class ScalingNode extends ImageNode {
         if (this.scaleX !== scaleX || this.scaleY !== scaleY) {
             this.scaleX = scaleX
             this.scaleY = scaleY
+            this.clearCache()
+        }
+    }
+}
+
+export class ShearNode extends ImageNode {
+    //
+    //  transformation: Anchor the left bottom corner, look at left top corner:
+    //  shearX: the percentage change in X axis (positive direction is right)
+    //  shearY: the percentage change in Y axis (positive direction is up)
+    //
+    constructor(private shearX: number, private shearY: number) {
+        super(input => this.shearImage(input, shearX, shearY))
+    }
+
+    private _left: ImageNode[] = []
+    get lefts(): ImageNode[] {
+        return this._left
+    }
+    set lefts(node: ImageNode[]) {
+        if (node.length > 1) {
+            throw new Error('Left length must be 0 or 1')
+        }
+        this._left = node
+    }
+
+    private _right: ImageNode[] = []
+    get rights(): ImageNode[] {
+        return this._right
+    }
+    set rights(node: ImageNode[]) {
+        if (node.length > 1) {
+            throw new Error('Right length must be 0 or 1')
+        }
+        this._right = node
+    }
+
+    private shearImage(imageData: ImageData, shearX: number, shearY: number): ImageData {
+        const width = imageData.width
+        const height = imageData.height
+
+        const newWidth = Math.ceil(width + Math.abs(shearX) * width)
+        const newHeight = Math.ceil(height + shearY * height)
+
+        const sourceCanvas = document.createElement('canvas')
+        sourceCanvas.width = width
+        sourceCanvas.height = height
+        const sourceCtx = sourceCanvas.getContext('2d')!
+        sourceCtx.putImageData(imageData, 0, 0)
+
+        const shearedCanvas = document.createElement('canvas')
+        shearedCanvas.width = newWidth
+        shearedCanvas.height = newHeight
+        const shearedCtx = shearedCanvas.getContext('2d')!
+
+        shearedCtx.transform(
+            1, 0, - shearX * width / height,
+            1 + shearY, shearX * width, - shearY * height
+        )
+
+        shearedCtx.drawImage(sourceCanvas, 0, 0)
+
+        const shearedImageData = shearedCtx.getImageData(0, 0, shearedCanvas.width, shearedCanvas.height)
+
+        console.log('shear', newWidth, newHeight)
+
+        return shearedImageData
+    }
+
+    setShear(shearX: number, shearY: number) {
+        if (this.shearX !== shearX || this.shearY !== shearY) {
+            this.shearX = shearX
+            this.shearY = shearY
             this.clearCache()
         }
     }
