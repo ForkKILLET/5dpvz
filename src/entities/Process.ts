@@ -323,8 +323,8 @@ export class ProcessEntity extends Entity<ProcessConfig, ProcessState, ProcessEv
             newPlant.processingPipeline
                 .appendNode(new GaussianBlurNode(2))
                 .appendNode(new BrightnessNode(0.5))
-                .appendNode(new ScalingNode(0.1))
-                .appendNode(new ShearNode(- 0.7, 0.5))
+                .appendNode(new ScalingNode(2))
+                .appendNode(new ShearNode(- 2, 3))
         })
 
         this.cancelHolding()

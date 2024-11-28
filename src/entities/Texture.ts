@@ -293,15 +293,14 @@ export class TextureEntity<
 
         const processedFrame = this.processingPipeline.getOutput(this.f)
 
-        this.offScreenCanvas.width = processedFrame.width
-        this.offScreenCanvas.height = processedFrame.height
+        this.offScreenCanvas.width = processedFrame.imageData.width
+        this.offScreenCanvas.height = processedFrame.imageData.height
 
         this.offScreenCtx.clearRect(0, 0, this.offScreenCanvas.width, this.offScreenCanvas.height)
-        this.offScreenCtx.putImageData(processedFrame, 0, 0)
+        this.offScreenCtx.putImageData(processedFrame.imageData, 0, 0)
 
-        console.log(processedFrame.width, processedFrame.height)
-
-        this.game.ctx.drawImage(this.offScreenCanvas, x, y, processedFrame.width, processedFrame.height)
+        this.game.ctx.drawImage(this.offScreenCanvas, x + processedFrame.offset3d.x, y + processedFrame.offset3d.y,
+            processedFrame.imageData.width, processedFrame.imageData.height)
     }
 
     private getProcessedFrame(): ImageData {
@@ -309,7 +308,7 @@ export class TextureEntity<
             return this.currentFrameImageData
         }
         else {
-            return this.processingPipeline.getOutput(this.f)
+            return this.processingPipeline.getOutput(this.f).imageData
         }
     }
 
