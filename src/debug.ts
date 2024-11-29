@@ -119,6 +119,19 @@ export const loadDebugWindow = (game: Game) => {
                 background-color: rgba(0, 0, 255, 0.1);
             }
 
+            #loop-duration-chart {
+                display: flex;
+                align-items: end;
+                height: 160px;
+                padding: 3px;
+                border: 1px solid blue;
+            }
+            #loop-duration-chart > div {
+                background-color: blue;
+                margin: 1px;
+                width: 1px;
+            }
+
             entity-id {
                 color: fuchsia;
             }
@@ -221,6 +234,7 @@ export const loadDebugWindow = (game: Game) => {
             <b>mspf</b>: <debug-input><input id="mspf-input" type="number" value="${ game.mspf }" /></debug-input>
             <debug-button id="mspf-submit">OK</debug-button>
             <b>loop duration</b>: <json-number id="loop-duration">0</json-number>ms
+            <div id="loop-duration-chart"></div>
         </tab-content>
     `
     const $ = <E extends Node = HTMLElement>(selector: string) =>
@@ -229,6 +243,7 @@ export const loadDebugWindow = (game: Game) => {
         $debugWindow.querySelectorAll(selector) as unknown as NodeListOf<E>
 
     const $loopDuration = $('#loop-duration')!
+    const $loopDurationChart = $('#loop-duration-chart')!
     class DebugHandle extends Scene {
         constructor() {
             super()
@@ -304,7 +319,13 @@ export const loadDebugWindow = (game: Game) => {
         }
 
         update() {
-            $loopDuration.innerText = this.game.loopDuration.toString()
+            const { loopDuration } = this.game
+            $loopDuration.innerText = loopDuration.toString()
+            if ($loopDurationChart.childElementCount > 100)
+                $loopDurationChart.removeChild($loopDurationChart.firstElementChild!)
+            const $bar = document.createElement('div')
+            $bar.style.height = `${ loopDuration * 5 }px`
+            $loopDurationChart.appendChild($bar)
         }
     }
     game.addScene(new DebugHandle())
