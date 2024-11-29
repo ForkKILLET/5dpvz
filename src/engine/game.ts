@@ -154,6 +154,7 @@ export class Game {
         this.renderJobs = []
         activeScenes.forEach(scene => scene.runRender())
         this.ctx.clearRect(0, 0, this.ctx.canvas.width, this.ctx.canvas.height)
+
         this.renderJobs
             .sort(by(job => job.zIndex))
             .forEach(job => {
