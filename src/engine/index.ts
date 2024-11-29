@@ -1,5 +1,6 @@
 export * from './id'
-export * from './position'
+export * from './vector'
+export * from './motion'
 export * from './state'
 export * from './comp'
 export * from './entity'

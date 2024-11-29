@@ -1,6 +1,6 @@
 import { BULLETS, bulletTextures, BulletId, BulletMetadata } from '@/data/bullets'
 import { FilterComp } from '@/comps/Filter'
-import { Entity, EntityCtor, EntityState, Position } from '@/engine'
+import { Entity, EntityCtor, EntityState, Vector2D } from '@/engine'
 import { ZombieEntity } from '@/entities/zombies/Zombie'
 import { CollidableComp } from '@/comps/Collidable'
 import { TextureConfig, TextureState, TextureEvents, TextureEntity } from '@/entities/Texture'
@@ -65,7 +65,7 @@ export class BulletEntity<
         if (! this.config.metadata.penetrating) this.dispose()
     }
 
-    nextMove(): Position {
+    nextMove(): Vector2D {
         return {
             x: this.config.metadata.speed * this.game.mspf0,
             y: 0,

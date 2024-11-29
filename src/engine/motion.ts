@@ -1,22 +1,7 @@
-import { Game } from '@/engine'
 import { fixed } from '@/utils'
+import { Game, Vector2D, vSub } from '@/engine'
 
-export interface Position {
-    x: number
-    y: number
-}
-
-export const positionSubtract = (p1: Position, p2: Position): Position => ({
-    x: p1.x - p2.x,
-    y: p1.y - p2.y,
-})
-
-export const positionAdd = (p1: Position, p2: Position): Position => ({
-    x: p1.x + p2.x,
-    y: p1.y + p2.y,
-})
-
-export type Motion<S extends {}> = (state: S) => Position | null
+export type Motion<S extends {}> = (state: S) => Vector2D | null
 
 export interface FrameState {
     frame: number
@@ -58,10 +43,10 @@ export const useMotion = (game: Game) => {
 
     const linearTo = (
         config: MotionTimeConfig | MotionSpeedConfig,
-        from: Position,
-        to: Position
+        from: Vector2D,
+        to: Vector2D
     ): Motion<FrameState> => {
-        const delta = positionSubtract(to, from)
+        const delta = vSub(to, from)
         const angle = Math.atan2(delta.y, delta.x)
         const distance = Math.hypot(delta.x, delta.y)
         const speed = game.mspf0 * ('speed' in config

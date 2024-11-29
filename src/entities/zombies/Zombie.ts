@@ -4,7 +4,7 @@ import { ContinuousDamagingComp, DamageEffectComp, HealthComp } from '@/comps/He
 import { RectShape } from '@/comps/Shape'
 import { PLANTS } from '@/data/plants'
 import { ZombieId, ZombieMetadata, ZombieMovingState, ZombiePlace, ZOMBIES, zombieTextures } from '@/data/zombies'
-import { Entity, EntityCtor, EntityState, Position } from '@/engine'
+import { Entity, EntityCtor, EntityState, Vector2D } from '@/engine'
 import { PlantEntity } from '@/entities/plants/Plant'
 import { TextureConfig, TextureEntity, TextureEvents, TextureState } from '@/entities/Texture'
 import { PartialBy } from '@/utils'
@@ -98,7 +98,7 @@ export class ZombieEntity<
             )
     }
 
-    nextMove(): Position {
+    nextMove(): Vector2D {
         const x = this.state.eatingPlant
             ? 0
             : - this.config.metadata.speed * this.state.speedRatio * this.game.mspf0

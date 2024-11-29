@@ -1,5 +1,5 @@
 import { Size } from '@/comps/Shape'
-import { Position } from '@/engine'
+import { Vector2D } from '@/engine'
 import { abs, matrix } from '@/utils'
 
 export interface ImageManager {
@@ -42,13 +42,13 @@ export const getImagePixels = (img: HTMLImageElement): Uint8ClampedArray => {
 }
 
 export type Outline = {
-    outline: Position[]
-    inner: Position[]
+    outline: Vector2D[]
+    inner: Vector2D[]
 }
 
 export const getImageOutline = ({ width, height }: Size, pixels: Uint8ClampedArray): Outline => {
-    const outline: Position[] = []
-    const inner: Position[] = []
+    const outline: Vector2D[] = []
+    const inner: Vector2D[] = []
     const dots = matrix(width, height, (x, y) => pixels[(y * width + x) * 4 + 3] > 0)
     matrix(width, height, (x, y) => {
         if (! dots[x][y]) return

@@ -1,6 +1,6 @@
 import { kDebugFold } from '@/debug'
 import {
-    createIdGenerator, Position, positionAdd,
+    createIdGenerator, Vector2D, vAdd,
     Emitter, Events, ListenerOptions,
     State, Comp, CompCtor, CompSelector,
     RenderPipeline,
@@ -10,7 +10,7 @@ import { Disposer, eq, mapk, not, remove, RemoveIndex } from '@/utils'
 export interface EntityConfig {}
 
 export interface EntityState {
-    position: Position
+    position: Vector2D
     zIndex: number
     scale?: number
     cloning?: boolean
@@ -24,7 +24,7 @@ export interface EntityEvents extends Events {
     'attach': [ superEntity: Entity ]
     'unattach': []
     'dispose': []
-    'position-update': [ delta: Position ]
+    'position-update': [ delta: Vector2D ]
 }
 
 export type InjectKey<T> = symbol & { _injectType: T }
@@ -316,13 +316,13 @@ export class Entity<
         return this
     }
 
-    updatePosition(delta: Position) {
+    updatePosition(delta: Vector2D) {
         this.emit('position-update', delta)
-        this.state.position = positionAdd(this.state.position, delta)
+        this.state.position = vAdd(this.state.position, delta)
         this.attachedEntities.forEach(entity => entity.updatePosition(delta))
         return this
     }
-    updatePositionTo({ x, y }: Position) {
+    updatePositionTo({ x, y }: Vector2D) {
         return this.updatePosition({
             x: x - this.state.position.x,
             y: y - this.state.position.y,

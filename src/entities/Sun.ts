@@ -1,4 +1,4 @@
-import { EntityState, positionAdd } from '@/engine'
+import { EntityState, vAdd } from '@/engine'
 import { kProcess } from '@/entities/Process'
 import { CursorComp } from '@/comps/Cursor'
 import { LifeComp } from '@/comps/Life'
@@ -76,7 +76,7 @@ export class SunEntity extends TextureEntity<SunConfig, SunState, SunEvents> {
         process.state.sun += this.config.sun
         process.updatePlantSlot(false)
 
-        const sunSlotPosition = positionAdd(
+        const sunSlotPosition = vAdd(
             this.inject(kProcess)!.state.position,
             { x: 6 + 40, y: 6 + 40 }
         )

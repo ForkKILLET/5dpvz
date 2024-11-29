@@ -7,7 +7,7 @@ import { ShovelId, shovelTextures } from '@/data/shovels'
 import { StageData } from '@/data/stages'
 import { ZombieId } from '@/data/zombies'
 import {
-    Entity, EntityConfig, EntityEvents, EntityState, injectKey, Position,
+    Entity, EntityConfig, EntityEvents, EntityState, injectKey, Vector2D,
     BrightnessNode, GaussianBlurNode, ScalingNode, ShearNode,
 } from '@/engine'
 import { BulletEntity } from '@/entities/bullets/Bullet'
@@ -549,7 +549,7 @@ export class ProcessEntity extends Entity<ProcessConfig, ProcessState, ProcessEv
         return this.state
     }
 
-    isInsideLawn(position: Position) {
+    isInsideLawn(position: Vector2D) {
         return this.getComp(RectShape)!.contains(position)
     }
 

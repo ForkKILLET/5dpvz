@@ -1,4 +1,4 @@
-import { Position, Comp, Entity, CompSelector, CompCtor, CompEvents } from '@/engine'
+import { Vector2D, Comp, Entity, CompSelector, CompCtor, CompEvents } from '@/engine'
 import { clamp, mapk, PartialBy, Pred } from '@/utils'
 
 export type ShapeTag = 'boundary' | 'texture' | 'hitbox'
@@ -50,7 +50,7 @@ export class ShapeComp<
         return this.entity.state.scale ?? 1
     }
 
-    contains(point: Position) {
+    contains(point: Vector2D) {
         void point
         return false
     }
@@ -63,7 +63,7 @@ export class ShapeComp<
 }
 
 export interface AnyShapeConfig<E extends Entity> extends ShapeConfig {
-    contains: (this: E, point: Position) => boolean
+    contains: (this: E, point: Vector2D) => boolean
     intersects: (this: E, other: ShapeComp) => boolean
     stroke: (this: E, ctx: CanvasRenderingContext2D) => void
     fill: (this: E, ctx: CanvasRenderingContext2D) => void
@@ -88,7 +88,7 @@ export class AnyShape<E extends Entity = Entity> extends ShapeComp<AnyShapeConfi
         )
     }
 
-    contains(point: Position) {
+    contains(point: Vector2D) {
         return this.config.contains.call(this.entity, point)
     }
     intersects(other: ShapeComp) {
@@ -103,7 +103,7 @@ export class AnyShape<E extends Entity = Entity> extends ShapeComp<AnyShapeConfi
 }
 
 export class PointShape extends ShapeComp {
-    contains(point: Position) {
+    contains(point: Vector2D) {
         // TOOD: ε?
         return this.position.x === point.x && this.position.y === point.y
     }
@@ -130,7 +130,7 @@ export interface Size {
     height: number
 }
 
-export interface Rect extends Position, Size {}
+export interface Rect extends Vector2D, Size {}
 
 export interface RectP {
     x1: number
@@ -163,7 +163,7 @@ export class RectShape extends ShapeComp<RectShapeConfig> {
         return { x, y, width, height }
     }
 
-    static contains = (rect: Rect) => (point: Position) => (
+    static contains = (rect: Rect) => (point: Vector2D) => (
         point.x >= rect.x && point.x < rect.x + rect.width &&
         point.y >= rect.y && point.y < rect.y + rect.height
     )
@@ -175,7 +175,7 @@ export class RectShape extends ShapeComp<RectShapeConfig> {
         y2: rect.y + rect.height,
     })
 
-    contains(point: Position) {
+    contains(point: Vector2D) {
         return RectShape.contains(this.rect)(point)
     }
 
@@ -212,7 +212,7 @@ export class FullscreenShape extends RectShape {
     }
 }
 
-export interface Circle extends Position {
+export interface Circle extends Vector2D {
     radius: number
 }
 
@@ -235,13 +235,13 @@ export class CircleShape extends ShapeComp<CircleConfig> {
         return { x, y, radius: radius * this.scale }
     }
 
-    static contains = (circle: Circle) => (point: Position) => {
+    static contains = (circle: Circle) => (point: Vector2D) => {
         const dx = point.x - circle.x
         const dy = point.y - circle.y
         return dx ** 2 + dy ** 2 <= circle.radius ** 2
     }
 
-    contains(point: Position) {
+    contains(point: Vector2D) {
         return CircleShape.contains(this.circle)(point)
     }
 

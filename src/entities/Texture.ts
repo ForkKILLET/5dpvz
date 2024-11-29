@@ -4,7 +4,7 @@ import { AnyShape, OriginConfig, RectShape, ShapeComp } from '@/comps/Shape'
 import { TextureSet } from '@/data/textures'
 import {
     Entity, EntityConfig, EntityCtor, EntityEvents, EntityState,
-    getImageOutline, getImagePixels, Outline, positionAdd,
+    getImageOutline, getImagePixels, Outline, vAdd,
     InputNode,
 } from '@/engine'
 import { Direction, elem, PartialBy, pick, placeholder, StrictOmit } from '@/utils'
@@ -289,7 +289,7 @@ export class TextureEntity<
 
         const rectShape = this.getComp(RectShape)!
         const position = pick(rectShape.rect, [ 'x', 'y' ])
-        const offsetPosition = positionAdd(position, processedFrame.offset)
+        const offsetPosition = vAdd(position, processedFrame.offset)
         const { width, height } = processedFrame.imageData
 
         this.offScreenCanvas.width = width

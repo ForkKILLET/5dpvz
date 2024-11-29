@@ -1,4 +1,4 @@
-import { Emitter, Events, Game, Position } from '@/engine'
+import { Emitter, Events, Game, Vector2D } from '@/engine'
 
 export interface MouseEvents extends Events {
     click: [ MouseEvent ]
@@ -6,13 +6,13 @@ export interface MouseEvents extends Events {
 }
 
 export interface Mouse {
-    position: Position
+    position: Vector2D
     emitter: Emitter<MouseEvents>
 }
 
 export const useMouse = (game: Game): Mouse => {
     const { ctx } = game
-    const position: Position = { x: 0, y: 0 }
+    const position: Vector2D = { x: 0, y: 0 }
 
     document.addEventListener('mousemove', ev => {
         const rect = ctx.canvas.getBoundingClientRect()
