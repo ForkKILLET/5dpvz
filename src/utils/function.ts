@@ -11,6 +11,8 @@ export const neq =
 
 export type Pred<X> = (x: X) => boolean
 
+export type Endo<X> = (x: X) => X
+
 export type Primitive = string | number | boolean | null | undefined | symbol | bigint
 
 export const isPrimitive = (x: unknown): x is Primitive =>

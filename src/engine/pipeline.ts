@@ -1,41 +1,65 @@
 import { TextureEntity } from '@/entities/Texture'
+import { Endo, id } from '@/utils'
 
-type RenderData = { imageData: ImageData, offset3d: { x: number, y: number } }
+type RenderData = { imageData: ImageData, offset: { x: number, y: number } }
 
-type ProcessFunc = (input: RenderData) => RenderData
+type Processor = Endo<RenderData>
 
-export class ImageNode {
-    private _lefts: ImageNode[] = []
-    public get lefts(): ImageNode[] {
+export class PipelineError extends Error {}
+
+export interface ImageNodeCtor<N extends RenderNode> {
+    new (...args: any): N
+    name: string
+    leftCount: number[]
+    rightCount: number[]
+}
+
+export class RenderNode {
+    static leftCount: number[] = []
+    static rightCount: number[] = []
+
+    get Ctor() {
+        return this.constructor as ImageNodeCtor<this>
+    }
+
+    constructor(protected processor: Processor) {}
+
+    protected _lefts: RenderNode[] = []
+    get lefts(): RenderNode[] {
         return this._lefts
     }
-    public set lefts(value: ImageNode[]) {
+    set lefts(value: RenderNode[]) {
+        const { leftCount, name } = this.Ctor
+        if (! leftCount.includes(value.length))
+            throw new PipelineError(`${ name } expect ${ leftCount.join(' | ') } lefts, but got ${ value.length }`)
         this._lefts = value
     }
 
-    private _rights: ImageNode[] = []
-    public get rights(): ImageNode[] {
+    protected _rights: RenderNode[] = []
+    get rights(): RenderNode[] {
         return this._rights
     }
-    public set rights(value: ImageNode[]) {
+    set rights(value: RenderNode[]) {
+        const { rightCount, name } = this.Ctor
+        if (! rightCount.includes(value.length))
+            throw new PipelineError(`${ name } expect ${ rightCount.join(' | ') } rights, but got ${ value.length }`)
         this._rights = value
     }
-    private cache: Map<number, RenderData> = new Map()
 
-    constructor(protected processFunc: ProcessFunc) {}
+    protected cache: Map<number, RenderData> = new Map()
 
-    getOutput(frameeIndex: number): RenderData {
-        if (this.cache.has(frameeIndex)) {
-            return this.cache.get(frameeIndex)!
+    getOutput(frameIndex: number): RenderData {
+        if (this.cache.has(frameIndex)) {
+            return this.cache.get(frameIndex)!
         }
 
         if (this.lefts.length === 0) {
             throw new Error('No input node provided.')
         }
 
-        const inputData = this.lefts[0].getOutput(frameeIndex)
-        const output = this.processFunc(inputData)
-        this.cache.set(frameeIndex, output)
+        const inputData = this.lefts[0].getOutput(frameIndex)
+        const output = this.processor(inputData)
+        this.cache.set(frameIndex, output)
         return output
     }
 
@@ -44,97 +68,26 @@ export class ImageNode {
     }
 }
 
-export class InputNode extends ImageNode {
-    constructor(private textureEntity: TextureEntity) {
-        super(() => {
-            throw new Error('SourceNode should override getOutput')
-        })
-    }
+export class RenderPipeline {
+    private nodes: RenderNode[] = []
+    private startNode: RenderNode | null = null
+    private endNode: RenderNode | null = null
 
-    private _left: ImageNode[] = []
-    get lefts(): ImageNode[] {
-        return this._left
-    }
-    set lefts(node: ImageNode[]) {
-        if (node.length !== 0) {
-            throw new Error('Left length must be 0')
-        }
-        this._left = node
-    }
-
-    private _right: ImageNode[] = []
-    get rights(): ImageNode[] {
-        return this._right
-    }
-    set rights(node: ImageNode[]) {
-        if (node.length > 1) {
-            throw new Error('Right length must be 0 or 1')
-        }
-        this._right = node
-    }
-
-    getOutput(frameeIndex: number): RenderData {
-        return {
-            imageData: this.textureEntity.getFrameImageData(frameeIndex),
-            offset3d: { x: 0, y: 0 },
-        }
-    }
-}
-
-export class OutputNode extends ImageNode {
-    constructor() {
-        super(input => input)
-    }
-
-    private _left: ImageNode[] = []
-    get lefts(): ImageNode[] {
-        return this._left
-    }
-    set lefts(node: ImageNode[]) {
-        if (node.length > 1) {
-            throw new Error('Left length must be 0 or 1')
-        }
-        this._left = node
-    }
-
-    private _right: ImageNode[] = []
-    get rights(): ImageNode[] {
-        return this._right
-    }
-    set rights(node: ImageNode[]) {
-        if (node.length !== 0) {
-            throw new Error('Right length must be 0')
-        }
-        this._right = node
-    }
-}
-
-export class ProcessingNode extends ImageNode {
-    constructor(processFunc: ProcessFunc) {
-        super(processFunc)
-    }
-}
-
-export class ProcessingPipeline {
-    private nodes: ImageNode[] = []
-    private startNode: ImageNode | null = null
-    private endNode: ImageNode | null = null
-
-    private addNode(node: ImageNode): this {
+    private addNode(node: RenderNode): this {
         this.nodes.push(node)
         return this
     }
 
-    setStartNode(node: ImageNode): this {
+    setStartNode(node: RenderNode): this {
         this.startNode = node
         this.addNode(node)
         this.ensureEndNode()
         return this
     }
 
-    appendNode(node: ImageNode): this {
-        if (this.endNode && this.endNode.lefts.length > 0) {
-            const lastNode = this.endNode.lefts[0]
+    appendNode(node: RenderNode): this {
+        if (this.endNode?.lefts.length) {
+            const [ lastNode ] = this.endNode.lefts
             this.insertNodeBetween(node, lastNode, this.endNode)
 
             console.log(22222)
@@ -146,7 +99,7 @@ export class ProcessingPipeline {
             this.appendAfter(node, this.startNode)
         }
         else {
-            throw new Error('Pipeline has no start node.')
+            throw new PipelineError('Pipeline has no start node.')
         }
         this.nodes.push(node)
         return this
@@ -161,14 +114,14 @@ export class ProcessingPipeline {
         }
     }
 
-    private appendAfter(newNode: ImageNode, left: ImageNode) {
+    private appendAfter(newNode: RenderNode, left: RenderNode) {
         newNode.lefts = [ left ]
         left.rights = [ newNode ]
         this.addNode(newNode)
         return this
     }
 
-    private insertNodeBetween(node: ImageNode, left: ImageNode, right: ImageNode): this {
+    private insertNodeBetween(node: RenderNode, left: RenderNode, right: RenderNode): this {
         left.rights = [ node ]
         node.lefts = [ left ]
         node.rights = [ right ]
@@ -192,36 +145,50 @@ export class ProcessingPipeline {
     }
 }
 
-export class GaussianBlurNode extends ImageNode {
-    constructor(private radius: number) {
-        super(({ imageData, offset3d }) => {
-            return {
-                imageData: this.applyBlur(imageData, radius),
-                offset3d,
-            }
+export class InputNode extends RenderNode {
+    static leftCount = [ 0 ]
+    static rightCount = [ 1 ]
+
+    constructor(private textureEntity: TextureEntity) {
+        super(() => {
+            throw new PipelineError('InputNode should override getOutput')
         })
     }
 
-    private _left: ImageNode[] = []
-    get lefts(): ImageNode[] {
-        return this._left
-    }
-    set lefts(node: ImageNode[]) {
-        if (node.length > 1) {
-            throw new Error('Left length must be 0 or 1')
+    getOutput(frameeIndex: number): RenderData {
+        return {
+            imageData: this.textureEntity.getFrameImageData(frameeIndex),
+            offset: { x: 0, y: 0 },
         }
-        this._left = node
     }
+}
 
-    private _right: ImageNode[] = []
-    get rights(): ImageNode[] {
-        return this._right
+export class OutputNode extends RenderNode {
+    static leftCount = [ 1 ]
+    static rightCount = [ 0 ]
+
+    constructor() {
+        super(id)
     }
-    set rights(node: ImageNode[]) {
-        if (node.length > 1) {
-            throw new Error('Right length must be 0 or 1')
-        }
-        this._right = node
+}
+
+export class ProcessingNode extends RenderNode {
+    constructor(processor: Processor) {
+        super(processor)
+    }
+}
+
+export class GaussianBlurNode extends RenderNode {
+    static leftCount = [ 1 ]
+    static rightCount = [ 1 ]
+
+    constructor(protected radius: number) {
+        super(({ imageData, offset: offset }) => {
+            return {
+                imageData: this.applyBlur(imageData, radius),
+                offset: offset,
+            }
+        })
     }
 
     private applyBlur(imageData: ImageData, radius: number): ImageData {
@@ -255,36 +222,17 @@ export class GaussianBlurNode extends ImageNode {
     }
 }
 
-export class BrightnessNode extends ImageNode {
+export class BrightnessNode extends RenderNode {
+    static leftCount = [ 1 ]
+    static rightCount = [ 1 ]
+
     constructor(private brightness: number) {
-        super(({ imageData, offset3d }) => {
+        super(({ imageData, offset: offset }) => {
             return {
                 imageData: this.adjustBrightness(imageData, brightness),
-                offset3d,
+                offset: offset,
             }
         })
-    }
-
-    private _left: ImageNode[] = []
-    get lefts(): ImageNode[] {
-        return this._left
-    }
-    set lefts(node: ImageNode[]) {
-        if (node.length > 1) {
-            throw new Error('Left length must be 0 or 1')
-        }
-        this._left = node
-    }
-
-    private _right: ImageNode[] = []
-    get rights(): ImageNode[] {
-        return this._right
-    }
-    set rights(node: ImageNode[]) {
-        if (node.length > 1) {
-            throw new Error('Right length must be 0 or 1')
-        }
-        this._right = node
     }
 
     private adjustBrightness(imageData: ImageData, adjustment: number): ImageData {
@@ -318,36 +266,17 @@ export class BrightnessNode extends ImageNode {
     }
 }
 
-export class ScalingNode extends ImageNode {
+export class ScalingNode extends RenderNode {
+    static leftCount = [ 1 ]
+    static rightCount = [ 1 ]
+
     constructor(private scaleX: number, private scaleY?: number) {
-        super(({ imageData, offset3d }) => {
+        super(({ imageData, offset: offset }) => {
             return {
                 imageData: this.scaleImage(imageData, scaleX, scaleY === undefined ? scaleX : scaleY),
-                offset3d: this.scaleOffset(offset3d, imageData.height, scaleY === undefined ? scaleX : scaleY),
+                offset: this.scaleOffset(offset, imageData.height, scaleY === undefined ? scaleX : scaleY),
             }
         })
-    }
-
-    private _left: ImageNode[] = []
-    get lefts(): ImageNode[] {
-        return this._left
-    }
-    set lefts(node: ImageNode[]) {
-        if (node.length > 1) {
-            throw new Error('Left length must be 0 or 1')
-        }
-        this._left = node
-    }
-
-    private _right: ImageNode[] = []
-    get rights(): ImageNode[] {
-        return this._right
-    }
-    set rights(node: ImageNode[]) {
-        if (node.length > 1) {
-            throw new Error('Right length must be 0 or 1')
-        }
-        this._right = node
     }
 
     private scaleImage(imageData: ImageData, scaleX: number, scaleY: number): ImageData {
@@ -377,10 +306,10 @@ export class ScalingNode extends ImageNode {
         return scaledImageData
     }
 
-    private scaleOffset(offset3d: { x: number, y: number }, height: number, scaleY: number): { x: number, y: number } {
+    private scaleOffset(offset: { x: number, y: number }, height: number, scaleY: number): { x: number, y: number } {
         return {
-            x: offset3d.x,
-            y: offset3d.y + (1 - scaleY) * height,
+            x: offset.x,
+            y: offset.y + (1 - scaleY) * height,
         }
     }
 
@@ -393,41 +322,22 @@ export class ScalingNode extends ImageNode {
     }
 }
 
-export class ShearNode extends ImageNode {
+export class ShearNode extends RenderNode {
+    static leftCount = [ 1 ]
+    static rightCount = [ 1 ]
+
     //
     //  transformation: Anchor the left bottom corner, look at left top corner:
     //  shearX: the percentage change in X axis (positive direction is right)
     //  shearY: the percentage change in Y axis (positive direction is up)
     //
     constructor(private shearX: number, private shearY: number) {
-        super(({ imageData, offset3d }) => {
+        super(({ imageData, offset: offset }) => {
             return {
                 imageData: this.shearImage(imageData, shearX, shearY),
-                offset3d: this.shearOffset(offset3d, imageData.width, imageData.height, shearX, shearY),
+                offset: this.shearOffset(offset, imageData.width, imageData.height, shearX, shearY),
             }
         })
-    }
-
-    private _left: ImageNode[] = []
-    get lefts(): ImageNode[] {
-        return this._left
-    }
-    set lefts(node: ImageNode[]) {
-        if (node.length > 1) {
-            throw new Error('Left length must be 0 or 1')
-        }
-        this._left = node
-    }
-
-    private _right: ImageNode[] = []
-    get rights(): ImageNode[] {
-        return this._right
-    }
-    set rights(node: ImageNode[]) {
-        if (node.length > 1) {
-            throw new Error('Right length must be 0 or 1')
-        }
-        this._right = node
     }
 
     private shearImage(imageData: ImageData, shearX: number, shearY: number): ImageData {
@@ -464,11 +374,11 @@ export class ShearNode extends ImageNode {
     }
 
     private shearOffset(
-        offset3d: { x: number, y: number }, width: number, height: number, shearX: number, shearY: number):
+        offset: { x: number, y: number }, width: number, height: number, shearX: number, shearY: number):
         { x: number, y: number } {
         return {
-            x: offset3d.x - Math.max(0, - shearX * width),
-            y: offset3d.y - Math.max(0, shearY * height),
+            x: offset.x - Math.max(0, - shearX * width),
+            y: offset.y - Math.max(0, shearY * height),
         }
     }
 

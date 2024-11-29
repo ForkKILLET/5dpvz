@@ -288,7 +288,7 @@ export class TextureEntity<
 
         const rectShape = this.getComp(RectShape)!
         const position = pick(rectShape.rect, [ 'x', 'y' ])
-        const offsetPosition = positionAdd(position, processedFrame.offset3d)
+        const offsetPosition = positionAdd(position, processedFrame.offset)
         const { width, height } = processedFrame.imageData
 
         this.offScreenCanvas.width = width

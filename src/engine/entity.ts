@@ -5,7 +5,7 @@ import {
     State, Comp, CompCtor, CompSelector,
 } from '@/engine'
 import { Disposer, eq, mapk, remove, RemoveIndex } from '@/utils'
-import { ProcessingPipeline } from './pipeline'
+import { RenderPipeline } from './pipeline'
 
 export interface EntityConfig {}
 
@@ -254,7 +254,7 @@ export class Entity<
         return this.comps.filter((comp): comp is M => comp instanceof Comp)
     }
 
-    pipeline = new ProcessingPipeline()
+    pipeline = new RenderPipeline()
 
     runRender() {
         this.preRender()
