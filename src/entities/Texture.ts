@@ -7,7 +7,7 @@ import {
     getImageOutline, getImagePixels, Outline,
 } from '@/engine'
 import { elem, PartialBy, pick, placeholder, StrictOmit } from '@/utils'
-import { ProcessingPipeline, InputNode } from '@/engine/imageNode'
+import { InputNode } from '@/engine/pipeline'
 
 export type TextureInnerState =
     | {
@@ -58,7 +58,6 @@ export class TextureEntity<
         string,
         { images: HTMLImageElement[], imageData: ImageData[] }
     > = {}
-    processingPipeline: ProcessingPipeline = placeholder
     offScreenCanvas: HTMLCanvasElement = document.createElement('canvas')
     offScreenCtx: CanvasRenderingContext2D = this.offScreenCanvas.getContext('2d')!
 
@@ -170,10 +169,8 @@ export class TextureEntity<
 
         if (this.state.innerState === placeholder) this.switchTexture(this.state.textureName)
 
-        this.processingPipeline = new ProcessingPipeline()
-
         const sourceNode = new InputNode(this)
-        this.processingPipeline.setStartNode(sourceNode)
+        this.pipeline.setStartNode(sourceNode)
     }
 
     getImageDataFromImage(img: HTMLImageElement): ImageData {
@@ -289,9 +286,8 @@ export class TextureEntity<
     async render() {
         const rectShape = this.getComp(RectShape)!
         const { x, y, width, height } = rectShape.rect
-        // const { x, y } = rectShape.rect
 
-        const processedFrame = this.processingPipeline.getOutput(this.f)
+        const processedFrame = this.pipeline.getOutput(this.f)
 
         this.offScreenCanvas.width = processedFrame.width
         this.offScreenCanvas.height = processedFrame.height
@@ -300,15 +296,6 @@ export class TextureEntity<
         this.offScreenCtx.putImageData(processedFrame, 0, 0)
 
         this.game.ctx.drawImage(this.offScreenCanvas, x, y, width, height)
-    }
-
-    private getProcessedFrame(): ImageData {
-        if (! this.processingPipeline) {
-            return this.currentFrameImageData
-        }
-        else {
-            return this.processingPipeline.getOutput(this.f)
-        }
     }
 
     update() {

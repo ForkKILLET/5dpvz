@@ -18,7 +18,7 @@ import { ShovelSlotConfig } from '@/entities/ui/ShovelSlot'
 import { PlantSlotsConfig, UIEntity } from '@/entities/ui/UI'
 import { ZombieEntity } from '@/entities/zombies/Zombie'
 import { eq, matrix, Nullable, pick, placeholder, random, remove, replicateBy, sum } from '@/utils'
-import { BrightnessNode, GaussianBlurNode, ScalingNode } from '@/engine/imageNode'
+import { BrightnessNode, GaussianBlurNode, ScalingNode } from '@/engine/pipeline'
 
 export interface ProcessConfig extends EntityConfig {
     processId: number
@@ -155,7 +155,7 @@ export class ProcessEntity extends Entity<ProcessConfig, ProcessState, ProcessEv
 
         this.state.plantsOnBlocks ??= matrix(config.lawn.width, config.lawn.height, () => null)
 
-        this.addComp(RectShape, { ...pick(ProcessEntity, [ 'width', 'height' ]), origin: 'top-left' })
+        this.addComp(RectShape, { ...pick(ProcessEntity, [ 'width', 'height' ]) })
         this.addComp(RngComp, random(2 ** 32))
 
         this.provide(kProcess, this)
@@ -309,7 +309,15 @@ export class ProcessEntity extends Entity<ProcessConfig, ProcessState, ProcessEv
                 position: this.getLawnBlockPosition(i, j),
                 zIndex: this.state.zIndex + 3,
             }
-        ).attachTo(this)
+        )
+            .attachTo(this)
+            .afterStart(() => {
+                if (! this.game.config.isDebug) return
+                newPlant.pipeline
+                    .appendNode(new GaussianBlurNode(2))
+                    .appendNode(new BrightnessNode(0.5))
+                    .appendNode(new ScalingNode(2))
+            })
 
         const newPlantData: PlantData = {
             id: plantId,
@@ -318,13 +326,6 @@ export class ProcessEntity extends Entity<ProcessConfig, ProcessState, ProcessEv
         }
         this.state.plantsData.push(newPlantData)
         this.state.plantsOnBlocks[i][j] = newPlantData
-
-        newPlant.afterStart(() => {
-            newPlant.processingPipeline
-                .appendNode(new GaussianBlurNode(2))
-                .appendNode(new BrightnessNode(0.5))
-                .appendNode(new ScalingNode(2))
-        })
 
         this.cancelHolding()
     }

@@ -5,6 +5,7 @@ import {
     State, Comp, CompCtor, CompSelector,
 } from '@/engine'
 import { Disposer, eq, mapk, remove, RemoveIndex } from '@/utils'
+import { ProcessingPipeline } from './pipeline'
 
 export interface EntityConfig {}
 
@@ -252,6 +253,8 @@ export class Entity<
     getComps<M extends Comp>(Comp: CompCtor<M>): M[] {
         return this.comps.filter((comp): comp is M => comp instanceof Comp)
     }
+
+    pipeline = new ProcessingPipeline()
 
     runRender() {
         this.preRender()
