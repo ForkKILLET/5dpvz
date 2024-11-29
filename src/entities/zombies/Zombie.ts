@@ -116,4 +116,6 @@ export class ZombieEntity<
     }
 }
 
-export const defineZombie = <E extends ZombieEntity>(metadata: ZombieMetadata & EntityCtor<E>) => metadata
+export const defineZombie = <
+    E extends ZombieEntity, Ec extends ZombieMetadata & EntityCtor<E>
+>(Ctor: Ec) => Ctor

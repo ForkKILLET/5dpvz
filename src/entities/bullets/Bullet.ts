@@ -79,4 +79,6 @@ export class BulletEntity<
     }
 }
 
-export const defineBullet = <E extends BulletEntity>(metadata: BulletMetadata & EntityCtor<E>) => metadata
+export const defineBullet = <
+    E extends BulletEntity, Ec extends BulletMetadata & EntityCtor<E>
+>(Ctor: Ec) => Ctor

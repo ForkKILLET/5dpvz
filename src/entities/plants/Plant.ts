@@ -75,4 +75,6 @@ export class PlantEntity<
     }
 }
 
-export const definePlant = <E extends PlantEntity>(metadata: PlantMetadata & EntityCtor<E>) => metadata
+export const definePlant = <
+    E extends PlantEntity, Ec extends PlantMetadata & EntityCtor<E>
+>(Ctor: Ec) => Ctor
