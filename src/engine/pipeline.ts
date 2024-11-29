@@ -1,6 +1,8 @@
 import { TextureEntity } from '@/entities/Texture'
 
-type ProcessFunc = (input: ImageData) => ImageData
+type RenderData = { imageData: ImageData, offset3d: { x: number, y: number } }
+
+type ProcessFunc = (input: RenderData) => RenderData
 
 export class ImageNode {
     private _lefts: ImageNode[] = []
@@ -18,11 +20,11 @@ export class ImageNode {
     public set rights(value: ImageNode[]) {
         this._rights = value
     }
-    private cache: Map<number, ImageData> = new Map()
+    private cache: Map<number, RenderData> = new Map()
 
     constructor(protected processFunc: ProcessFunc) {}
 
-    getOutput(frameeIndex: number): ImageData {
+    getOutput(frameeIndex: number): RenderData {
         if (this.cache.has(frameeIndex)) {
             return this.cache.get(frameeIndex)!
         }
@@ -71,8 +73,11 @@ export class InputNode extends ImageNode {
         this._right = node
     }
 
-    getOutput(frameeIndex: number): ImageData {
-        return this.textureEntity.getFrameImageData(frameeIndex)
+    getOutput(frameeIndex: number): RenderData {
+        return {
+            imageData: this.textureEntity.getFrameImageData(frameeIndex),
+            offset3d: { x: 0, y: 0 },
+        }
     }
 }
 
@@ -172,7 +177,7 @@ export class ProcessingPipeline {
         return this
     }
 
-    getOutput(frameIndex: number): ImageData {
+    getOutput(frameIndex: number): RenderData {
         if (this.endNode) {
             return this.endNode.getOutput(frameIndex)
         }
@@ -189,7 +194,12 @@ export class ProcessingPipeline {
 
 export class GaussianBlurNode extends ImageNode {
     constructor(private radius: number) {
-        super(input => this.applyBlur(input, radius))
+        super(({ imageData, offset3d }) => {
+            return {
+                imageData: this.applyBlur(imageData, radius),
+                offset3d,
+            }
+        })
     }
 
     private _left: ImageNode[] = []
@@ -247,7 +257,12 @@ export class GaussianBlurNode extends ImageNode {
 
 export class BrightnessNode extends ImageNode {
     constructor(private brightness: number) {
-        super(input => this.adjustBrightness(input, brightness))
+        super(({ imageData, offset3d }) => {
+            return {
+                imageData: this.adjustBrightness(imageData, brightness),
+                offset3d,
+            }
+        })
     }
 
     private _left: ImageNode[] = []
@@ -305,7 +320,12 @@ export class BrightnessNode extends ImageNode {
 
 export class ScalingNode extends ImageNode {
     constructor(private scaleX: number, private scaleY?: number) {
-        super(input => this.scaleImage(input, scaleX, scaleY === undefined ? scaleX : scaleY))
+        super(({ imageData, offset3d }) => {
+            return {
+                imageData: this.scaleImage(imageData, scaleX, scaleY === undefined ? scaleX : scaleY),
+                offset3d: this.scaleOffset(offset3d, imageData.height, scaleY === undefined ? scaleX : scaleY),
+            }
+        })
     }
 
     private _left: ImageNode[] = []
@@ -349,6 +369,7 @@ export class ScalingNode extends ImageNode {
 
         scaledCtx.drawImage(sourceCanvas, 0, 0, width, height, 0, 0, newWidth, newHeight)
 
+        console.log(newWidth, newHeight)
         const scaledImageData = scaledCtx.getImageData(0, 0, newWidth, newHeight)
 
         console.log('scaling')
@@ -356,10 +377,105 @@ export class ScalingNode extends ImageNode {
         return scaledImageData
     }
 
+    private scaleOffset(offset3d: { x: number, y: number }, height: number, scaleY: number): { x: number, y: number } {
+        return {
+            x: offset3d.x,
+            y: offset3d.y + (1 - scaleY) * height,
+        }
+    }
+
     setScale(scaleX: number, scaleY: number) {
         if (this.scaleX !== scaleX || this.scaleY !== scaleY) {
             this.scaleX = scaleX
             this.scaleY = scaleY
+            this.clearCache()
+        }
+    }
+}
+
+export class ShearNode extends ImageNode {
+    //
+    //  transformation: Anchor the left bottom corner, look at left top corner:
+    //  shearX: the percentage change in X axis (positive direction is right)
+    //  shearY: the percentage change in Y axis (positive direction is up)
+    //
+    constructor(private shearX: number, private shearY: number) {
+        super(({ imageData, offset3d }) => {
+            return {
+                imageData: this.shearImage(imageData, shearX, shearY),
+                offset3d: this.shearOffset(offset3d, imageData.width, imageData.height, shearX, shearY),
+            }
+        })
+    }
+
+    private _left: ImageNode[] = []
+    get lefts(): ImageNode[] {
+        return this._left
+    }
+    set lefts(node: ImageNode[]) {
+        if (node.length > 1) {
+            throw new Error('Left length must be 0 or 1')
+        }
+        this._left = node
+    }
+
+    private _right: ImageNode[] = []
+    get rights(): ImageNode[] {
+        return this._right
+    }
+    set rights(node: ImageNode[]) {
+        if (node.length > 1) {
+            throw new Error('Right length must be 0 or 1')
+        }
+        this._right = node
+    }
+
+    private shearImage(imageData: ImageData, shearX: number, shearY: number): ImageData {
+        const width = imageData.width
+        const height = imageData.height
+
+        const newWidth = Math.ceil(width + Math.abs(shearX) * width)
+        const newHeight = Math.ceil(height + shearY * height)
+
+        const sourceCanvas = document.createElement('canvas')
+        sourceCanvas.width = width
+        sourceCanvas.height = height
+        const sourceCtx = sourceCanvas.getContext('2d')!
+        sourceCtx.putImageData(imageData, 0, 0)
+
+        const shearedCanvas = document.createElement('canvas')
+        shearedCanvas.width = newWidth
+        shearedCanvas.height = newHeight
+        const shearedCtx = shearedCanvas.getContext('2d')!
+
+        shearedCtx.transform(
+            1, 0,
+            - shearX * width / height, 1 + shearY,
+            shearX * width + Math.max(0, - shearX * width), - shearY * height + Math.max(0, shearY * height),
+        )
+
+        shearedCtx.drawImage(sourceCanvas, 0, 0)
+
+        const shearedImageData = shearedCtx.getImageData(0, 0, shearedCanvas.width, shearedCanvas.height)
+
+        console.log('shear', newWidth, newHeight)
+
+        return shearedImageData
+    }
+
+    private shearOffset(
+        offset3d: { x: number, y: number }, width: number, height: number, shearX: number, shearY: number):
+        { x: number, y: number } {
+        return {
+            x: offset3d.x - Math.max(0, - shearX * width),
+            y: offset3d.y - Math.max(0, shearY * height),
+        }
+    }
+
+    setShear(shearX: number, shearY: number) {
+        if (this.shearX !== shearX || this.shearY !== shearY) {
+            this.shearX = shearX
+            this.shearY = shearY
             this.clearCache()
         }
     }

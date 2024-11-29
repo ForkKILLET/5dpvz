@@ -4,7 +4,7 @@ import { AnyShape, AnyShapeConfig, OriginConfig, RectShape, ShapeComp } from '@/
 import { TextureSet } from '@/data/textures'
 import {
     Entity, EntityConfig, EntityCtor, EntityEvents, EntityState,
-    getImageOutline, getImagePixels, Outline,
+    getImageOutline, getImagePixels, Outline, positionAdd,
 } from '@/engine'
 import { elem, PartialBy, pick, placeholder, StrictOmit } from '@/utils'
 import { InputNode } from '@/engine/pipeline'
@@ -284,18 +284,23 @@ export class TextureEntity<
     }
 
     async render() {
-        const rectShape = this.getComp(RectShape)!
-        const { x, y, width, height } = rectShape.rect
-
         const processedFrame = this.pipeline.getOutput(this.f)
 
-        this.offScreenCanvas.width = processedFrame.width
-        this.offScreenCanvas.height = processedFrame.height
+        const rectShape = this.getComp(RectShape)!
+        const position = pick(rectShape.rect, [ 'x', 'y' ])
+        const offsetPosition = positionAdd(position, processedFrame.offset3d)
+        const { width, height } = processedFrame.imageData
 
-        this.offScreenCtx.clearRect(0, 0, this.offScreenCanvas.width, this.offScreenCanvas.height)
-        this.offScreenCtx.putImageData(processedFrame, 0, 0)
+        this.offScreenCanvas.width = width
+        this.offScreenCanvas.height = height
+        this.offScreenCtx.clearRect(0, 0, width, height)
+        this.offScreenCtx.putImageData(processedFrame.imageData, 0, 0)
 
-        this.game.ctx.drawImage(this.offScreenCanvas, x, y, width, height)
+        this.game.ctx.drawImage(
+            this.offScreenCanvas,
+            offsetPosition.x, offsetPosition.y,
+            width, height
+        )
     }
 
     update() {

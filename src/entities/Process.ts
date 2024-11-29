@@ -6,7 +6,10 @@ import { PlantId, PLANTS, plantTextures } from '@/data/plants'
 import { ShovelId, shovelTextures } from '@/data/shovels'
 import { StageData } from '@/data/stages'
 import { ZombieId } from '@/data/zombies'
-import { Entity, EntityConfig, EntityEvents, EntityState, injectKey } from '@/engine'
+import {
+    Entity, EntityConfig, EntityEvents, EntityState, injectKey,
+    BrightnessNode, GaussianBlurNode, ScalingNode, ShearNode,
+} from '@/engine'
 import { BulletEntity } from '@/entities/bullets/Bullet'
 import { LawnConfig, LawnEntity } from '@/entities/Lawn'
 import { LawnBlockEntity } from '@/entities/LawnBlock'
@@ -18,7 +21,6 @@ import { ShovelSlotConfig } from '@/entities/ui/ShovelSlot'
 import { PlantSlotsConfig, UIEntity } from '@/entities/ui/UI'
 import { ZombieEntity } from '@/entities/zombies/Zombie'
 import { eq, matrix, Nullable, pick, placeholder, random, remove, replicateBy, sum } from '@/utils'
-import { BrightnessNode, GaussianBlurNode, ScalingNode } from '@/engine/pipeline'
 
 export interface ProcessConfig extends EntityConfig {
     processId: number
@@ -317,6 +319,7 @@ export class ProcessEntity extends Entity<ProcessConfig, ProcessState, ProcessEv
                     .appendNode(new GaussianBlurNode(2))
                     .appendNode(new BrightnessNode(0.5))
                     .appendNode(new ScalingNode(2))
+                    .appendNode(new ShearNode(- 2, 3))
             })
 
         const newPlantData: PlantData = {
