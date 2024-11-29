@@ -70,6 +70,7 @@ export class SunEntity extends TextureEntity<SunConfig, SunState, SunEvents> {
 
     collect() {
         if (this.state.collected) return
+        this.state.collected = true
 
         const process = this.inject(kProcess)!
         process.state.sun += this.config.sun
