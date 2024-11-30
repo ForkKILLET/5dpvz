@@ -3,6 +3,7 @@ import { SlotConfig, SlotEntity, SlotEvents, SlotState } from '@/entities/ui/Slo
 import { kProcess } from '@/entities/Process'
 import { CursorComp } from '@/comps/Cursor'
 import { TextureEntity } from '../Texture'
+import { StrictOmit } from '@/utils'
 
 export interface ShovelSlotConfig extends SlotConfig {
     shovelId: ShovelId
@@ -19,7 +20,7 @@ export class ShovelSlotEntity extends SlotEntity<ShovelSlotConfig, ShovelSlotSta
     constructor(config: ShovelSlotConfig, state: ShovelSlotState) {
         super(config, state)
 
-        const { position: { x, y }, zIndex } = this.state
+        const { pos: { x, y }, zIndex } = this.state
 
         this.shovelMetadata = SHOVELS[this.config.shovelId]
 
@@ -27,7 +28,7 @@ export class ShovelSlotEntity extends SlotEntity<ShovelSlotConfig, ShovelSlotSta
             shovelTextures.getImageSrc(this.config.shovelId),
             {},
             {
-                position: { x: x + 1, y: y + 1 },
+                pos: { x: x + 1, y: y + 1 },
                 zIndex: zIndex + 2,
             },
         )
@@ -35,6 +36,10 @@ export class ShovelSlotEntity extends SlotEntity<ShovelSlotConfig, ShovelSlotSta
         this
             .attach(this.shovelImage)
             .addComp(CursorComp, 'pointer')
+    }
+
+    static createShovelSlot(config: ShovelSlotConfig, state: StrictOmit<SlotState, 'size'>) {
+        return ShovelSlotEntity.createSlot(config, state)
     }
 
     preRender() {

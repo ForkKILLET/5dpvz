@@ -3,6 +3,7 @@ import { kProcess } from '@/entities/Process'
 import { SlotConfig, SlotEntity, SlotEvents, SlotState } from '@/entities/ui/Slot'
 import { CursorComp } from '@/comps/Cursor'
 import { TextureEntity } from '../Texture'
+import { StrictOmit } from '@/utils'
 
 export interface PlantSlotConfig extends SlotConfig {
     slotId: number
@@ -19,7 +20,7 @@ export class PlantSlotEntity extends SlotEntity<PlantSlotConfig, PlantSlotState,
     constructor(config: PlantSlotConfig, state: PlantSlotState) {
         super(config, state)
 
-        const { position: { x, y }, zIndex } = this.state
+        const { pos: { x, y }, zIndex } = this.state
 
         this.plantMetadata = PLANTS[this.config.plantId]
 
@@ -28,11 +29,15 @@ export class PlantSlotEntity extends SlotEntity<PlantSlotConfig, PlantSlotState,
                 plantTextures.getImageSrc(this.config.plantId),
                 {},
                 {
-                    position: { x: x + 1, y: y + 1 },
+                    pos: { x: x + 1, y: y + 1 },
                     zIndex: zIndex + 2,
                 },
             ))
             .addComp(CursorComp, 'pointer')
+    }
+
+    static createPlantSlot(config: PlantSlotConfig, state: StrictOmit<SlotState, 'size'>) {
+        return PlantSlotEntity.createSlot(config, state)
     }
 
     preRender() {
@@ -41,24 +46,24 @@ export class PlantSlotEntity extends SlotEntity<PlantSlotConfig, PlantSlotState,
         const { plantSlotsData } = this.inject(kProcess)!.state
         const slot = plantSlotsData[this.config.slotId]
 
-        const { ctx } = this.game
-        const { position: { x, y } } = this.state
+        const { ctx } = this
 
         this.addRenderJob(() => {
             ctx.fillStyle = slot.isSunEnough ? 'black' : 'red'
             ctx.textAlign = 'center'
             ctx.font = '20px Sans'
             const costString = String(this.plantMetadata.cost)
-            ctx.fillText(costString, x + 1 + 80 / 2, y + 1 + 80 + 20 - 2)
+            ctx.fillText(costString, 1 + 80 / 2, 1 + 80 + 20 - 2)
         }, 0)
 
         if (! slot.isPlantable) {
             this.addRenderJob(() => {
                 ctx.fillStyle = 'rgba(0, 0, 0, 0.3)'
-                ctx.fillRect(x, y, this.width, this.height)
+                const { width, height } = this.state.size
+                ctx.fillRect(0, 0, width, height)
                 if (! slot.isCooledDown) {
                     const cdPercent = slot.cd / this.plantMetadata.cd
-                    ctx.fillRect(x, y, this.width, (1 - cdPercent) * this.height)
+                    ctx.fillRect(0, 0, width, (1 - cdPercent) * height)
                 }
             }, 2)
         }

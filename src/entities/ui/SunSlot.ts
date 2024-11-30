@@ -3,7 +3,7 @@ import { SlotConfig, SlotEntity, SlotEvents, SlotState } from '@/entities/ui/Slo
 import { TextureEntity } from '../Texture'
 import { TransitionComp } from '@/comps/Transition'
 import { easeInSine } from '@/engine'
-import { placeholder } from '@/utils'
+import { placeholder, StrictOmit } from '@/utils'
 
 export interface SunSlotConfig extends SlotConfig {}
 
@@ -18,8 +18,12 @@ export class SunSlotEntity extends SlotEntity<SunSlotConfig, SunSlotState, SunSl
         super(config, state)
     }
 
+    static createSunSlot(state: StrictOmit<SunSlotState, 'size'>) {
+        return SunSlotEntity.createSlot({}, state)
+    }
+
     build() {
-        const { position: { x, y }, zIndex } = this.state
+        const { pos: { x, y }, zIndex } = this.state
 
         this.sunImage = this.useBuilder('SunImage', () => TextureEntity
             .createTextureFromImage(
@@ -28,7 +32,7 @@ export class SunSlotEntity extends SlotEntity<SunSlotConfig, SunSlotState, SunSl
                     origin: 'center',
                 },
                 {
-                    position: { x: x + 1 + 40, y: y + 1 + 40 },
+                    pos: { x: x + 1 + 40, y: y + 1 + 40 },
                     zIndex: zIndex + 1,
                     scale: 1,
                 },
@@ -44,13 +48,12 @@ export class SunSlotEntity extends SlotEntity<SunSlotConfig, SunSlotState, SunSl
     render() {
         const { sun } = this.inject(kProcess)!.state
 
-        const { ctx } = this.game
-        const { position: { x, y } } = this.state
+        const { ctx } = this
 
         ctx.fillStyle = 'black'
         ctx.textAlign = 'center'
         ctx.font = '20px Sans'
         const sunString = String(sun)
-        ctx.fillText(sunString, x + 1 + 80 / 2, y + 1 + 80 + 20 - 2)
+        ctx.fillText(sunString, 1 + 80 / 2, 1 + 80 + 20 - 2)
     }
 }

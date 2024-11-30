@@ -1,9 +1,14 @@
-import { TextureEntity } from '@/entities/Texture'
-import { Endo, id } from '@/utils'
+import { absurd, Endo, eq, id, remove, WithThisParameter } from '@/utils'
+import { createIdGenerator, vAdd, Vector2D } from '@/engine'
+import { Unit, unitLikeToString } from '@/utils/unit'
+import { Size } from '@/comps/Shape'
 
-type RenderData = { imageData: ImageData, offset: { x: number, y: number } }
+type RenderData = {
+    canvas: OffscreenCanvas
+    offset: { x: number, y: number }
+}
 
-type Processor = Endo<RenderData>
+type RenderProcessor = WithThisParameter<Endo<RenderData>, RenderNode>
 
 export class PipelineError extends Error {}
 
@@ -15,6 +20,11 @@ export interface ImageNodeCtor<N extends RenderNode> {
 }
 
 export class RenderNode {
+    static generateRenderNodeId = createIdGenerator()
+    readonly id = RenderNode.generateRenderNodeId()
+
+    pipeline: RenderPipeline | null = null
+
     static leftCount: number[] = []
     static rightCount: number[] = []
 
@@ -22,7 +32,7 @@ export class RenderNode {
         return this.constructor as ImageNodeCtor<this>
     }
 
-    constructor(protected processor: Processor) {}
+    constructor(protected processor: RenderProcessor) {}
 
     protected _lefts: RenderNode[] = []
     get lefts(): RenderNode[] {
@@ -46,102 +56,137 @@ export class RenderNode {
         this._rights = value
     }
 
-    protected cache: Map<number, RenderData> = new Map()
+    protected cache: Record<string, RenderData> = {}
 
-    getOutput(frameIndex: number): RenderData {
-        if (this.cache.has(frameIndex)) {
-            return this.cache.get(frameIndex)!
-        }
+    protected canvases: Record<string, OffscreenCanvas> = {
+        default: new OffscreenCanvas(0, 0),
+    }
+    protected ctxes: Record<string, OffscreenCanvasRenderingContext2D> = {
+        default: this.canvases['default'].getContext('2d')!,
+    }
+    protected _canvas = this.canvases['default']
+    get canvas() {
+        return this._canvas
+    }
+    protected _ctx = this.ctxes['default']
+    get ctx() {
+        return this._ctx
+    }
 
+    protected _resourceId = 'default'
+    get resourceId() {
+        return this._resourceId
+    }
+    set resourceId(value: string) {
+        if (this._resourceId === value) return
+
+        this._resourceId = value
+        this._canvas = this.canvases[value] ??= new OffscreenCanvas(this.width, this.height)
+        this._ctx = this.ctxes[value] ??= this._canvas.getContext('2d')!
+    }
+
+    get width() {
+        return this._canvas.width
+    }
+    set width(value: number) {
+        this._canvas.width = value
+    }
+    get height() {
+        return this._canvas.height
+    }
+    set height(value: number) {
+        this._canvas.height = value
+    }
+
+    getOutput(): RenderData {
         if (this.lefts.length === 0) {
-            throw new Error('No input node provided.')
+            throw new PipelineError('No input node provided.')
         }
 
-        const inputData = this.lefts[0].getOutput(frameIndex)
-        const output = this.processor(inputData)
-        this.cache.set(frameIndex, output)
+        const id = this._resourceId
+        // if (id in this.cache) return this.cache[id]
+
+        const inputData = this.lefts[0].getOutput()
+        const output = this.processor.call(this, inputData)
+        this.cache[id] = output
         return output
     }
 
     clearCache() {
-        this.cache.clear()
+        this.cache = {}
     }
 }
 
 export class RenderPipeline {
-    private nodes: RenderNode[] = []
-    private startNode: RenderNode | null = null
-    private endNode: RenderNode | null = null
+    constructor() {
+        this.inputNode = new InputNode()
+        this.outputNode = new OutputNode()
+        this.addNode(this.inputNode, this.outputNode)
 
-    private addNode(node: RenderNode): this {
-        this.nodes.push(node)
-        return this
+        this.inputNode.rights = [ this.outputNode ]
+        this.outputNode.lefts = [ this.inputNode ]
     }
 
-    setStartNode(node: RenderNode): this {
-        this.startNode = node
-        this.addNode(node)
-        this.ensureEndNode()
+    allNodes: RenderNode[] = []
+    inputNode: InputNode
+    outputNode: OutputNode
+
+    protected _resourceId = 'default'
+    get resourceId() {
+        return this._resourceId
+    }
+    set resourceId(value: string) {
+        if (this._resourceId === value) return
+
+        this._resourceId = value
+        this.allNodes.forEach(node => node.resourceId = value)
+    }
+
+    private addNode(...nodes: RenderNode[]): this {
+        this.allNodes.push(...nodes)
         return this
     }
 
     appendNode(node: RenderNode): this {
-        if (this.endNode?.lefts.length) {
-            const [ lastNode ] = this.endNode.lefts
-            this.insertNodeBetween(node, lastNode, this.endNode)
+        const [ lastNode ] = this.outputNode.lefts
+        this.insertNodeBetween(node, lastNode, this.outputNode)
 
-            console.log(22222)
-            console.log(this.nodes)
-            console.log(this.endNode)
-            console.log(this.startNode)
-        }
-        else if (this.startNode) {
-            this.appendAfter(node, this.startNode)
-        }
-        else {
-            throw new PipelineError('Pipeline has no start node.')
-        }
-        this.nodes.push(node)
         return this
     }
 
-    private ensureEndNode() {
-        if (! this.endNode) {
-            this.endNode = new OutputNode()
-            if (this.startNode) {
-                this.appendAfter(this.endNode, this.startNode)
-            }
-        }
-    }
+    removeNode(node: RenderNode): this {
+        if (node.lefts.length === 1 && node.rights.length === 1) {
+            remove(this.allNodes, eq(node))
 
-    private appendAfter(newNode: RenderNode, left: RenderNode) {
-        newNode.lefts = [ left ]
-        left.rights = [ newNode ]
-        this.addNode(newNode)
+            const [ left ] = node.lefts
+            const [ right ] = node.rights
+            left.rights = [ right ]
+            right.lefts = [ left ]
+        }
+        else {
+            throw new PipelineError('Cannot remove a node with multiple inputs or outputs.')
+        }
+
         return this
     }
 
     private insertNodeBetween(node: RenderNode, left: RenderNode, right: RenderNode): this {
+        this.addNode(node)
+
         left.rights = [ node ]
         node.lefts = [ left ]
         node.rights = [ right ]
         right.lefts = [ node ]
-        this.addNode(node)
+
         return this
     }
 
-    getOutput(frameIndex: number): RenderData {
-        if (this.endNode) {
-            return this.endNode.getOutput(frameIndex)
-        }
-        else {
-            throw new Error('Pipeline has no end node.')
-        }
+    getOutput(): RenderData {
+        return this.outputNode.getOutput()
     }
 
     clearCache() {
-        this.nodes.forEach(node => node.clearCache())
-        if (this.endNode) this.endNode.clearCache()
+        this.allNodes.forEach(node => node.clearCache())
     }
 }
 
@@ -149,15 +194,13 @@ export class InputNode extends RenderNode {
     static leftCount = [ 0 ]
     static rightCount = [ 1 ]
 
-    constructor(private textureEntity: TextureEntity) {
-        super(() => {
-            throw new PipelineError('InputNode should override getOutput')
-        })
+    constructor() {
+        super(absurd)
     }
 
-    getOutput(frameeIndex: number): RenderData {
+    getOutput(): RenderData {
         return {
-            imageData: this.textureEntity.getFrameImageData(frameeIndex),
+            canvas: this.canvas,
             offset: { x: 0, y: 0 },
         }
     }
@@ -172,221 +215,187 @@ export class OutputNode extends RenderNode {
     }
 }
 
-export class ProcessingNode extends RenderNode {
-    constructor(processor: Processor) {
-        super(processor)
-    }
-}
-
-export class GaussianBlurNode extends RenderNode {
+export abstract class FilterNode<F> extends RenderNode {
     static leftCount = [ 1 ]
     static rightCount = [ 1 ]
 
-    constructor(protected radius: number) {
-        super(({ imageData, offset: offset }) => {
+    constructor(protected filterConfig: F) {
+        super(({ offset, canvas }) => {
             return {
-                imageData: this.applyBlur(imageData, radius),
-                offset: offset,
+                canvas: this.applyFilter(canvas),
+                offset,
             }
         })
     }
 
-    private applyBlur(imageData: ImageData, radius: number): ImageData {
-        const width = imageData.width
-        const height = imageData.height
+    applyFilter(sourceCanvas: OffscreenCanvas): OffscreenCanvas {
+        this.width = sourceCanvas.width
+        this.height = sourceCanvas.height
 
-        const sourceCanvas = document.createElement('canvas')
-        sourceCanvas.width = width
-        sourceCanvas.height = height
-        const SourceCtx = sourceCanvas.getContext('2d')!
-        SourceCtx.putImageData(imageData, 0, 0)
+        const { ctx, canvas } = this
+        ctx.filter = this.getFilterStr()
+        ctx.drawImage(sourceCanvas, 0, 0)
 
-        const blurCanvas = document.createElement('canvas')
-        blurCanvas.width = width
-        blurCanvas.height = height
-        const blurCtx = blurCanvas.getContext('2d')!
-
-        blurCtx.filter = `blur(${ radius }px)`
-        blurCtx.drawImage(sourceCanvas, 0, 0)
-        const blurredImageData = blurCtx.getImageData(0, 0, width, height)
-        console.log('gaussian blur')
-
-        return blurredImageData
+        return canvas
     }
 
-    setRadius(radius: number) {
-        if (this.radius !== radius) {
-            this.radius = radius
+    configFilter(filterConfig: F) {
+        if (this.filterConfig !== filterConfig) {
+            this.filterConfig = filterConfig
             this.clearCache()
         }
+        return this
+    }
+
+    abstract getFilterStr(): string
+}
+
+export interface GaussianBlurConfig {
+    radius: number
+}
+export class GaussianBlurNode extends FilterNode<GaussianBlurConfig> {
+    getFilterStr() {
+        return `blur(${ this.filterConfig.radius }px)`
     }
 }
 
-export class BrightnessNode extends RenderNode {
+export interface BrightnessConfig {
+    brightness: number
+}
+export class BrightnessNode extends FilterNode<BrightnessConfig> {
+    getFilterStr() {
+        return `brightness(${ this.filterConfig.brightness })`
+    }
+}
+
+export interface Origin {
+    x: Unit<'px'> | Unit<'%'> | 'left' | 'center' | 'right'
+    y: Unit<'px'> | Unit<'%'> | 'top' | 'center' | 'bottom'
+}
+
+export const originToString = ({ x, y }: Origin): string => {
+    return `${ unitLikeToString(x) } ${ unitLikeToString(y) }`
+}
+
+export interface ScaleConfig {
+    scaleX: number
+    scaleY: number
+    origin: Origin
+}
+
+export class ScaleNode extends RenderNode {
     static leftCount = [ 1 ]
     static rightCount = [ 1 ]
 
-    constructor(private brightness: number) {
-        super(({ imageData, offset: offset }) => {
+    constructor(protected config: ScaleConfig) {
+        super(({ canvas, offset }) => {
             return {
-                imageData: this.adjustBrightness(imageData, brightness),
-                offset: offset,
+                canvas: this.scaleImage(canvas),
+                offset: vAdd(offset, this.scaleOffset(canvas)),
             }
         })
     }
 
-    private adjustBrightness(imageData: ImageData, adjustment: number): ImageData {
-        const width = imageData.width
-        const height = imageData.height
+    private scaleImage(sourceCanvas: OffscreenCanvas): OffscreenCanvas {
+        const { width, height } = sourceCanvas
+        const { scaleX, scaleY } = this.config
+        const { canvas, ctx } = this
 
-        const sourceCanvas = document.createElement('canvas')
-        sourceCanvas.width = width
-        sourceCanvas.height = height
-        const SourceCtx = sourceCanvas.getContext('2d')!
-        SourceCtx.putImageData(imageData, 0, 0)
+        const newWidth = canvas.width = Math.floor(width * scaleX)
+        const newHeight = canvas.height = Math.floor(height * scaleY)
 
-        const brightnessCanvas = document.createElement('canvas')
-        brightnessCanvas.width = width
-        brightnessCanvas.height = height
-        const brightnessCtx = brightnessCanvas.getContext('2d')!
+        ctx.drawImage(sourceCanvas, 0, 0, width, height, 0, 0, newWidth, newHeight)
 
-        brightnessCtx.filter = `brightness(${ adjustment })`
-        brightnessCtx.drawImage(sourceCanvas, 0, 0)
-        const brightnessImageData = brightnessCtx.getImageData(0, 0, width, height)
-        console.log('brightness')
-
-        return brightnessImageData
+        return canvas
     }
 
-    setAdjustment(adjustment: number) {
-        if (this.brightness !== adjustment) {
-            this.brightness = adjustment
-            this.clearCache()
-        }
-    }
-}
-
-export class ScalingNode extends RenderNode {
-    static leftCount = [ 1 ]
-    static rightCount = [ 1 ]
-
-    constructor(private scaleX: number, private scaleY?: number) {
-        super(({ imageData, offset: offset }) => {
-            return {
-                imageData: this.scaleImage(imageData, scaleX, scaleY === undefined ? scaleX : scaleY),
-                offset: this.scaleOffset(offset, imageData.height, scaleY === undefined ? scaleX : scaleY),
-            }
-        })
-    }
-
-    private scaleImage(imageData: ImageData, scaleX: number, scaleY: number): ImageData {
-        const width = imageData.width
-        const height = imageData.height
-        const newWidth = Math.floor(width * scaleX)
-        const newHeight = Math.floor(height * scaleY)
-
-        const sourceCanvas = document.createElement('canvas')
-        sourceCanvas.width = width
-        sourceCanvas.height = height
-        const sourceCtx = sourceCanvas.getContext('2d')!
-        sourceCtx.putImageData(imageData, 0, 0)
-
-        const scaledCanvas = document.createElement('canvas')
-        scaledCanvas.width = newWidth
-        scaledCanvas.height = newHeight
-        const scaledCtx = scaledCanvas.getContext('2d')!
-
-        scaledCtx.drawImage(sourceCanvas, 0, 0, width, height, 0, 0, newWidth, newHeight)
-
-        console.log(newWidth, newHeight)
-        const scaledImageData = scaledCtx.getImageData(0, 0, newWidth, newHeight)
-
-        console.log('scaling')
-
-        return scaledImageData
-    }
-
-    private scaleOffset(offset: { x: number, y: number }, height: number, scaleY: number): { x: number, y: number } {
+    protected scaleOffset(size: Size): Vector2D {
+        const { scaleX, scaleY, origin: { x: ox, y: oy } } = this.config
+        const { width, height } = size
+        const x =
+            ox === 'left' ? 0 :
+            ox === 'center' ? width / 2 :
+            ox === 'right' ? width :
+            ox[0] === '%' ? ox[1] * width / 100 :
+            ox[1]
+        const y =
+            oy === 'top' ? 0 :
+            oy === 'center' ? height / 2 :
+            oy === 'bottom' ? height :
+            oy[0] === '%' ? oy[1] * height / 100 :
+            oy[1]
         return {
-            x: offset.x,
-            y: offset.y + (1 - scaleY) * height,
+            x: Math.round(x * (1 - scaleX)),
+            y: Math.round(y * (1 - scaleY)),
         }
     }
 
-    setScale(scaleX: number, scaleY: number) {
-        if (this.scaleX !== scaleX || this.scaleY !== scaleY) {
-            this.scaleX = scaleX
-            this.scaleY = scaleY
-            this.clearCache()
-        }
+    configScale(config: ScaleConfig) {
+        if (this.config.scaleX !== config.scaleX ||
+            this.config.scaleY !== config.scaleY ||
+            originToString(this.config.origin) !== originToString(config.origin)
+        ) this.clearCache()
+        this.config = config
+        return this
     }
 }
 
+export interface ShearConfig {
+    shearX: number
+    shearY: number
+}
+
+/**
+ * @description transformation: Anchor the left bottom corner, look at left top corner
+ * @param config.shearX: the percentage change in X axis (positive direction is right)
+ * @param config.shearY: the percentage change in Y axis (positive direction is up)
+ */
 export class ShearNode extends RenderNode {
     static leftCount = [ 1 ]
     static rightCount = [ 1 ]
 
-    //
-    //  transformation: Anchor the left bottom corner, look at left top corner:
-    //  shearX: the percentage change in X axis (positive direction is right)
-    //  shearY: the percentage change in Y axis (positive direction is up)
-    //
-    constructor(private shearX: number, private shearY: number) {
-        super(({ imageData, offset: offset }) => {
+    constructor(protected config: ShearConfig) {
+        super(({ canvas, offset }) => {
             return {
-                imageData: this.shearImage(imageData, shearX, shearY),
-                offset: this.shearOffset(offset, imageData.width, imageData.height, shearX, shearY),
+                canvas: this.shearImage(canvas),
+                offset: vAdd(offset, this.shearOffset(canvas)),
             }
         })
     }
 
-    private shearImage(imageData: ImageData, shearX: number, shearY: number): ImageData {
-        const width = imageData.width
-        const height = imageData.height
+    private shearImage(sourceCanvas: OffscreenCanvas): OffscreenCanvas {
+        const { width, height } = sourceCanvas
+        const { shearX, shearY } = this.config
+        const { ctx, canvas } = this
 
         const newWidth = Math.ceil(width + Math.abs(shearX) * width)
         const newHeight = Math.ceil(height + shearY * height)
 
-        const sourceCanvas = document.createElement('canvas')
-        sourceCanvas.width = width
-        sourceCanvas.height = height
-        const sourceCtx = sourceCanvas.getContext('2d')!
-        sourceCtx.putImageData(imageData, 0, 0)
-
-        const shearedCanvas = document.createElement('canvas')
-        shearedCanvas.width = newWidth
-        shearedCanvas.height = newHeight
-        const shearedCtx = shearedCanvas.getContext('2d')!
-
-        shearedCtx.transform(
+        canvas.width = newWidth
+        canvas.height = newHeight
+        ctx.transform(
             1, 0,
             - shearX * width / height, 1 + shearY,
             shearX * width + Math.max(0, - shearX * width), - shearY * height + Math.max(0, shearY * height),
         )
+        ctx.drawImage(sourceCanvas, 0, 0)
 
-        shearedCtx.drawImage(sourceCanvas, 0, 0)
-
-        const shearedImageData = shearedCtx.getImageData(0, 0, shearedCanvas.width, shearedCanvas.height)
-
-        console.log('shear', newWidth, newHeight)
-
-        return shearedImageData
+        return canvas
     }
 
-    private shearOffset(
-        offset: { x: number, y: number }, width: number, height: number, shearX: number, shearY: number):
-        { x: number, y: number } {
+    private shearOffset(canvas: OffscreenCanvas): Vector2D {
+        const { width, height } = canvas
+        const { shearX, shearY } = this.config
         return {
-            x: offset.x - Math.max(0, - shearX * width),
-            y: offset.y - Math.max(0, shearY * height),
+            x: - Math.max(0, - shearX * width),
+            y: - Math.max(0, shearY * height),
         }
     }
 
-    setShear(shearX: number, shearY: number) {
-        if (this.shearX !== shearX || this.shearY !== shearY) {
-            this.shearX = shearX
-            this.shearY = shearY
+    configShear(config: ShearConfig) {
+        if (this.config.shearX !== config.shearX || this.config.shearY !== config.shearX)
             this.clearCache()
-        }
+        this.config = config
+        return this
     }
 }

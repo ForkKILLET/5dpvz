@@ -45,7 +45,7 @@ export const SunflowerEntity = definePlant(class SunflowerEntity extends PlantEn
         const process = this.inject(kProcess)!
         const rng = process.getComp(RngComp)!
 
-        const { x: x0, y: y0 } = this.state.position
+        const { x: x0, y: y0 } = this.state.pos
         const startOffsetX = rng.random(- 5, + 5)
         const startX = x0 + 40 + startOffsetX
         const startY = y0 + 40 + rng.random(- 5, + 5)
@@ -59,7 +59,7 @@ export const SunflowerEntity = definePlant(class SunflowerEntity extends PlantEn
             .createSun(
                 { sun: 25 },
                 {
-                    position: { x: startX, y: startY },
+                    pos: { x: startX, y: startY },
                     zIndex: process.state.zIndex + 4,
                 }
             )

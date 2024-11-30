@@ -8,6 +8,7 @@ import { TextureConfig, TextureEntity, TextureEvents, TextureState } from '@/ent
 import { HoverableComp } from '@/comps/Hoverable'
 import { MotionComp } from '@/comps/Motion'
 import { TransitionComp } from '@/comps/Transition'
+import { StrictOmit } from '@/utils'
 
 interface SunUniqueConfig {
     sun: number
@@ -47,14 +48,14 @@ export class SunEntity extends TextureEntity<SunConfig, SunState, SunEvents> {
                 })
                 .on('before-render', () => {
                     const life = this.getComp(LifeComp)
-                    this.game.ctx.globalAlpha = life && life.state.life < SunEntity.sunDangerousLife
+                    this.ctx.globalAlpha = life && life.state.life < SunEntity.sunDangerousLife
                         ? 0.5 + 0.25 * Math.cos(2 * Math.PI * life.state.life / 1000)
                         : 0.75
                 })
             )
     }
 
-    static createSun(config: SunUniqueConfig, state: EntityState) {
+    static createSun(config: SunUniqueConfig, state: StrictOmit<EntityState, 'size'>) {
         return SunEntity.createButtonFromImage(
             './assets/sun.png',
             {
@@ -76,14 +77,14 @@ export class SunEntity extends TextureEntity<SunConfig, SunState, SunEvents> {
         process.state.sun += this.config.sun
         process.updatePlantSlot(false)
 
-        const sunSlotPosition = vAdd(
-            this.inject(kProcess)!.state.position,
+        const sunSlotPos = vAdd(
+            this.inject(kProcess)!.state.pos,
             { x: 6 + 40, y: 6 + 40 }
         )
         const motion = this.game.motion.linearTo(
             { time: 500 },
-            this.state.position,
-            sunSlotPosition
+            this.state.pos,
+            sunSlotPos
         )
         this
             .removeComp(LifeComp)

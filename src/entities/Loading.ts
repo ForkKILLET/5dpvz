@@ -1,5 +1,5 @@
 import { Entity, EntityEvents, EntityState } from '@/engine'
-import { placeholder } from '@/utils'
+import { pick, placeholder } from '@/utils'
 
 export interface LoadingConfig {}
 
@@ -16,6 +16,8 @@ export class LoadingEntity extends Entity<LoadingConfig, LoadingState, LoadingEv
     constructor(config: LoadingConfig, state: LoadingState) {
         super(config, state)
 
+        this.state.size = pick(this.game.ctx.canvas, [ 'width', 'height' ])
+
         const tasks = [
             ...Object.values(this.game.imageManager.loadingImgs),
             ...Object.values(this.game.audioManager.loadingAudios),
@@ -31,8 +33,16 @@ export class LoadingEntity extends Entity<LoadingConfig, LoadingState, LoadingEv
         }))
     }
 
+    static createLoading() {
+        return new this({}, {
+            pos: { x: 0, y: 0 },
+            zIndex: 0,
+            size: placeholder,
+        })
+    }
+
     render() {
-        const { ctx } = this.game
+        const { ctx } = this
         const { width, height } = ctx.canvas
 
         ctx.fillStyle = 'black'

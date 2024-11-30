@@ -9,11 +9,10 @@ import stylisticTs from '@stylistic/eslint-plugin-ts'
 import stylisticPlus from '@stylistic/eslint-plugin-plus'
 
 /**
- * @template T
- * @param {T} config
- * @returns {[ 'error', T ]}
+ * @param {...any} config
+ * @returns {[ 'error', ...any[] ]}
  */
-const error = (config) => [ 'error', config ]
+const error = (...config) => [ 'error', ...config ]
 
 export default tseslint.config({
     files: [ 'src/**/*.ts' ],
@@ -33,7 +32,10 @@ export default tseslint.config({
         '@stylistic/js/max-len': error(120),
         '@stylistic/js/semi': error('never'),
         '@stylistic/js/quotes': error('single'),
-        '@stylistic/ts/indent': error(4),
+        '@stylistic/ts/indent': error(4, {
+            flatTernaryExpressions: true,
+            SwitchCase: 1, 
+        }),
 
         // Style
         '@stylistic/js/array-bracket-spacing': error('always'),

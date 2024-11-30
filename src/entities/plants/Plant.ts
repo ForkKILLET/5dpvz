@@ -60,7 +60,7 @@ export class PlantEntity<
     static createPlant<
         I extends PlantId,
         C extends StrictOmit<PlantUniqueConfig, 'metadata'>,
-        S extends PlantUniqueState & EntityState
+        S extends PlantUniqueState & StrictOmit<EntityState, 'size'>
     >(plantId: I, config: C, state: S) {
         const Plant = PLANTS[plantId]
         return Plant.createTexture(

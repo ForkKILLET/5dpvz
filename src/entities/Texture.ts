@@ -4,8 +4,7 @@ import { AnyShape, OriginConfig, RectShape, ShapeComp } from '@/comps/Shape'
 import { TextureSet } from '@/data/textures'
 import {
     Entity, EntityConfig, EntityCtor, EntityEvents, EntityState,
-    getImageOutline, getImagePixels, Outline, vAdd,
-    InputNode,
+    getImageOutline, getImagePixels, Outline,
 } from '@/engine'
 import { Direction, elem, PartialBy, pick, placeholder, StrictOmit } from '@/utils'
 
@@ -40,14 +39,14 @@ export interface TextureEntityCtor<E extends TextureEntity = TextureEntity> exte
     createTexture<E extends TextureEntity = TextureEntity>(
         this: TextureEntityCtor<E>,
         config: PartialBy<E['config'], 'origin' | 'defaultTextureName'>,
-        state: StrictOmit<E['state'], 'textureName' | 'innerState'>
+        state: StrictOmit<E['state'], 'textureName' | 'innerState' | 'size'>
     ): E
 
     createTextureFromImage<E extends TextureEntity = TextureEntity>(
         this: TextureEntityCtor<E>,
         src: string,
         config: PartialBy<E['config'], 'origin' | 'textures' | 'defaultTextureName'>,
-        state: StrictOmit<E['state'], 'textureName' | 'innerState'>
+        state: StrictOmit<E['state'], 'textureName' | 'innerState' | 'size'>
     ): E
 }
 
@@ -58,7 +57,7 @@ export class TextureEntity<
 > extends Entity<C, S, V> {
     frames: Record<
         string,
-        { images: HTMLImageElement[], imageData: ImageData[] }
+        { images: HTMLImageElement[], imagesData: ImageData[] }
     > = {}
     offScreenCanvas: HTMLCanvasElement = document.createElement('canvas')
     offScreenCtx: CanvasRenderingContext2D = this.offScreenCanvas.getContext('2d')!
@@ -71,7 +70,7 @@ export class TextureEntity<
     static createTexture<E extends TextureEntity = TextureEntity>(
         this: TextureEntityCtor<E>,
         config: PartialBy<E['config'], 'origin' | 'defaultTextureName'>,
-        state: StrictOmit<E['state'], 'textureName' | 'innerState'>
+        state: StrictOmit<E['state'], 'textureName' | 'innerState' | 'size'>
     ) {
         return new this(
             {
@@ -82,6 +81,7 @@ export class TextureEntity<
             {
                 textureName: 'common',
                 innerState: placeholder,
+                size: { width: placeholder, height: placeholder },
                 ...state,
             }
         )
@@ -91,7 +91,7 @@ export class TextureEntity<
         this: TextureEntityCtor<E>,
         src: string,
         config: PartialBy<E['config'], 'origin' | 'textures' | 'defaultTextureName'>,
-        state: StrictOmit<E['state'], 'textureName' | 'innerState'>
+        state: StrictOmit<E['state'], 'textureName' | 'innerState' | 'size'>
     ) {
         return this.createTexture(
             {
@@ -111,7 +111,7 @@ export class TextureEntity<
         this: TextureEntityCtor<E>,
         src: string,
         config: PartialBy<E['config'], 'origin' | 'textures' | 'defaultTextureName'>,
-        state: StrictOmit<E['state'], 'textureName' | 'innerState'>
+        state: StrictOmit<E['state'], 'textureName' | 'innerState' | 'size'>
     ) {
         type Button = E extends TextureEntity<infer C, infer S, infer V>
             ? TextureEntity<C, S & { hovering: boolean }, V & ButtonLikeEvents>
@@ -140,9 +140,10 @@ export class TextureEntity<
                 case 'image': {
                     const img = await this.game.imageManager.loadImage(texture.src)
                     const imageData = this.getImageDataFromImage(img)
+                    this.state.size = pick(imageData, [ 'width', 'height' ])
                     this.frames[name] = {
                         images: [ img ],
-                        imageData: [ imageData ],
+                        imagesData: [ imageData ],
                     }
                     if (strictShape) {
                         const pixels = getImagePixels(img)
@@ -155,10 +156,11 @@ export class TextureEntity<
                     const images = await Promise.all(
                         texture.srcs.map(src => this.game.imageManager.loadImage(src))
                     )
-                    const imageData = images.map(img => this.getImageDataFromImage(img))
+                    const imagesData = images.map(img => this.getImageDataFromImage(img))
+                    this.state.size = pick(imagesData[0], [ 'width', 'height' ])
                     this.frames[name] = {
                         images,
-                        imageData,
+                        imagesData,
                     }
                     if (strictShape) {
                         this.pixels[name] = images.map(getImagePixels)
@@ -170,9 +172,6 @@ export class TextureEntity<
         }
 
         if (this.state.innerState === placeholder) this.switchTexture(this.state.textureName)
-
-        const sourceNode = new InputNode(this)
-        this.pipeline.setStartNode(sourceNode)
     }
 
     getImageDataFromImage(img: HTMLImageElement): ImageData {
@@ -185,7 +184,7 @@ export class TextureEntity<
     }
 
     getFrameImageData(frameIndex: number): ImageData {
-        return this.frames[this.textureName].imageData[frameIndex]
+        return this.frames[this.textureName].imagesData[frameIndex]
     }
 
     initInnerState(textureName: string): TextureInnerState {
@@ -219,11 +218,11 @@ export class TextureEntity<
                 return this.getInnerState<'anime'>().af
         }
     }
-    get currentFrameImageData(): ImageData {
-        return this.frames[this.textureName].imageData[this.f]
+    get frame(): HTMLImageElement {
+        return this.frames[this.textureName].images[this.f]
     }
     get size() {
-        return pick(this.currentFrameImageData, [ 'width', 'height' ])
+        return pick(this.frame, [ 'width', 'height' ])
     }
 
     switchTexture(name: string) {
@@ -259,15 +258,15 @@ export class TextureEntity<
                         intersects() {
                             return false
                         },
-                        stroke() {
+                        stroke(ctx) {
                             const outline = this.outlines[this.textureName][this.f]
                             const { x, y } = this.getComp(RectShape)!.rect
-                            outline.outline.forEach(dot => this.game.ctx.strokeRect(dot.x + x, dot.y + y, 1, 1))
+                            outline.outline.forEach(dot => ctx.strokeRect(dot.x + x, dot.y + y, 1, 1))
                         },
-                        fill() {
+                        fill(ctx) {
                             const outline = this.outlines[this.textureName][this.f]
                             const { x, y } = this.getComp(RectShape)!.rect
-                            outline.inner.forEach(dot => this.game.ctx.fillRect(dot.x + x, dot.y + y, 1, 1))
+                            outline.inner.forEach(dot => ctx.fillRect(dot.x + x, dot.y + y, 1, 1))
                         },
                     }))
                 else
@@ -284,24 +283,10 @@ export class TextureEntity<
         return this.state.innerState as Extract<TextureInnerState, { type: T }>
     }
 
-    async render() {
-        const processedFrame = this.pipeline.getOutput(this.f)
-
+    render() {
         const rectShape = this.getComp(RectShape)!
-        const position = pick(rectShape.rect, [ 'x', 'y' ])
-        const offsetPosition = vAdd(position, processedFrame.offset)
-        const { width, height } = processedFrame.imageData
-
-        this.offScreenCanvas.width = width
-        this.offScreenCanvas.height = height
-        this.offScreenCtx.clearRect(0, 0, width, height)
-        this.offScreenCtx.putImageData(processedFrame.imageData, 0, 0)
-
-        this.game.ctx.drawImage(
-            this.offScreenCanvas,
-            offsetPosition.x, offsetPosition.y,
-            width, height
-        )
+        const { width, height } = rectShape.rect
+        this.ctx.drawImage(this.frame, 0, 0, width, height)
     }
 
     update() {
@@ -317,7 +302,7 @@ export class TextureEntity<
                 if (++ animeState.f === texture.fpaf) {
                     this.emit('anime-finish')
                     animeState.f = 0
-                    const frameCount = this.frames[this.textureName].imageData.length
+                    const frameCount = this.frames[this.textureName].imagesData.length
                     const af = animeState.af += direction
                     if (af === frameCount || af === - 1)
                         animeState.af -= frameCount * direction

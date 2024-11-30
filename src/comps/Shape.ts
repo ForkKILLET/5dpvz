@@ -19,7 +19,6 @@ export class ShapeComp<
 > extends Comp<C, S, V, E> {
     constructor(entity: E, config: C, state: S) {
         super(entity, config, state)
-        this.ctx = this.game.ctx
     }
 
     static create<M extends Comp>(
@@ -27,8 +26,6 @@ export class ShapeComp<
     ) {
         return new this(entity, { tag: 'boundary', ...config }, {})
     }
-
-    ctx: CanvasRenderingContext2D
 
     get tag() {
         return this.config.tag
@@ -42,8 +39,8 @@ export class ShapeComp<
         return [ this, mapk('tag', tagPred) ]
     }
 
-    get position() {
-        return this.entity.state.position
+    get pos() {
+        return this.entity.state.pos
     }
 
     get scale() {
@@ -58,15 +55,19 @@ export class ShapeComp<
         void other
         return false
     }
-    stroke() {}
-    fill() {}
+    stroke(ctx: OffscreenCanvasRenderingContext2D) {
+        void ctx
+    }
+    fill(ctx: OffscreenCanvasRenderingContext2D) {
+        void ctx
+    }
 }
 
 export interface AnyShapeConfig<E extends Entity> extends ShapeConfig {
     contains: (this: E, point: Vector2D) => boolean
     intersects: (this: E, other: ShapeComp) => boolean
-    stroke: (this: E, ctx: CanvasRenderingContext2D) => void
-    fill: (this: E, ctx: CanvasRenderingContext2D) => void
+    stroke: (this: E, ctx: OffscreenCanvasRenderingContext2D) => void
+    fill: (this: E, ctx: OffscreenCanvasRenderingContext2D) => void
 }
 
 export interface AnyShapeState extends ShapeState {}
@@ -94,30 +95,30 @@ export class AnyShape<E extends Entity = Entity> extends ShapeComp<AnyShapeConfi
     intersects(other: ShapeComp) {
         return this.config.intersects.call(this.entity, other)
     }
-    stroke() {
-        this.config.stroke.call(this.entity, this.ctx)
+    stroke(ctx: OffscreenCanvasRenderingContext2D) {
+        this.config.stroke.call(this.entity, ctx)
     }
-    fill() {
-        this.config.fill.call(this.entity, this.ctx)
+    fill(ctx: OffscreenCanvasRenderingContext2D) {
+        this.config.fill.call(this.entity, ctx)
     }
 }
 
 export class PointShape extends ShapeComp {
     contains(point: Vector2D) {
         // TOOD: ε?
-        return this.position.x === point.x && this.position.y === point.y
+        return this.pos.x === point.x && this.pos.y === point.y
     }
 
     intersects(other: ShapeComp) {
-        return other.contains(this.position)
+        return other.contains(this.pos)
     }
 
-    stroke() {
-        this.ctx.fillRect(this.position.x, this.position.y, 1, 1)
+    stroke(ctx: OffscreenCanvasRenderingContext2D) {
+        ctx.fillRect(this.pos.x, this.pos.y, 1, 1)
     }
 
-    fill() {
-        this.stroke()
+    fill(ctx: OffscreenCanvasRenderingContext2D) {
+        ctx.stroke()
     }
 }
 
@@ -152,7 +153,7 @@ export class RectShape extends ShapeComp<RectShapeConfig> {
     }
 
     get rect(): Rect {
-        let { x, y } = this.position
+        let { x, y } = this.pos
         let { origin, width, height } = this.config
         width *= this.scale
         height *= this.scale
@@ -194,14 +195,14 @@ export class RectShape extends ShapeComp<RectShapeConfig> {
         return false
     }
 
-    stroke() {
+    stroke(ctx: OffscreenCanvasRenderingContext2D) {
         const { x, y, width, height } = this.rect
-        this.ctx.strokeRect(x, y, width, height)
+        ctx.strokeRect(x, y, width, height)
     }
 
-    fill() {
+    fill(ctx: OffscreenCanvasRenderingContext2D) {
         const { x, y, width, height } = this.rect
-        this.ctx.fillRect(x, y, width, height)
+        ctx.fillRect(x, y, width, height)
     }
 }
 
@@ -230,7 +231,7 @@ export class CircleShape extends ShapeComp<CircleConfig> {
     }
 
     get circle(): Circle {
-        const { x, y } = this.position
+        const { x, y } = this.pos
         const { radius } = this.config
         return { x, y, radius: radius * this.scale }
     }
@@ -265,19 +266,19 @@ export class CircleShape extends ShapeComp<CircleConfig> {
         return false
     }
 
-    path() {
+    path(ctx: OffscreenCanvasRenderingContext2D) {
         const { x, y, radius } = this.circle
-        this.ctx.beginPath()
-        this.ctx.arc(x, y, radius, 0, Math.PI * 2)
+        ctx.beginPath()
+        ctx.arc(x, y, radius, 0, Math.PI * 2)
     }
 
-    stroke() {
-        this.path()
-        this.ctx.stroke()
+    stroke(ctx: OffscreenCanvasRenderingContext2D) {
+        this.path(ctx)
+        ctx.stroke()
     }
 
-    fill() {
-        this.path()
-        this.ctx.fill()
+    fill(ctx: OffscreenCanvasRenderingContext2D) {
+        this.path(ctx)
+        ctx.fill()
     }
 }

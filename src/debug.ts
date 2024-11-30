@@ -1,7 +1,7 @@
 /* eslint-disable @stylistic/ts/indent */
 
-import { Comp, Entity, Game, Scene } from '@/engine'
-import { by, eq, neq } from '@/utils'
+import { Comp, Entity, Game, RenderNode, RenderPipeline, Scene } from '@/engine'
+import { by, eq, mapk, neq } from '@/utils'
 import { ShapeComp } from '@/comps/Shape'
 
 export const kDebugFold = Symbol('kDebugFold')
@@ -132,6 +132,15 @@ export const loadDebugWindow = (game: Game) => {
                 width: 1px;
             }
 
+            .render-node {
+                padding-left: 10px;
+            }
+            .render-node-output {
+                max-width: 300px;
+                border: 1px solid blue;
+                background: repeating-conic-gradient(#fff 0% 25%, #888 0% 50%) 50% / 8px 8px;
+            }
+
             entity-id {
                 color: fuchsia;
             }
@@ -205,6 +214,7 @@ export const loadDebugWindow = (game: Game) => {
         <tab-header data-tab="entity-tree">Entity Tree</tab-header>
         <tab-header data-tab="entity-detail">Entity Detail</tab-header>
         <tab-header data-tab="comp-detail">Comp Detail</tab-header>
+        <tab-header data-tab="pipeline">Pipeline</tab-header>
         <tab-header data-tab="loop">Loop</tab-header>
         <br /><br />
         <tab-content data-tab="entity-tree">
@@ -226,6 +236,11 @@ export const loadDebugWindow = (game: Game) => {
             <debug-button id="refresh-comp-detail">Refresh</debug-button>
             <br /><br />
             <div id="comp-detail-content"></div>
+        </tab-content>
+        <tab-content data-tab="pipeline">
+            <debug-button id="refresh-pipeline">Refresh</debug-button>
+            <br /><br />
+            <div id="pipeline-content"></div>
         </tab-content>
         <tab-content data-tab="loop">
             <debug-button id="pause-start">Pause</debug-button>
@@ -272,7 +287,7 @@ export const loadDebugWindow = (game: Game) => {
         }
 
         render() {
-            const { ctx } = this.game
+            const { ctx } = this
 
             watchingEntity?.withComp(ShapeComp.withTag(eq('boundary')), shape => {
                 const { entity } = shape
@@ -281,7 +296,7 @@ export const loadDebugWindow = (game: Game) => {
                     return
                 }
                 ctx.strokeStyle = 'blue'
-                shape.stroke()
+                shape.stroke(ctx)
                 ctx.fillStyle = 'rgba(0, 0, 255, 0.1)'
                 ctx.fill()
             })
@@ -296,8 +311,8 @@ export const loadDebugWindow = (game: Game) => {
                 .map(entity => {
                     const shape = entity.getComp(ShapeComp.withTag(eq('boundary')))!
                     ctx.strokeStyle = 'red'
-                    shape.stroke()
-                    if (selecting && shape.contains(this.game.mouse.position) || entity === reverseSelectingEntity)
+                    shape.stroke(ctx)
+                    if (selecting && shape.contains(this.game.mouse.pos) || entity === reverseSelectingEntity)
                         return { entity, shape }
                     return null
                 })
@@ -307,7 +322,7 @@ export const loadDebugWindow = (game: Game) => {
             if (selectingEntityData) {
                 const { entity, shape } = selectingEntityData
                 ctx.fillStyle = 'rgba(255, 0, 0, 0.1)'
-                shape.fill()
+                shape.fill(ctx)
 
                 if (selectingEntity !== entity) {
                     if (selectingEntity) cancelSelecting()
@@ -493,7 +508,26 @@ export const loadDebugWindow = (game: Game) => {
             }</json-object>
         `.trim()
 
+    const showPipeline = (pipeline: RenderPipeline, { detailed = false }: { detailed?: boolean } = {}) => {
+        const nodes: RenderNode[] = []
+        for (let node = pipeline.inputNode; node; node = node.rights[0]) nodes.push(node)
+        return nodes.map(node => `
+            <json-function>${ node.constructor.name }</json-function>
+            ${ detailed ? `
+                <div class="render-node">
+                    <b>width</b> ${ node.width }<br />
+                    <b>height</b> ${ node.height }<br />
+                    <b>output</b> <debug-button class="run-render-node" data-id="${ node.id }">Run</debug-button> <br />
+                    <canvas class="render-node-output" width="0" height="0" data-id="${ node.id }"></canvas>
+                    <br />
+                </div>
+            ` : '' }
+        `).join(' -&gt; ')
+    }
+
     const refreshEntityDetail = () => {
+        refreshPipeline()
+
         const e = watchingEntity
         if (! e) return $entityDetailContent.innerHTML = 'No entity selected'
         const attrs = [
@@ -518,6 +552,7 @@ export const loadDebugWindow = (game: Game) => {
             <b>superEntity</b> ${ showJson(e.superEntity) }<br />
             <b>protoChain</b> ${ showJson(protoChain) }<br />
             <b>attachedEntities</b> <div id="entity-detail-tree-content"></div>
+            <b>pipeline</b> ${ showPipeline(e.pipeline) }
         `
         refreshEntityTree()
     }
@@ -531,12 +566,39 @@ export const loadDebugWindow = (game: Game) => {
             <b>entity</b> ${ showJson(c.entity) }<br />
         `
     }
+    const refreshPipeline = () => {
+        if (! watchingEntity) {
+            $pipelineContent.innerHTML = 'No entity selected'
+            return
+        }
+        $pipelineContent.innerHTML = `
+            Render pipeline of ${ showEntityHeader(watchingEntity) }:
+            ${ showPipeline(watchingEntity.pipeline, { detailed: true }) }
+        `
+        $pipelineContent.addEventListener('click', ({ target }) => {
+            if (! (target instanceof HTMLElement)) return
+            if (target.classList.contains('run-render-node')) {
+                if (! watchingEntity) return
+                const id = + target.dataset.id!
+                const node = watchingEntity.pipeline.allNodes.find(mapk('id', eq(id)))!
+                const { canvas } = node.getOutput()
+                const outputCanvas = $pipelineContent
+                    .querySelector<HTMLCanvasElement>(`canvas.render-node-output[data-id="${ id }"]`)!
+                outputCanvas.width = canvas.width
+                outputCanvas.height = canvas.height
+                const ctx = outputCanvas.getContext('2d')!
+                ctx.drawImage(canvas, 0, 0)
+            }
+        })
+    }
     const $entityDetailContent = $('#entity-detail-content')!
     const $compDetailContent = $('#comp-detail-content')!
+    const $pipelineContent = $('#pipeline-content')!
     $('#back-to-entity-tree')!.addEventListener('click', unsetWatchingEntity)
     $('#back-to-entity-detail')!.addEventListener('click', unsetWatchingComp)
     $('#refresh-entity-detail')!.addEventListener('click', refreshEntityDetail)
     $('#refresh-comp-detail')!.addEventListener('click', refreshCompDetail)
+    $('#refresh-pipeline')!.addEventListener('click', refreshPipeline)
     const showEntityHeader = (entity: Entity, hasLink = true) => {
         const attrs = getEntityAttrs(entity)
         const { id } = entity

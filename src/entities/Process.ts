@@ -8,7 +8,7 @@ import { StageData } from '@/data/stages'
 import { ZombieId } from '@/data/zombies'
 import {
     Entity, EntityConfig, EntityEvents, EntityState, injectKey, Vector2D,
-    BrightnessNode, GaussianBlurNode, ScalingNode, ShearNode,
+    BrightnessNode, GaussianBlurNode, ScaleNode, ShearNode,
 } from '@/engine'
 import { BulletEntity } from '@/entities/bullets/Bullet'
 import { LawnConfig, LawnEntity } from '@/entities/Lawn'
@@ -20,7 +20,7 @@ import { ProcessLabelEntity } from '@/entities/ui/ProcessLabel'
 import { ShovelSlotConfig } from '@/entities/ui/ShovelSlot'
 import { PlantSlotsConfig, UIEntity } from '@/entities/ui/UI'
 import { ZombieEntity } from '@/entities/zombies/Zombie'
-import { eq, matrix, Nullable, pick, placeholder, random, remove, replicateBy, sum } from '@/utils'
+import { eq, matrix, Nullable, pick, placeholder, random, remove, replicateBy, StrictOmit, sum } from '@/utils'
 
 export interface ProcessConfig extends EntityConfig {
     processId: number
@@ -49,7 +49,7 @@ export interface PlantSlotData {
 
 export interface PlantData {
     id: PlantId
-    position: { i: number, j: number }
+    pos: { i: number, j: number }
     entity: PlantEntity
 }
 
@@ -104,8 +104,10 @@ export const kProcess = injectKey<ProcessEntity>('kProcess')
 export const getProcessId = (entity: Entity): number => entity.inject(kProcess)!.config.processId
 
 export class ProcessEntity extends Entity<ProcessConfig, ProcessState, ProcessEvents> {
-    static createProcess<C extends ProcessConfig, S extends EntityState>(config: C, state: S) {
+    static createProcess<C extends ProcessConfig, S extends EntityState>(config: C, state: StrictOmit<S, 'size'>) {
         return new this(config, {
+            size: placeholder,
+
             sun: config.sun.sunAtStart,
             sunDropTimer: config.sun.sunDroppingInterval - config.sun.firstSunDroppingTime,
 
@@ -147,6 +149,8 @@ export class ProcessEntity extends Entity<ProcessConfig, ProcessState, ProcessEv
     constructor(config: ProcessConfig, state: ProcessState) {
         super(config, state)
 
+        this.state.size = pick(ProcessEntity, [ 'width', 'height' ])
+
         this.state.plantSlotsData ??= config.plantSlots.plantIds.map((plantId): PlantSlotData => {
             const Plant = PLANTS[plantId]
             return {
@@ -178,8 +182,8 @@ export class ProcessEntity extends Entity<ProcessConfig, ProcessState, ProcessEv
                         return
                     }
 
-                    const { x, y } = target.state.position
-                    this.phantomImage!.activate().state.position = { x, y }
+                    const { x, y } = target.state.pos
+                    this.phantomImage!.activate().state.pos = { x, y }
                 }
                 else this.phantomImage!.deactivate()
             }
@@ -213,10 +217,10 @@ export class ProcessEntity extends Entity<ProcessConfig, ProcessState, ProcessEv
 
     build() {
         this.ui = this
-            .useBuilder('UI', () => new UIEntity(
+            .useBuilder('UI', () => UIEntity.createUI(
                 this.config.plantSlots,
                 {
-                    position: { x: 5, y: 5 },
+                    pos: { x: 5, y: 5 },
                     zIndex: 1,
                 },
             ))
@@ -233,7 +237,7 @@ export class ProcessEntity extends Entity<ProcessConfig, ProcessState, ProcessEv
                         plantTextures.getImageSrc(plantId),
                         {},
                         {
-                            position: { x: 5, y: 5 },
+                            pos: { x: 5, y: 5 },
                             zIndex: this.lawn.state.zIndex + 3,
                         },
                     )
@@ -244,12 +248,12 @@ export class ProcessEntity extends Entity<ProcessConfig, ProcessState, ProcessEv
                         plantTextures.getImageSrc(plantId),
                         {},
                         {
-                            position: { x: 0, y: 0 },
+                            pos: { x: 0, y: 0 },
                             zIndex: this.state.zIndex + 3,
                         },
                     )
                     .on('before-render', () => {
-                        this.game.ctx.globalAlpha = 0.5
+                        this.ctx.globalAlpha = 0.5
                     })
                     .deactivate()
                     .attachTo(this)
@@ -267,7 +271,7 @@ export class ProcessEntity extends Entity<ProcessConfig, ProcessState, ProcessEv
                         shovelTextures.getImageSrc(shovelId),
                         {},
                         {
-                            position: { x: 5, y: 5 },
+                            pos: { x: 5, y: 5 },
                             zIndex: this.state.zIndex + 4,
                         },
                     )
@@ -275,22 +279,19 @@ export class ProcessEntity extends Entity<ProcessConfig, ProcessState, ProcessEv
             })
 
         this.lawn = this
-            .useBuilder('Lawn', () => new LawnEntity(
+            .useBuilder('Lawn', () => LawnEntity.createLawn(
                 this.config.lawn,
                 {
-                    position: { x: 5, y: 150 },
+                    pos: { x: 5, y: 150 },
                     zIndex: this.state.zIndex + 1,
                 },
             ))
 
         this.label = this
-            .useBuilder('ProcessLabel', () => new ProcessLabelEntity(
-                {},
-                {
-                    position: { x: ProcessEntity.width - 64 - 5, y: 5 + 32 + 5 },
-                    zIndex: this.state.zIndex + 11,
-                }
-            ))
+            .useBuilder('ProcessLabel', () => ProcessLabelEntity.createProcessLabel({
+                pos: { x: ProcessEntity.width - 64 - 5, y: 5 + 32 + 5 },
+                zIndex: this.state.zIndex + 11,
+            }))
             .on('click', () => this.emit('switch-process', this.config.processId))
     }
 
@@ -308,12 +309,13 @@ export class ProcessEntity extends Entity<ProcessConfig, ProcessState, ProcessEv
 
         this.updatePlantSlot(false)
 
+        console.log(plantId)
         const newPlant = PlantEntity.createPlant(
             plantId,
             {},
             {
                 i, j,
-                position: this.getLawnBlockPosition(i, j),
+                pos: this.getLawnBlockPos(i, j),
                 zIndex: this.state.zIndex + 3,
             }
         )
@@ -321,15 +323,22 @@ export class ProcessEntity extends Entity<ProcessConfig, ProcessState, ProcessEv
             .afterStart(() => {
                 if (! this.game.config.isDebug) return
                 newPlant.pipeline
-                    .appendNode(new GaussianBlurNode(2))
-                    .appendNode(new BrightnessNode(0.5))
-                    .appendNode(new ScalingNode(2))
-                    .appendNode(new ShearNode(- 2, 3))
+                    .appendNode(new GaussianBlurNode({ radius: 2 }))
+                    .appendNode(new BrightnessNode({ brightness: 0.5 }))
+                    .appendNode(new ScaleNode({
+                        scaleX: 2,
+                        scaleY: 2,
+                        origin: { x: 'left', y: 'top' },
+                    }))
+                    .appendNode(new ShearNode({
+                        shearX: - 2,
+                        shearY: 3,
+                    }))
             })
 
         const newPlantData: PlantData = {
             id: plantId,
-            position: { i, j },
+            pos: { i, j },
             entity: newPlant,
         }
         this.state.plantsData.push(newPlantData)
@@ -353,8 +362,8 @@ export class ProcessEntity extends Entity<ProcessConfig, ProcessState, ProcessEv
         return this.state.plantsOnBlocks[i][j] !== null
     }
 
-    getLawnBlockPosition(i: number, j: number) {
-        return { ...this.lawn.lawnBlocks[i][j].state.position }
+    getLawnBlockPos(i: number, j: number) {
+        return { ...this.lawn.lawnBlocks[i][j].state.pos }
     }
 
     cancelHolding() {
@@ -369,7 +378,7 @@ export class ProcessEntity extends Entity<ProcessConfig, ProcessState, ProcessEv
     }
 
     dropSun() {
-        const { x: x0, y: y0 } = this.lawn.state.position
+        const { x: x0, y: y0 } = this.lawn.state.pos
         const rng = this.getComp(RngComp)!
         const x = x0 + rng.random((this.config.lawn.width - 1) * 80)
         const y = y0 + rng.random(1 * 80)
@@ -380,7 +389,7 @@ export class ProcessEntity extends Entity<ProcessConfig, ProcessState, ProcessEv
                 sun: 25,
             },
             {
-                position: { x, y },
+                pos: { x, y },
                 zIndex: this.state.zIndex + 4,
             }
         )
@@ -425,14 +434,14 @@ export class ProcessEntity extends Entity<ProcessConfig, ProcessState, ProcessEv
 
     spawnZombie(zombieId: ZombieId) {
         const row = this.getZombieSpawningRow(zombieId)
-        const { x, y } = this.getLawnBlockPosition(this.lawn.config.width - 1, row)
+        const { x, y } = this.getLawnBlockPos(this.lawn.config.width - 1, row)
 
         const zombie = ZombieEntity.createZombie(
             zombieId,
             {},
             {
                 j: row,
-                position: { x: x + 80, y: y - 40 },
+                pos: { x: x + 80, y: y - 40 },
                 zIndex: this.lawn.state.zIndex + 2 + row * 0.1,
                 speedRatio: this.getComp(RngComp)!.random(95, 105) / 100,
             }
@@ -508,8 +517,8 @@ export class ProcessEntity extends Entity<ProcessConfig, ProcessState, ProcessEv
 
     updateWhenPaused() {
         if (this.holdingImage) {
-            const { x, y } = this.game.mouse.position
-            this.holdingImage.updatePositionTo({ x: x - 40, y: y - 40 })
+            const { x, y } = this.game.mouse.pos
+            this.holdingImage.updatePosTo({ x: x - 40, y: y - 40 })
         }
     }
 
@@ -549,8 +558,8 @@ export class ProcessEntity extends Entity<ProcessConfig, ProcessState, ProcessEv
         return this.state
     }
 
-    isInsideLawn(position: Vector2D) {
-        return this.getComp(RectShape)!.contains(position)
+    isInsideLawn(pos: Vector2D) {
+        return this.getComp(RectShape)!.contains(pos)
     }
 
     postUpdate() {
@@ -560,8 +569,8 @@ export class ProcessEntity extends Entity<ProcessConfig, ProcessState, ProcessEv
 
     preRender() {
         if (this.state.paused) this.addRenderJob(() => {
-            const { ctx } = this.game
-            const { x, y } = this.state.position
+            const { ctx } = this
+            const { x, y } = this.state.pos
             ctx.fillStyle = 'rgba(0, 32, 255, .3)'
             ctx.fillRect(x, y, ProcessEntity.width, ProcessEntity.height)
         }, 10)

@@ -6,6 +6,7 @@ import { CollidableComp } from '@/comps/Collidable'
 import { TextureConfig, TextureState, TextureEvents, TextureEntity } from '@/entities/Texture'
 import { HealthComp } from '@/comps/Health'
 import { kProcess } from '../Process'
+import { StrictOmit } from '@/utils'
 
 export interface BulletUniqueConfig {
     metadata: BulletMetadata
@@ -44,7 +45,7 @@ export class BulletEntity<
     static createBullet<
         I extends BulletId,
         C extends Omit<BulletUniqueConfig, 'metadata'>,
-        S extends EntityState
+        S extends StrictOmit<EntityState, 'size'>
     >(bulletId: I, config: C, state: S) {
         const Bullet = BULLETS[bulletId]
         return Bullet.createTexture(
@@ -74,8 +75,8 @@ export class BulletEntity<
 
     update() {
         super.update()
-        this.updatePosition(this.nextMove())
-        if (! this.inject(kProcess)!.isInsideLawn(this.state.position)) this.dispose()
+        this.updatePos(this.nextMove())
+        if (! this.inject(kProcess)!.isInsideLawn(this.state.pos)) this.dispose()
     }
 }
 

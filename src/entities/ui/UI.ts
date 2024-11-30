@@ -6,7 +6,7 @@ import { Entity, EntityConfig, EntityEvents, EntityState } from '@/engine'
 import { PlantSlotEntity } from '@/entities/ui/PlantSlot'
 import { ShovelSlotEntity } from '@/entities/ui/ShovelSlot'
 import { SunSlotEntity } from '@/entities/ui/SunSlot'
-import { placeholder } from '@/utils'
+import { placeholder, StrictOmit } from '@/utils'
 
 export interface PlantSlotsConfig extends EntityConfig {
     slotNum: number
@@ -27,36 +27,36 @@ export class UIEntity extends Entity<UIConfig, UIState, UIEvents> {
     plantSlots: PlantSlotEntity[] = placeholder
     shovelSlot: ShovelSlotEntity = placeholder
 
-    width: number
-    height: number
-
     constructor(config: UIConfig, state: UIState) {
         super(config, state)
 
-        this.width = (this.config.slotNum + 2) * (80 + 2 + 5) - 5
-        this.height = 80 + 20 + 2
-        this.addComp(RectShape, { width: this.width, height: this.height, origin: 'top-left' })
+        this.state.size = {
+            width: (this.config.slotNum + 2) * (80 + 2 + 5) - 5,
+            height: 80 + 20 + 2,
+        }
+        this.addComp(RectShape, this.state.size)
+    }
+
+    static createUI(config: UIConfig, state: StrictOmit<UIState, 'size'>) {
+        return new this(config, { ...state, size: placeholder })
     }
 
     build() {
-        const { position: { x, y }, zIndex } = this.state
+        const { pos: { x, y }, zIndex } = this.state
 
         this.sunSlot = this
-            .useBuilder('SunSlot', () => new SunSlotEntity(
-                {},
-                {
-                    position: { x, y },
-                    zIndex: zIndex + 1,
-                },
-            ))
+            .useBuilder('SunSlot', () => SunSlotEntity.createSunSlot({
+                pos: { x, y },
+                zIndex: zIndex + 1,
+            }))
         this.plantSlots = this.config.plantIds.map((plantName, i) => this
-            .useBuilder(`PlantSlot_${ i }`, () => new PlantSlotEntity(
+            .useBuilder(`PlantSlot_${ i }`, () => PlantSlotEntity.createPlantSlot(
                 {
                     plantId: plantName,
                     slotId: i,
                 },
                 {
-                    position: { x: x + (i + 1) * (80 + 2 + 5), y },
+                    pos: { x: x + (i + 1) * (80 + 2 + 5), y },
                     zIndex: zIndex + 1,
                 },
             ))
@@ -68,12 +68,12 @@ export class UIEntity extends Entity<UIConfig, UIState, UIEvents> {
             })
         )
         this.shovelSlot = this
-            .useBuilder('ShovelSlot', () => new ShovelSlotEntity(
+            .useBuilder('ShovelSlot', () => ShovelSlotEntity.createShovelSlot(
                 {
                     shovelId: 'iron_shovel',
                 },
                 {
-                    position: { x: x + (this.config.slotNum + 1) * (80 + 2 + 5), y },
+                    pos: { x: x + (this.config.slotNum + 1) * (80 + 2 + 5), y },
                     zIndex: zIndex + 1,
                 },
             ))

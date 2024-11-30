@@ -1,6 +1,6 @@
 import { RectShape } from '@/comps/Shape'
 import { Entity, EntityEvents, EntityState } from '@/engine'
-import { pick } from '@/utils'
+import { StrictOmit } from '@/utils'
 import { kProcess } from '@/entities/Process'
 import { ButtonComp, ButtonLikeEvents } from '@/comps/Button'
 import { HoverableComp } from '@/comps/Hoverable'
@@ -13,17 +13,23 @@ export interface ProcessLabelState extends EntityState {}
 export interface ProcessLabelEvents extends ButtonLikeEvents, EntityEvents {}
 
 export class ProcessLabelEntity extends Entity<ProcessLabelConfig, ProcessLabelState, ProcessLabelEvents> {
-    width = 64 + 5
-    height = 20
+    static readonly size = {
+        width: 64 + 5,
+        height: 20,
+    }
 
     constructor(config: ProcessLabelConfig, state: ProcessLabelState) {
         super(config, state)
 
         this
-            .addComp(RectShape, pick(this, [ 'width', 'height' ]))
+            .addComp(RectShape, ProcessLabelEntity.size)
             .addComp(HoverableComp)
             .addComp(CursorComp, 'pointer')
             .addComp(ButtonComp)
+    }
+
+    static createProcessLabel(state: StrictOmit<ProcessLabelState, 'size'>) {
+        return new this({}, { ...state, size: ProcessLabelEntity.size })
     }
 
     get processId() {
@@ -38,23 +44,23 @@ export class ProcessLabelEntity extends Entity<ProcessLabelConfig, ProcessLabelS
     }
 
     render() {
-        const { ctx } = this.game
-        const { x, y } = this.state.position
-        const { color, processId } = this
+        const { width, height } = ProcessLabelEntity.size
+        const { x, y } = this.state.pos
+        const { ctx, color, processId } = this
         ctx.fillStyle = color
         ctx.beginPath()
         ctx.moveTo(x, y)
-        ctx.lineTo(x + this.width, y)
-        ctx.lineTo(x + this.width - this.height / 2, y + this.height / 2)
-        ctx.lineTo(x + this.width, y + this.height)
-        ctx.lineTo(x, y + this.height)
-        ctx.lineTo(x + this.height / 2, y + this.height / 2)
+        ctx.lineTo(x + width, y)
+        ctx.lineTo(x + width - height / 2, y + height / 2)
+        ctx.lineTo(x + width, y + height)
+        ctx.lineTo(x, y + height)
+        ctx.lineTo(x + height / 2, y + height / 2)
         ctx.closePath()
         ctx.fill()
         ctx.fillStyle = '#ffffff'
         ctx.textAlign = 'center'
         ctx.textBaseline = 'alphabetic'
         ctx.font = '20px Sans'
-        ctx.fillText(processId.toString(), x + this.width / 2, y + 20 - 3)
+        ctx.fillText(processId.toString(), x + width / 2, y + 20 - 3)
     }
 }

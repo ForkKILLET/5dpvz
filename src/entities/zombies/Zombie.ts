@@ -7,7 +7,7 @@ import { ZombieId, ZombieMetadata, ZombieMovingState, ZombiePlace, ZOMBIES, zomb
 import { Entity, EntityCtor, EntityState, Vector2D } from '@/engine'
 import { PlantEntity } from '@/entities/plants/Plant'
 import { TextureConfig, TextureEntity, TextureEvents, TextureState } from '@/entities/Texture'
-import { PartialBy } from '@/utils'
+import { PartialBy, StrictOmit } from '@/utils'
 import { HpBarEntity } from '../ui/HpBar'
 
 void PLANTS
@@ -68,16 +68,16 @@ export class ZombieEntity<
             })
 
         if (this.game.config.isDebug)
-            this.useBuilder('HpBar', () => new HpBarEntity(
-                {},
-                { position: { ...this.state.position }, zIndex: this.state.zIndex }
-            ))
+            this.useBuilder('HpBar', () => HpBarEntity.createHpBarEntity({
+                pos: { ...this.state.pos },
+                zIndex: this.state.zIndex,
+            }))
     }
 
     static createZombie<
         I extends ZombieId,
         C extends Omit<ZombieUniqueConfig, 'metadata'>,
-        S extends ZombieUniqueState & EntityState
+        S extends ZombieUniqueState & StrictOmit<EntityState, 'size'>
     >(zombieId: I, config: C, state: PartialBy<S, keyof ZombieAutoState>) {
         const Zombie = ZOMBIES[zombieId]
         return Zombie
@@ -107,11 +107,11 @@ export class ZombieEntity<
 
     update() {
         super.update()
-        if (! this.state.enteredHouse && this.state.position.x < 0) {
+        if (! this.state.enteredHouse && this.state.pos.x < 0) {
             this.state.enteredHouse = true
         }
-        if (this.state.position.x > - this.getComp(RectShape)!.rect.width) {
-            this.updatePosition(this.nextMove())
+        if (this.state.pos.x > - this.getComp(RectShape)!.rect.width) {
+            this.updatePos(this.nextMove())
         }
     }
 }

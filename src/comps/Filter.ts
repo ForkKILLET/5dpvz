@@ -13,7 +13,7 @@ export class FilterComp extends Comp<FilterConfig, FilterState> {
     constructor(entity: Entity, config: FilterConfig, state: FilterState) {
         super(entity, config, state)
         entity.on('before-render', () => {
-            this.game.ctx.filter = Object
+            this.entity.ctx.filter = Object
                 .values(this.state.filters)
                 .filter(neq(null))
                 .join(' ') || 'none'

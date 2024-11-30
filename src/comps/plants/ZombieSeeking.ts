@@ -12,11 +12,11 @@ export class ZombieSeekingComp<E extends PlantEntity = PlantEntity> extends Comp
 
     seekZombies(rows: number[], direction: 'front' | 'back') {
         const { zombiesData } = this.entity.inject(kProcess)!.state
-        const { x } = this.entity.state.position
+        const { x } = this.entity.state.pos
 
         return zombiesData.filter(({ entity: { state } }) => (
             rows.includes(state.j) &&
-            (state.position.x >= x === (direction === 'front'))
+            (state.pos.x >= x === (direction === 'front'))
         )).length > 0
     }
 }

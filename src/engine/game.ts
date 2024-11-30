@@ -99,10 +99,7 @@ export class Game {
 
     emitter = new Emitter<GameEvents>()
 
-    private renderJobs: RenderJob[] = []
-    addRenderJob(job: RenderJob) {
-        this.renderJobs.push(job)
-    }
+    renderJobs: RenderJob[] = []
 
     hoveringEntity: Entity | null = null
 
@@ -128,7 +125,7 @@ export class Game {
             const shapeComp = entity.getComp(ShapeComp.withTag(eq('boundary')))!
             const hoverableComp = entity.getComp(HoverableComp)!
 
-            const hovering = ! this.hoveringEntity && shapeComp.contains(this.mouse.position)
+            const hovering = ! this.hoveringEntity && shapeComp.contains(this.mouse.pos)
             if (hovering) {
                 this.hoveringEntity = entity
                 entity.withComp(CursorComp, cursor => {
@@ -153,15 +150,12 @@ export class Game {
 
         this.renderJobs = []
         activeScenes.forEach(scene => scene.runRender())
-        this.ctx.clearRect(0, 0, this.ctx.canvas.width, this.ctx.canvas.height)
 
+        // TODO: DRY
+        this.ctx.clearRect(0, 0, this.ctx.canvas.width, this.ctx.canvas.height)
         this.renderJobs
             .sort(by(job => job.zIndex))
-            .forEach(job => {
-                this.ctx.save()
-                job.renderer()
-                this.ctx.restore()
-            })
+            .forEach(job => job.renderer())
     }
 
     loopDuration = 0

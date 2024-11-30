@@ -67,34 +67,30 @@ export function shearImage(
     shearX: number,
     shearY: number,
 ): ImageData {
-    const originalWidth = imageData.width
-    const originalHeight = imageData.height
+    const { width, height } = imageData
 
-    const newWidth = originalWidth + abs(shearX) * originalHeight
-    const newHeight = originalHeight + abs(shearY) * originalHeight
+    const newWidth = width + abs(shearX) * height
+    const newHeight = height + abs(shearY) * height
 
     const canvas = document.createElement('canvas')
     canvas.width = newWidth
     canvas.height = newHeight
     const ctx = canvas.getContext('2d')!
 
-    ctx.clearRect(0, 0, canvas.width, canvas.height)
+    ctx.clearRect(0, 0, newWidth, newHeight)
 
-    const offsetX = shearX < 0 ? - shearX * originalHeight : 0
-    const offsetY = shearY < 0 ? - shearY * originalHeight : 0
+    const offsetX = shearX < 0 ? - shearX * height : 0
+    const offsetY = shearY < 0 ? - shearY * height : 0
     ctx.translate(offsetX, offsetY)
-
     ctx.transform(1, shearY, shearX, 1, 0, 0)
 
     const tempCanvas = document.createElement('canvas')
-    tempCanvas.width = originalWidth
-    tempCanvas.height = originalHeight
+    tempCanvas.width = width
+    tempCanvas.height = height
     const tempCtx = tempCanvas.getContext('2d')!
     tempCtx.putImageData(imageData, 0, 0)
 
     ctx.drawImage(tempCanvas, 0, 0)
 
-    const transformedImageData = ctx.getImageData(0, 0, canvas.width, canvas.height)
-
-    return transformedImageData
+    return ctx.getImageData(0, 0, newWidth, newHeight)
 }

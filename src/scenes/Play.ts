@@ -9,6 +9,8 @@ export class PlayScene extends Scene {
     bgmPlayBack: AudioPlayback = placeholder
 
     constructor() {
+        super()
+
         const getProcessById = (processId: number) => processes.find(process => process.config.processId === processId)
 
         const switchProcess = (currentProcessId: number) => {
@@ -43,13 +45,12 @@ export class PlayScene extends Scene {
                     stage: Stage1_1,
                 },
                 {
-                    position: { x: 0, y: 0 },
+                    pos: { x: 0, y: 0 },
                     zIndex: 0,
                 }
             )
             .on('switch-process', switchProcess)
-
-        super(process0)
+            .attachTo(this)
 
         const processes = [ process0 ]
         let currentProcess = process0
@@ -84,7 +85,7 @@ export class PlayScene extends Scene {
                 './assets/ui/pause_button.png',
                 {},
                 {
-                    position: { x: ProcessEntity.width - 32, y: 5 },
+                    pos: { x: ProcessEntity.width - 32, y: 5 },
                     zIndex: this.state.zIndex + 11,
                 },
             )
@@ -97,7 +98,7 @@ export class PlayScene extends Scene {
                 './assets/ui/resume_button.png',
                 {},
                 {
-                    position: { x: ProcessEntity.width - 32, y: 5 },
+                    pos: { x: ProcessEntity.width - 32, y: 5 },
                     zIndex: this.state.zIndex + 11,
                 },
             )
@@ -111,7 +112,7 @@ export class PlayScene extends Scene {
                 './assets/ui/fork_button.png',
                 {},
                 {
-                    position: { x: ProcessEntity.width - 64 - 5, y: 5 },
+                    pos: { x: ProcessEntity.width - 64 - 5, y: 5 },
                     zIndex: this.state.zIndex + 11,
                 },
             )

@@ -1,18 +1,23 @@
+import { RectShape, Size } from '@/comps/Shape'
 import { kDebugFold } from '@/debug'
 import {
     createIdGenerator, Vector2D, vAdd,
     Emitter, Events, ListenerOptions,
     State, Comp, CompCtor, CompSelector,
     RenderPipeline,
+    RenderJob,
+    vSub,
 } from '@/engine'
-import { Disposer, eq, mapk, not, remove, RemoveIndex } from '@/utils'
+import { apply, by, Disposer, eq, mapk, not, remove, RemoveIndex } from '@/utils'
 
 export interface EntityConfig {}
 
 export interface EntityState {
-    position: Vector2D
+    pos: Vector2D
+    size: Size
     zIndex: number
     scale?: number
+    resourceId?: string
     cloning?: boolean
 }
 
@@ -24,7 +29,7 @@ export interface EntityEvents extends Events {
     'attach': [ superEntity: Entity ]
     'unattach': []
     'dispose': []
-    'position-update': [ delta: Vector2D ]
+    'pos-update': [ delta: Vector2D ]
 }
 
 export type InjectKey<T> = symbol & { _injectType: T }
@@ -37,16 +42,22 @@ export class Entity<
     S extends EntityState = EntityState,
     V extends EntityEvents = EntityEvents
 > extends State<S> {
-    static generateEntityId = createIdGenerator()
-
     constructor(public config: C, state: S) {
         super(state)
+
         if (state.cloning) this.on('clone-finish', () => this.build())
         else this.afterStart(() => this.build())
+
+        this.afterStart(() => {
+            const { width, height } = this.state.size
+            this.pipeline.inputNode.width = width
+            this.pipeline.inputNode.height = height
+        })
     }
 
     [kDebugFold] = false
 
+    static generateEntityId = createIdGenerator()
     readonly id = Entity.generateEntityId()
 
     active = true
@@ -87,14 +98,14 @@ export class Entity<
     }
     runStart() {
         this.startedToRunStart = true
-        void (async () => {
+        apply(async () => {
             await this.start()
             this.startedToBeforeStart = true
             await Promise.all(this.starters.map(fn => fn()))
             this.started = true
             this.emit('start')
             this.game.emitter.emit('entityStart', this)
-        })()
+        })
         return this
     }
     beforeStart(fn: () => void) {
@@ -120,7 +131,7 @@ export class Entity<
     }
 
     autoRender = true
-    setAutoRender(autoRender: boolean) {
+    configAutoRender(autoRender: boolean) {
         this.autoRender = autoRender
         return this
     }
@@ -258,21 +269,54 @@ export class Entity<
     }
 
     pipeline = new RenderPipeline()
+    get ctx() {
+        return this.pipeline.inputNode.ctx
+    }
+    get sizeTuple() {
+        return [ this.state.size.width, this.state.size.height ] as const
+    }
+    get superCtx(): CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D {
+        return (this.superEntity ?? this.game).ctx
+    }
+    get superRenderJobs(): RenderJob[] {
+        return (this.superEntity ?? this.game).renderJobs
+    }
+    get superPos(): Vector2D {
+        return this.superEntity?.pos ?? { x: 0, y: 0 }
+    }
+
+    renderJobs: RenderJob[] = []
+
+    get pos(): Vector2D {
+        return this.getComp(RectShape.withTag(eq('boundary')))?.rect ?? this.state.pos
+    }
 
     runRender() {
         this.preRender()
 
+        this.ctx.clearRect(0, 0, this.ctx.canvas.width, this.ctx.canvas.height)
+        this.renderJobs
+            .sort(by(job => job.zIndex))
+            .forEach(job => job.renderer())
+        this.renderJobs = []
+
         this.addRenderJob(() => {
             this.render()
+            const { canvas, offset } = this.pipeline.getOutput()
+            const pos = vAdd(vSub(this.pos, this.superPos), offset)
+
+            this.superCtx.drawImage(canvas, pos.x, pos.y)
         })
     }
     addRenderJob(renderer: () => void, zIndexDelta = 0) {
-        this.game.addRenderJob({
+        this.superRenderJobs.push({
             zIndex: this.state.zIndex + zIndexDelta,
             renderer: () => {
+                this.ctx.save()
                 this.bubble('before-render')
                 renderer()
                 this.bubble('after-render')
+                this.ctx.restore()
             },
         })
     }
@@ -316,16 +360,16 @@ export class Entity<
         return this
     }
 
-    updatePosition(delta: Vector2D) {
-        this.emit('position-update', delta)
-        this.state.position = vAdd(this.state.position, delta)
-        this.attachedEntities.forEach(entity => entity.updatePosition(delta))
+    updatePos(delta: Vector2D) {
+        this.emit('pos-update', delta)
+        this.state.pos = vAdd(this.state.pos, delta)
+        this.attachedEntities.forEach(entity => entity.updatePos(delta))
         return this
     }
-    updatePositionTo({ x, y }: Vector2D) {
-        return this.updatePosition({
-            x: x - this.state.position.x,
-            y: y - this.state.position.y,
+    updatePosTo({ x, y }: Vector2D) {
+        return this.updatePos({
+            x: x - this.state.pos.x,
+            y: y - this.state.pos.y,
         })
     }
 

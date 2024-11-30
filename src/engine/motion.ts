@@ -1,8 +1,6 @@
 import { fixed } from '@/utils'
 import { Game, Vector2D, vSub } from '@/engine'
 
-export type Motion<S extends {}> = (state: S) => Vector2D | null
-
 export interface FrameState {
     frame: number
 }
@@ -13,6 +11,8 @@ export interface MotionTimeConfig {
 export interface MotionSpeedConfig {
     speed: number
 }
+
+export type Motion<S extends {}> = (state: S) => Vector2D | null
 
 export const useMotion = (game: Game) => {
     const withFrame = <T extends {}>(motion: Motion<T>, totalFrame: number): Motion<FrameState & T> => {

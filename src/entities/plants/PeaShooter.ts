@@ -33,11 +33,11 @@ export const PeaShooterEntity = definePlant(class PeaShooterEntity extends Plant
                     return this.getComp(ZombieSeekingComp)!.seekZombies([ this.state.j ], 'front')
                 },
                 attack() {
-                    const { position: { x, y }, zIndex } = this.state
+                    const { pos: { x, y }, zIndex } = this.state
                     this.getComp(BulletShootingComp)!.shootBullet(BulletEntity.createBullet(
                         'pea',
                         {},
-                        { position: { x: x + 60, y: y + 25 }, zIndex: zIndex + 1 },
+                        { pos: { x: x + 60, y: y + 25 }, zIndex: zIndex + 1 },
                     ))
                 },
             })

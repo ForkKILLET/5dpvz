@@ -1,5 +1,7 @@
 import { elem } from '@/utils'
 
+export const apply = <R>(f: () => R): R => f()
+
 export const id =
     <X>(x: X): X => x
 
@@ -14,6 +16,10 @@ export const not = <X>(f: Pred<X>): Pred<X> => x => ! f(x)
 export type Pred<X> = (x: X) => boolean
 
 export type Endo<X> = (x: X) => X
+
+export type WithThisParameter<F extends (...args: any[]) => any, T> = F extends (...args: infer A) => infer R
+    ? (this: T, ...args: A) => R
+    : never
 
 export type Primitive = string | number | boolean | null | undefined | symbol | bigint
 

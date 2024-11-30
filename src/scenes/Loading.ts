@@ -5,12 +5,9 @@ import { StartScene } from '@/scenes/Start'
 
 export class LoadingScene extends Scene {
     constructor() {
-        const loading = new LoadingEntity(
-            {},
-            { position: { x: 0, y: 0 }, zIndex: 5 }
-        )
+        super()
 
-        super(loading)
+        const loading = LoadingEntity.createLoading().attachTo(this)
 
         loading.on('load', () => {
             this.game.addScene(new StartScene())
