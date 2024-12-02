@@ -265,7 +265,7 @@ export const loadDebugWindow = (game: Game) => {
 
             this.state.zIndex = Infinity
 
-            this.game.emitter.onSome([
+            this.game.onSome([
                 'entityStart',
                 'entityDispose',
                 'entityAttach',
@@ -518,6 +518,7 @@ export const loadDebugWindow = (game: Game) => {
                     <b>width</b> ${ node.width }<br />
                     <b>height</b> ${ node.height }<br />
                     <b>output</b> <debug-button class="run-render-node" data-id="${ node.id }">Run</debug-button> <br />
+                    ${ 'config' in node ? `<b>config</b> ${ showJson(node.config) }<br />` : '' }
                     <canvas class="render-node-output" width="0" height="0" data-id="${ node.id }"></canvas>
                     <br />
                 </div>

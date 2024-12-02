@@ -30,14 +30,12 @@ void async function() {
 
     const searchParams = new URLSearchParams(location.search)
     const isDebug = searchParams.has('debug')
-    const noAudio = searchParams.has('noaudio')
 
     const game = new Game({
         ctx,
         fps: 60,
         isDefault: true,
         isDebug,
-        noAudio,
     })
 
     const preloadImgSrcs: string[] = [
@@ -60,7 +58,7 @@ void async function() {
         ...shovelTextures.getAllSrcs(),
     ]
 
-    const preloadAudioSrcs: string[] = noAudio ? [] : [
+    const preloadAudioSrcs: string[] = [
         './assets/audio/day.mp3',
     ]
 

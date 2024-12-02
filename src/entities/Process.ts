@@ -8,7 +8,6 @@ import { StageData } from '@/data/stages'
 import { ZombieId } from '@/data/zombies'
 import {
     Entity, EntityConfig, EntityEvents, EntityState, injectKey, Vector2D,
-    BrightnessNode, GaussianBlurNode, ScaleNode, ShearNode,
 } from '@/engine'
 import { BulletEntity } from '@/entities/bullets/Bullet'
 import { LawnConfig, LawnEntity } from '@/entities/Lawn'
@@ -170,7 +169,7 @@ export class ProcessEntity extends Entity<ProcessConfig, ProcessState, ProcessEv
         this.provide(kProcess, this)
 
         // FIXME: safe global listener
-        this.game.emitter.on('hoverTargetChange', target => {
+        this.game.on('hoverTargetChange', target => {
             if (this.state.holdingObject === null) return
 
             const { holdingObject } = this.state
@@ -189,7 +188,7 @@ export class ProcessEntity extends Entity<ProcessConfig, ProcessState, ProcessEv
             }
         })
 
-        this.game.emitter.on('click', target => {
+        this.game.on('click', target => {
             if (! this.active) return
 
             if (this.state.holdingObject === null) return
@@ -203,14 +202,14 @@ export class ProcessEntity extends Entity<ProcessConfig, ProcessState, ProcessEv
             }
             else if (target instanceof PlantEntity) {
                 if (holdingObject?.type === 'shovel') {
-                    this.kill(target.state.i, target.state.j)
+                    target.dispose()
                     this.cancelHolding()
                 }
             }
             else this.cancelHolding()
         })
 
-        this.game.emitter.on('rightclick', () => {
+        this.game.on('rightclick', () => {
             if (this.state.holdingObject !== null) this.cancelHolding()
         })
     }
@@ -310,52 +309,31 @@ export class ProcessEntity extends Entity<ProcessConfig, ProcessState, ProcessEv
         this.updatePlantSlot(false)
 
         console.log(plantId)
-        const newPlant = PlantEntity.createPlant(
-            plantId,
-            {},
-            {
-                i, j,
-                pos: this.getLawnBlockPos(i, j),
-                zIndex: this.state.zIndex + 3,
-            }
-        )
+        const plant = PlantEntity
+            .createPlant(
+                plantId,
+                {},
+                {
+                    i, j,
+                    pos: this.getLawnBlockPos(i, j),
+                    zIndex: this.state.zIndex + 3,
+                }
+            )
             .attachTo(this)
-            .afterStart(() => {
-                if (! this.game.config.isDebug) return
-                newPlant.pipeline
-                    .appendNode(new GaussianBlurNode({ radius: 2 }))
-                    .appendNode(new BrightnessNode({ brightness: 0.5 }))
-                    .appendNode(new ScaleNode({
-                        scaleX: 2,
-                        scaleY: 2,
-                        origin: { x: 'left', y: 'top' },
-                    }))
-                    .appendNode(new ShearNode({
-                        shearX: - 2,
-                        shearY: 3,
-                    }))
-            })
 
-        const newPlantData: PlantData = {
+        const plantData: PlantData = {
             id: plantId,
             pos: { i, j },
-            entity: newPlant,
+            entity: plant,
         }
-        this.state.plantsData.push(newPlantData)
-        this.state.plantsOnBlocks[i][j] = newPlantData
+        this.state.plantsData.push(plantData)
+        this.state.plantsOnBlocks[i][j] = plantData
+        plant.on('dispose', () => {
+            this.state.plantsOnBlocks[i][j] = null
+            remove(this.state.plantsData, eq(plantData))
+        })
 
         this.cancelHolding()
-    }
-
-    kill(i: number, j: number) {
-        const plantData = this.state.plantsOnBlocks[i][j]
-        if (! plantData) return
-        this.state.plantsOnBlocks[i][j] = null
-
-        const { entity } = plantData
-        entity.dispose()
-
-        remove(this.state.plantsData, eq(plantData))
     }
 
     isOccupied(i: number, j: number) {

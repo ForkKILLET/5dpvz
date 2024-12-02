@@ -9,6 +9,9 @@ export type RemoveIndex<T> = {
     ]: T[K]
 }
 
+export type OrElse<T, D> = keyof T extends never ? D : T
+export type SafelyRemoveIndex<T> = OrElse<RemoveIndex<T>, T>
+
 export type Disposer = () => void
 
 export type Nullable<T> = T | null

@@ -117,6 +117,13 @@ export class RenderNode {
     }
 }
 
+export interface RenderNodeCtor<N extends RenderNode> {
+    new (...args: any): N
+    name: string
+    leftCount: number[]
+    rightCount: number[]
+}
+
 export class RenderPipeline {
     constructor() {
         this.inputNode = new InputNode()
@@ -219,7 +226,7 @@ export abstract class FilterNode<F> extends RenderNode {
     static leftCount = [ 1 ]
     static rightCount = [ 1 ]
 
-    constructor(protected filterConfig: F) {
+    constructor(public config: F) {
         super(({ offset, canvas }) => {
             return {
                 canvas: this.applyFilter(canvas),
@@ -240,8 +247,8 @@ export abstract class FilterNode<F> extends RenderNode {
     }
 
     configFilter(filterConfig: F) {
-        if (this.filterConfig !== filterConfig) {
-            this.filterConfig = filterConfig
+        if (this.config !== filterConfig) {
+            this.config = filterConfig
             this.clearCache()
         }
         return this
@@ -255,7 +262,7 @@ export interface GaussianBlurConfig {
 }
 export class GaussianBlurNode extends FilterNode<GaussianBlurConfig> {
     getFilterStr() {
-        return `blur(${ this.filterConfig.radius }px)`
+        return `blur(${ this.config.radius }px)`
     }
 }
 
@@ -264,7 +271,7 @@ export interface BrightnessConfig {
 }
 export class BrightnessNode extends FilterNode<BrightnessConfig> {
     getFilterStr() {
-        return `brightness(${ this.filterConfig.brightness })`
+        return `brightness(${ this.config.brightness })`
     }
 }
 
@@ -287,7 +294,7 @@ export class ScaleNode extends RenderNode {
     static leftCount = [ 1 ]
     static rightCount = [ 1 ]
 
-    constructor(protected config: ScaleConfig) {
+    constructor(public config: ScaleConfig) {
         super(({ canvas, offset }) => {
             return {
                 canvas: this.scaleImage(canvas),
@@ -354,7 +361,7 @@ export class ShearNode extends RenderNode {
     static leftCount = [ 1 ]
     static rightCount = [ 1 ]
 
-    constructor(protected config: ShearConfig) {
+    constructor(public config: ShearConfig) {
         super(({ canvas, offset }) => {
             return {
                 canvas: this.shearImage(canvas),

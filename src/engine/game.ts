@@ -2,9 +2,9 @@ import { CursorComp } from '@/comps/Cursor'
 import { HoverableComp } from '@/comps/Hoverable'
 import { AnyShape, ShapeComp } from '@/comps/Shape'
 import {
-    Emitter, Entity, Scene, Events,
-    AudioManager, useAudioManager, ImageManager, useImageManager, Mouse, useMouse,
-    useMotion,
+    Entity, Scene,
+    AudioManager, useAudioManager, ImageManager, useImageManager, Mouse, useMouse, useMotion,
+    GameObject, GameObjectEvents,
 } from '@/engine'
 import { by, eq, placeholder, remove } from '@/utils'
 import { Keyboard, KeyboardEvents, useKeyboard } from '@/engine/keyboard'
@@ -15,7 +15,6 @@ export interface GameConfig {
     fps: number
     isDefault: boolean
     isDebug?: boolean
-    noAudio?: boolean
 }
 
 export interface RenderJob {
@@ -23,7 +22,7 @@ export interface RenderJob {
     renderer: () => void
 }
 
-export interface GameEvents extends KeyboardEvents, Events {
+export interface GameEvents extends KeyboardEvents, GameObjectEvents {
     hoverTargetChange: [ Entity | null ]
     click: [ Entity | null, MouseEvent ]
     rightclick: [ Entity | null, MouseEvent ]
@@ -35,10 +34,12 @@ export interface GameEvents extends KeyboardEvents, Events {
     entityDeactivate: [ Entity ]
 }
 
-export class Game {
+export class Game extends GameObject<{}, GameEvents> {
     static defaultGame: Game = placeholder
 
     constructor(public config: GameConfig) {
+        super({})
+
         if (config.isDefault) Game.defaultGame = this
 
         this.ctx = config.ctx
@@ -96,10 +97,15 @@ export class Game {
 
     allEntities: Entity[] = []
     scenes: Scene[] = []
+    activeScenes: Scene[] = []
 
-    emitter = new Emitter<GameEvents>()
-
-    renderJobs: RenderJob[] = []
+    superObject = this
+    get pos() {
+        return { x: 0, y: 0 }
+    }
+    get zIndex() {
+        return 0
+    }
 
     hoveringEntity: Entity | null = null
 
@@ -109,9 +115,9 @@ export class Game {
     }
 
     loop() {
-        const activeScenes = this.scenes.filter(scene => scene.active)
+        this.activeScenes = this.scenes.filter(scene => scene.active)
 
-        activeScenes.forEach(scene => scene.runUpdate())
+        this.activeScenes.forEach(scene => scene.runUpdate())
 
         const oldHoveringEntity = this.hoveringEntity
         this.hoveringEntity = null
@@ -148,15 +154,13 @@ export class Game {
             this.emitter.emit('hoverTargetChange', this.hoveringEntity)
         }
 
-        this.renderJobs = []
-        activeScenes.forEach(scene => scene.runRender())
-
-        // TODO: DRY
-        this.ctx.clearRect(0, 0, this.ctx.canvas.width, this.ctx.canvas.height)
-        this.renderJobs
-            .sort(by(job => job.zIndex))
-            .forEach(job => job.renderer())
+        this.runRender()
     }
+
+    preRender() {
+        this.activeScenes.forEach(scene => scene.runRender())
+    }
+    render() {}
 
     loopDuration = 0
 

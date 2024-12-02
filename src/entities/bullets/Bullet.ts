@@ -5,7 +5,7 @@ import { ZombieEntity } from '@/entities/zombies/Zombie'
 import { CollidableComp } from '@/comps/Collidable'
 import { TextureConfig, TextureState, TextureEvents, TextureEntity } from '@/entities/Texture'
 import { HealthComp } from '@/comps/Health'
-import { kProcess } from '../Process'
+import { kProcess } from '@/entities/Process'
 import { StrictOmit } from '@/utils'
 
 export interface BulletUniqueConfig {

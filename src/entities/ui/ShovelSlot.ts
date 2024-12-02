@@ -2,7 +2,7 @@ import { shovelTextures, SHOVELS, ShovelId, ShovelMetadata } from '@/data/shovel
 import { SlotConfig, SlotEntity, SlotEvents, SlotState } from '@/entities/ui/Slot'
 import { kProcess } from '@/entities/Process'
 import { CursorComp } from '@/comps/Cursor'
-import { TextureEntity } from '../Texture'
+import { TextureEntity } from '@/entities/Texture'
 import { StrictOmit } from '@/utils'
 
 export interface ShovelSlotConfig extends SlotConfig {

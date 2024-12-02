@@ -22,11 +22,13 @@ export interface AudioManager {
 }
 
 export const useAudioManager = (game: Game): AudioManager => {
+    void game
+
     const audioContext = new AudioContext()
     const audios: Record<string, AudioBuffer> = {}
     const loadingAudios: Record<string, Promise<AudioBuffer>> = {}
 
-    if (! game.config.noAudio) document.addEventListener('click', () => {
+    document.addEventListener('click', () => {
         if (audioContext.state === 'suspended') {
             audioContext.resume()
         }

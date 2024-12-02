@@ -1,8 +1,8 @@
 import { kProcess } from '@/entities/Process'
 import { SlotConfig, SlotEntity, SlotEvents, SlotState } from '@/entities/ui/Slot'
-import { TextureEntity } from '../Texture'
+import { TextureEntity } from '@/entities/Texture'
 import { TransitionComp } from '@/comps/Transition'
-import { easeInSine } from '@/engine'
+import { easeInSine, ScaleNode } from '@/engine'
 import { placeholder, StrictOmit } from '@/utils'
 
 export interface SunSlotConfig extends SlotConfig {}
@@ -34,12 +34,18 @@ export class SunSlotEntity extends SlotEntity<SunSlotConfig, SunSlotState, SunSl
                 {
                     pos: { x: x + 1 + 40, y: y + 1 + 40 },
                     zIndex: zIndex + 1,
-                    scale: 1,
                 },
             ))
+            .appendRenderNode(new ScaleNode({
+                scaleX: 1,
+                scaleY: 1,
+                origin: { x: 'center', y: 'center' },
+            }))
             .addComp(TransitionComp, {
                 transition: (image, t) => {
-                    image.state.scale = 1 + 0.3 * easeInSine(t)
+                    image.withRenderNode(ScaleNode, node => {
+                        node.config.scaleX = node.config.scaleY = 1 + 0.3 * easeInSine(t)
+                    })
                 },
                 defaultTotalFrame: this.game.unit.ms2f(200),
             })

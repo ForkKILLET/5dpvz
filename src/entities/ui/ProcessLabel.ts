@@ -45,22 +45,21 @@ export class ProcessLabelEntity extends Entity<ProcessLabelConfig, ProcessLabelS
 
     render() {
         const { width, height } = ProcessLabelEntity.size
-        const { x, y } = this.state.pos
         const { ctx, color, processId } = this
         ctx.fillStyle = color
         ctx.beginPath()
-        ctx.moveTo(x, y)
-        ctx.lineTo(x + width, y)
-        ctx.lineTo(x + width - height / 2, y + height / 2)
-        ctx.lineTo(x + width, y + height)
-        ctx.lineTo(x, y + height)
-        ctx.lineTo(x + height / 2, y + height / 2)
+        ctx.moveTo(0, 0)
+        ctx.lineTo(width, 0)
+        ctx.lineTo(width - height / 2, height / 2)
+        ctx.lineTo(width, height)
+        ctx.lineTo(0, height)
+        ctx.lineTo(height / 2, height / 2)
         ctx.closePath()
         ctx.fill()
         ctx.fillStyle = '#ffffff'
         ctx.textAlign = 'center'
         ctx.textBaseline = 'alphabetic'
         ctx.font = '20px Sans'
-        ctx.fillText(processId.toString(), x + width / 2, y + 20 - 3)
+        ctx.fillText(processId.toString(), width / 2, 20 - 3)
     }
 }

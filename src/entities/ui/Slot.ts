@@ -43,8 +43,9 @@ export class SlotEntity<
 
         this.addRenderJob(() => {
             const { width, height } = SlotEntity.size
-            ctx.strokeStyle = 'brown'
+            ctx.strokeStyle = 'maroon'
+            ctx.lineWidth = 2
             ctx.strokeRect(0, 0, width, height)
-        }, 0)
+        })
     }
 }

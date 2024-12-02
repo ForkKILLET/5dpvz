@@ -1,34 +1,30 @@
 import { RectShape, Size } from '@/comps/Shape'
 import { kDebugFold } from '@/debug'
 import {
-    createIdGenerator, Vector2D, vAdd,
-    Emitter, Events, ListenerOptions,
-    State, Comp, CompCtor, CompSelector,
-    RenderPipeline,
-    RenderJob,
-    vSub,
+    Game, createIdGenerator, Vector2D, vAdd,
+    Comp, CompCtor, CompSelector,
+    RenderPipeline, RenderNode, RenderJob,
+    GameObject, GameObjectEvents,
+    RenderNodeCtor,
 } from '@/engine'
-import { apply, by, Disposer, eq, mapk, not, remove, RemoveIndex } from '@/utils'
+import { apply, eq, mapk, not, remove } from '@/utils'
 
 export interface EntityConfig {}
 
 export interface EntityState {
     pos: Vector2D
     size: Size
-    zIndex: number
     scale?: number
+    zIndex: number
     resourceId?: string
     cloning?: boolean
 }
 
-export interface EntityEvents extends Events {
+export interface EntityEvents extends GameObjectEvents {
     'start': []
     'clone-finish': []
-    'before-render': []
-    'after-render': []
     'attach': [ superEntity: Entity ]
     'unattach': []
-    'dispose': []
     'pos-update': [ delta: Vector2D ]
 }
 
@@ -41,7 +37,7 @@ export class Entity<
     C extends EntityConfig = EntityConfig,
     S extends EntityState = EntityState,
     V extends EntityEvents = EntityEvents
-> extends State<S> {
+> extends GameObject<S, V> {
     constructor(public config: C, state: S) {
         super(state)
 
@@ -67,7 +63,7 @@ export class Entity<
     activate() {
         this.active = true
         this.emitter.activate()
-        this.game.emitter.emit('entityActivate', this)
+        this.game.emit('entityActivate', this)
         return this
     }
     deactivate() {
@@ -185,21 +181,6 @@ export class Entity<
         return this.superEntity.inject(injectKey)
     }
 
-    protected disposers: Disposer[] = []
-    disposed = false
-    dispose() {
-        if (this.disposed) return
-        this.disposed = true
-        this.emit('dispose')
-        this.game.emitter.emit('entityStart', this)
-
-        this.disposers.forEach(dispose => dispose())
-        this.attachedEntities.forEach(entity => entity.dispose())
-
-        if (! this.game) return
-        remove(this.game.allEntities, entity => entity === this)
-    }
-
     log(message: string) {
         console.log(`Entity #${ this.id }: ${ message }\n%o`, this)
     }
@@ -207,6 +188,16 @@ export class Entity<
         message = `Entity #${ this.id }: ${ message }`
         console.error(`${ message }\n%o`, this)
         throw new Error(message)
+    }
+
+    dispose() {
+        if (! super.dispose()) return false
+
+        this.attachedEntities.forEach(entity => entity.dispose())
+        this.game.emitter.emit('entityDispose', this)
+        remove(this.game.allEntities, entity => entity === this)
+
+        return true
     }
 
     comps: Comp[] = []
@@ -269,11 +260,24 @@ export class Entity<
     }
 
     pipeline = new RenderPipeline()
+    appendRenderNode(node: RenderNode) {
+        this.pipeline.appendNode(node)
+        return this
+    }
+    withRenderNode<N extends RenderNode>(Node: RenderNodeCtor<N>, fn: (node: N) => void) {
+        const node = this.pipeline.allNodes.find((node): node is N => node instanceof Node)
+        if (node) fn(node)
+        return this
+    }
+
     get ctx() {
         return this.pipeline.inputNode.ctx
     }
     get sizeTuple() {
         return [ this.state.size.width, this.state.size.height ] as const
+    }
+    get superObject(): Entity | Game {
+        return this.superEntity ?? this.game
     }
     get superCtx(): CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D {
         return (this.superEntity ?? this.game).ctx
@@ -285,41 +289,13 @@ export class Entity<
         return this.superEntity?.pos ?? { x: 0, y: 0 }
     }
 
-    renderJobs: RenderJob[] = []
-
     get pos(): Vector2D {
         return this.getComp(RectShape.withTag(eq('boundary')))?.rect ?? this.state.pos
     }
-
-    runRender() {
-        this.preRender()
-
-        this.ctx.clearRect(0, 0, this.ctx.canvas.width, this.ctx.canvas.height)
-        this.renderJobs
-            .sort(by(job => job.zIndex))
-            .forEach(job => job.renderer())
-        this.renderJobs = []
-
-        this.addRenderJob(() => {
-            this.render()
-            const { canvas, offset } = this.pipeline.getOutput()
-            const pos = vAdd(vSub(this.pos, this.superPos), offset)
-
-            this.superCtx.drawImage(canvas, pos.x, pos.y)
-        })
+    get zIndex(): number {
+        return this.state.zIndex
     }
-    addRenderJob(renderer: () => void, zIndexDelta = 0) {
-        this.superRenderJobs.push({
-            zIndex: this.state.zIndex + zIndexDelta,
-            renderer: () => {
-                this.ctx.save()
-                this.bubble('before-render')
-                renderer()
-                this.bubble('after-render')
-                this.ctx.restore()
-            },
-        })
-    }
+
     preRender() {
         this.attachedEntities
             .filter(entity => entity.active && entity.autoRender)
@@ -337,28 +313,6 @@ export class Entity<
         this.comps.forEach(comp => comp.update())
     }
     update() {}
-
-    protected emitter = new Emitter<V>()
-    emit<K extends keyof RemoveIndex<V>>(event: K, ...args: V[K]) {
-        this.emitter.emit(event, ...args)
-        return this
-    }
-    bubble<K extends keyof RemoveIndex<V>>(event: K, ...args: V[K]) {
-        this.emit(event, ...args)
-        this.superEntity?.bubble(event, ...args)
-        return this
-    }
-    on<K extends keyof RemoveIndex<V>>(event: K, listener: (...args: V[K]) => void, options: ListenerOptions = {}) {
-        const off = this.emitter.on(event, listener, options)
-        this.disposers.push(off)
-        return this
-    }
-    forwardEvents<F extends Events, Ks extends (keyof RemoveIndex<V> & keyof RemoveIndex<F>)[]>(
-        source: Emitter<F>, events: Ks,
-    ) {
-        this.emitter.forward(source, events)
-        return this
-    }
 
     updatePos(delta: Vector2D) {
         this.emit('pos-update', delta)

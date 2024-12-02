@@ -1,4 +1,4 @@
-import { Disposer, eq, remove, RemoveIndex } from '@/utils'
+import { Disposer, eq, remove, SafelyRemoveIndex } from '@/utils'
 
 export type Events = Record<string, any[]>
 
@@ -24,7 +24,7 @@ export class Emitter<V extends Events> {
         }
     }> = {}
 
-    emit<K extends keyof RemoveIndex<V>>(event: K, ...args: V[K]) {
+    emit<K extends keyof SafelyRemoveIndex<V>>(event: K, ...args: V[K]) {
         if (! this.active) return
 
         const listeners = this.listeners[event]
@@ -35,7 +35,7 @@ export class Emitter<V extends Events> {
             listener(...args)
     }
 
-    on<K extends keyof RemoveIndex<V>>(
+    on<K extends keyof SafelyRemoveIndex<V>>(
         event: K,
         listener: Listener<V, K>,
         { capture = false }: ListenerOptions = {}
@@ -49,7 +49,7 @@ export class Emitter<V extends Events> {
         return () => remove(concreteListeners, eq(listener))
     }
 
-    onSome<const Ks extends (keyof RemoveIndex<V>)[]>(
+    onSome<const Ks extends (keyof SafelyRemoveIndex<V>)[]>(
         events: Ks, listener: (...args: [ Ks[number], ...V[Ks[number]] ]) => void,
     ) {
         const disposers: Disposer[] = events
@@ -57,7 +57,7 @@ export class Emitter<V extends Events> {
         return () => disposers.forEach(fn => fn())
     }
 
-    forward<F extends Events, const Ks extends (keyof RemoveIndex<F> & keyof RemoveIndex<V>)[]>(
+    forward<F extends Events, const Ks extends (keyof SafelyRemoveIndex<F> & keyof SafelyRemoveIndex<V>)[]>(
         source: Emitter<F>, events: Ks,
     ) {
         events.forEach(event => {

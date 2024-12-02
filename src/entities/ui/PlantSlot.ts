@@ -2,7 +2,7 @@ import { plantTextures, PLANTS, PlantMetadata, PlantId } from '@/data/plants'
 import { kProcess } from '@/entities/Process'
 import { SlotConfig, SlotEntity, SlotEvents, SlotState } from '@/entities/ui/Slot'
 import { CursorComp } from '@/comps/Cursor'
-import { TextureEntity } from '../Texture'
+import { TextureEntity } from '@/entities/Texture'
 import { StrictOmit } from '@/utils'
 
 export interface PlantSlotConfig extends SlotConfig {

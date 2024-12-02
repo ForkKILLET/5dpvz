@@ -8,7 +8,7 @@ import { Entity, EntityCtor, EntityState, Vector2D } from '@/engine'
 import { PlantEntity } from '@/entities/plants/Plant'
 import { TextureConfig, TextureEntity, TextureEvents, TextureState } from '@/entities/Texture'
 import { PartialBy, StrictOmit } from '@/utils'
-import { HpBarEntity } from '../ui/HpBar'
+import { HpBarEntity } from '@/entities/ui/HpBar'
 
 void PLANTS
 
