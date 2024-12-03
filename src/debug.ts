@@ -138,7 +138,7 @@ export const loadDebugWindow = (game: Game) => {
             .render-node-output {
                 max-width: 300px;
                 border: 1px solid blue;
-                background: repeating-conic-gradient(#fff 0% 25%, #888 0% 50%) 50% / 8px 8px;
+                // background: repeating-conic-gradient(#fff 0% 25%, #888 0% 50%) 50% / 8px 8px;
             }
 
             entity-id {

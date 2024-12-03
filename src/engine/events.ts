@@ -5,6 +5,7 @@ export type Events = Record<string, any[]>
 export type Listener<V extends Events, K extends keyof V> = (...args: V[K]) => boolean | void
 
 export interface ListenerOptions {
+    once?: boolean
     capture?: boolean
 }
 
@@ -38,15 +39,20 @@ export class Emitter<V extends Events> {
     on<K extends keyof SafelyRemoveIndex<V>>(
         event: K,
         listener: Listener<V, K>,
-        { capture = false }: ListenerOptions = {}
+        { capture = false, once = false }: ListenerOptions = {}
     ) {
         const currentListeners = this.listeners[event] ??= {
             normal: [],
             capture: [],
         }
         const concreteListeners = currentListeners[capture ? 'capture' : 'normal']
-        concreteListeners.push(listener)
-        return () => remove(concreteListeners, eq(listener))
+        const _listener: Listener<V, K> = (...args) => {
+            if (once) dispose()
+            return listener(...args)
+        }
+        concreteListeners.push(_listener)
+        const dispose = () => remove(concreteListeners, eq(_listener))
+        return dispose
     }
 
     onSome<const Ks extends (keyof SafelyRemoveIndex<V>)[]>(

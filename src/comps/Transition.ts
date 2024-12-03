@@ -101,5 +101,6 @@ export class TransitionComp<E extends Entity> extends Comp<TransitionConfig<E>, 
                 break
             }
         }
+        return this
     }
 }

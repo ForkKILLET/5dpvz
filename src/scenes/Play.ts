@@ -4,6 +4,7 @@ import { Stage1_1 } from '@/data/stages'
 import { CursorComp } from '@/comps/Cursor'
 import { TextureEntity } from '@/entities/Texture'
 import { placeholder } from '@/utils'
+import { TransitionComp } from '@/comps/Transition'
 
 export class PlayScene extends Scene {
     bgmPlayBack: AudioPlayback = placeholder
@@ -13,11 +14,25 @@ export class PlayScene extends Scene {
 
         const getProcessById = (processId: number) => processes.find(process => process.config.processId === processId)
 
-        const switchProcess = (currentProcessId: number) => {
-            const nextProcess = getProcessById(currentProcessId + 1) ?? (currentProcessId === 0 ? undefined : process0)
-            if (! nextProcess) return
-            getProcessById(currentProcessId)!.deactivate()
-            currentProcess = nextProcess.activate()
+        const switchProcess = (sourceProcessId: number) => {
+            const targetProcess = getProcessById(sourceProcessId + 1) ?? (sourceProcessId === 0 ? undefined : process0)
+            if (! targetProcess) return
+            const sourceProcess = getProcessById(sourceProcessId)!
+            sourceProcess.withComp(TransitionComp, trans => {
+                trans.state.frame = 0
+                trans.state.direction = 1
+                trans.start('once')
+                trans.emitter.on('transition-finish', () => {
+                    sourceProcess.deactivate()
+                    currentProcess = targetProcess
+                        .activate()
+                        .withComp(TransitionComp, trans => {
+                            trans.state.frame = this.game.unit.ms2f(700)
+                            trans.state.direction = - 1
+                            trans.start('once')
+                        })
+                }, { once: true })
+            })
         }
 
         const process0 = ProcessEntity

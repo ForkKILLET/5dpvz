@@ -246,9 +246,9 @@ export abstract class FilterNode<F> extends RenderNode {
         return canvas
     }
 
-    configFilter(filterConfig: F) {
-        if (this.config !== filterConfig) {
-            this.config = filterConfig
+    adjust(config: F) {
+        if (this.config !== config) {
+            this.config = config
             this.clearCache()
         }
         return this
@@ -297,13 +297,13 @@ export class ScaleNode extends RenderNode {
     constructor(public config: ScaleConfig) {
         super(({ canvas, offset }) => {
             return {
-                canvas: this.scaleImage(canvas),
-                offset: vAdd(offset, this.scaleOffset(canvas)),
+                canvas: this.process(canvas),
+                offset: vAdd(offset, this.getOffset(canvas)),
             }
         })
     }
 
-    private scaleImage(sourceCanvas: OffscreenCanvas): OffscreenCanvas {
+    protected process(sourceCanvas: OffscreenCanvas): OffscreenCanvas {
         const { width, height } = sourceCanvas
         const { scaleX, scaleY } = this.config
         const { canvas, ctx } = this
@@ -316,7 +316,7 @@ export class ScaleNode extends RenderNode {
         return canvas
     }
 
-    protected scaleOffset(size: Size): Vector2D {
+    protected getOffset(size: Size): Vector2D {
         const { scaleX, scaleY, origin: { x: ox, y: oy } } = this.config
         const { width, height } = size
         const x =
@@ -352,11 +352,6 @@ export interface ShearConfig {
     shearY: number
 }
 
-/**
- * @description transformation: Anchor the left bottom corner, look at left top corner
- * @param config.shearX: the percentage change in X axis (positive direction is right)
- * @param config.shearY: the percentage change in Y axis (positive direction is up)
- */
 export class ShearNode extends RenderNode {
     static leftCount = [ 1 ]
     static rightCount = [ 1 ]
@@ -364,13 +359,13 @@ export class ShearNode extends RenderNode {
     constructor(public config: ShearConfig) {
         super(({ canvas, offset }) => {
             return {
-                canvas: this.shearImage(canvas),
-                offset: vAdd(offset, this.shearOffset(canvas)),
+                canvas: this.process(canvas),
+                offset: vAdd(offset, this.getOffset(canvas)),
             }
         })
     }
 
-    private shearImage(sourceCanvas: OffscreenCanvas): OffscreenCanvas {
+    private process(sourceCanvas: OffscreenCanvas): OffscreenCanvas {
         const { width, height } = sourceCanvas
         const { shearX, shearY } = this.config
         const { ctx, canvas } = this
@@ -390,7 +385,7 @@ export class ShearNode extends RenderNode {
         return canvas
     }
 
-    private shearOffset(canvas: OffscreenCanvas): Vector2D {
+    private getOffset(canvas: OffscreenCanvas): Vector2D {
         const { width, height } = canvas
         const { shearX, shearY } = this.config
         return {
@@ -399,9 +394,63 @@ export class ShearNode extends RenderNode {
         }
     }
 
-    configShear(config: ShearConfig) {
+    adjust(config: ShearConfig) {
         if (this.config.shearX !== config.shearX || this.config.shearY !== config.shearX)
             this.clearCache()
+        this.config = config
+        return this
+    }
+}
+
+export interface TrapezoidConfig {
+    scaleTop: number
+    centerTop: number
+}
+
+export class TrapezoidNode extends RenderNode {
+    static leftCount = [ 1 ]
+    static rightCount = [ 1 ]
+
+    constructor(public config: TrapezoidConfig) {
+        super(({ canvas, offset }) => ({
+            canvas: this.process(canvas),
+            offset,
+        }))
+    }
+
+    protected process(sourceCanvas: OffscreenCanvas): OffscreenCanvas {
+        const { width, height } = sourceCanvas
+        const { scaleTop, centerTop } = this.config
+
+        if (scaleTop === 1) return sourceCanvas
+
+        const { canvas, ctx } = this
+
+        const sourceCtx = sourceCanvas.getContext('2d')!
+        const sourceImageData = sourceCtx!.getImageData(0, 0, width, height)
+        const imageData = ctx.createImageData(width, height)
+
+        const padTop = centerTop - width * scaleTop / 2
+
+        for (let j = 0; j < height; j ++) {
+            const padJ = Math.round((height - j) / height * padTop)
+            const widthJ = width - padJ * 2
+            const invScaleJ = width / widthJ
+            for (let i = 0; i < widthJ; i ++) {
+                const k = j * width + i + padJ
+                const sourceK = Math.round(j * width + i * invScaleJ)
+                for (let b = 0; b < 4; b ++) imageData.data[k * 4 + b] = sourceImageData.data[sourceK * 4 + b]
+            }
+        }
+
+        canvas.width = width
+        canvas.height = height
+        ctx.putImageData(imageData, 0, 0)
+        return canvas
+    }
+
+    adjust(config: TrapezoidConfig) {
+        if (this.config.scaleTop !== config.scaleTop) this.clearCache()
         this.config = config
         return this
     }

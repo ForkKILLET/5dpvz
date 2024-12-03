@@ -1,13 +1,15 @@
 import { MotionComp } from '@/comps/Motion'
 import { RngComp } from '@/comps/Rng'
 import { RectShape } from '@/comps/Shape'
+import { TransitionComp } from '@/comps/Transition'
 import { BulletId } from '@/data/bullets'
 import { PlantId, PLANTS, plantTextures } from '@/data/plants'
 import { ShovelId, shovelTextures } from '@/data/shovels'
 import { StageData } from '@/data/stages'
 import { ZombieId } from '@/data/zombies'
 import {
-    Entity, EntityConfig, EntityEvents, EntityState, injectKey, Vector2D,
+    easeInSine,
+    Entity, EntityConfig, EntityEvents, EntityState, injectKey, ScaleNode, TrapezoidNode, Vector2D,
 } from '@/engine'
 import { BulletEntity } from '@/entities/bullets/Bullet'
 import { LawnConfig, LawnEntity } from '@/entities/Lawn'
@@ -163,8 +165,24 @@ export class ProcessEntity extends Entity<ProcessConfig, ProcessState, ProcessEv
 
         this.state.plantsOnBlocks ??= matrix(config.lawn.width, config.lawn.height, () => null)
 
-        this.addComp(RectShape, pick(ProcessEntity, [ 'width', 'height' ]))
-        this.addComp(RngComp, random(2 ** 32))
+        this
+            .appendRenderNode(new TrapezoidNode({ scaleTop: 1, centerTop: ProcessEntity.width / 2 }))
+            .appendRenderNode(new ScaleNode({ scaleX: 1, scaleY: 1, origin: { x: 'center', y: 'center' } }))
+            .addComp(RectShape, pick(ProcessEntity, [ 'width', 'height' ]))
+            .addComp(RngComp, random(2 ** 32))
+            .addComp(TransitionComp, {
+                transition: (entity, t) => {
+                    entity
+                        .withRenderNode(ScaleNode, node => {
+                            node.config.scaleX = 1 - easeInSine(t) * 0.2
+                            node.config.scaleY = 1 - easeInSine(t) * 0.4
+                        })
+                        .withRenderNode(TrapezoidNode, node => {
+                            node.config.scaleTop = 1 - easeInSine(t) * 0.4
+                        })
+                },
+                defaultTotalFrame: this.game.unit.ms2f(800),
+            })
 
         this.provide(kProcess, this)
 
