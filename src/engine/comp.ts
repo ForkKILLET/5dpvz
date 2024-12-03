@@ -24,10 +24,6 @@ export class Comp<C = any, S = any, V extends CompEvents = CompEvents, E extends
         return typeof Comp === 'function' ? Comp : Comp[0]
     }
 
-    static create<M extends Comp>(this: CompCtor<M>, entity: M['entity'], config: M['config'], state: M['state']): M {
-        return new this(entity, config, state)
-    }
-
     dispose() {
         this.emitter.emit('dispose')
         this.entity.removeComp([ Comp, eq(this) ])
@@ -47,11 +43,17 @@ export class Comp<C = any, S = any, V extends CompEvents = CompEvents, E extends
     }
 }
 
-export interface CompCtor<M extends Comp = Comp> {
-    dependencies: CompSelector[]
-    new (entity: M['entity'], config: M['config'], state: M['state']): M
-}
+export type CompCtor<M extends Comp = Comp>
+    = new (entity: M['entity'], config: M['config'], state: M['state']) => M
+
+export type CompCtorA<M extends Comp = Comp> =
+    | CompCtor<M>
+    | (abstract new (entity: M['entity'], config: M['config'], state: M['state']) => M)
 
 export type CompSelector<M extends Comp = any> =
-    | CompCtor<M>
-    | [ Comp: CompCtor<M>, filter: (comp: M) => boolean ]
+    | CompCtorA<M>
+    | [ Comp: CompCtorA<M>, filter: (comp: M) => boolean ]
+
+export type CompStatic<M extends Comp = Comp> = CompCtor<M> & {
+    dependencies: CompSelector<any>[]
+}

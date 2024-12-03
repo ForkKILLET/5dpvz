@@ -1,4 +1,4 @@
-import { Vector2D, Comp, Entity, CompSelector, CompCtor, CompEvents } from '@/engine'
+import { Vector2D, Comp, Entity, CompSelector, CompCtor, CompEvents, CompCtorA } from '@/engine'
 import { clamp, mapk, PartialBy, Pred } from '@/utils'
 
 export type ShapeTag = 'boundary' | 'texture' | 'hitbox'
@@ -11,7 +11,7 @@ export interface ShapeState {}
 
 export interface ShapeEvents extends CompEvents {}
 
-export class ShapeComp<
+export abstract class ShapeComp<
     C extends ShapeConfig = ShapeConfig,
     S extends ShapeState = ShapeState,
     V extends ShapeEvents = ShapeEvents,
@@ -35,7 +35,7 @@ export class ShapeComp<
         return this
     }
 
-    static withTag<C extends ShapeComp>(this: CompCtor<C>, tagPred: Pred<ShapeTag>): CompSelector<C> {
+    static withTag<M extends ShapeComp>(this: CompCtorA<M>, tagPred: Pred<ShapeTag>): CompSelector<M> {
         return [ this, mapk('tag', tagPred) ]
     }
 
@@ -47,20 +47,10 @@ export class ShapeComp<
         return this.entity.state.scale ?? 1
     }
 
-    contains(point: Vector2D) {
-        void point
-        return false
-    }
-    intersects(other: ShapeComp) {
-        void other
-        return false
-    }
-    stroke(ctx: OffscreenCanvasRenderingContext2D) {
-        void ctx
-    }
-    fill(ctx: OffscreenCanvasRenderingContext2D) {
-        void ctx
-    }
+    abstract contains(point: Vector2D): boolean
+    abstract intersects(other: ShapeComp): boolean
+    abstract stroke(ctx: OffscreenCanvasRenderingContext2D): void
+    abstract fill(ctx: OffscreenCanvasRenderingContext2D): void
 }
 
 export interface AnyShapeConfig<E extends Entity> extends ShapeConfig {
@@ -73,12 +63,12 @@ export interface AnyShapeConfig<E extends Entity> extends ShapeConfig {
 export interface AnyShapeState extends ShapeState {}
 
 export class AnyShape<E extends Entity = Entity> extends ShapeComp<AnyShapeConfig<E>, AnyShapeState, CompEvents, E> {
-    static create<E extends Entity, C extends Comp<any, any, CompEvents, E>>(
-        this: CompCtor<C>,
+    static create<E extends Entity, M extends Comp<any, any, CompEvents, E>>(
+        this: CompCtor<M>,
         entity: E,
         config: PartialBy<AnyShapeConfig<E>, 'tag' | 'intersects' | 'fill' | 'stroke'>,
     ) {
-        return super.create<C>(
+        return super.create<M>(
             entity,
             {
                 intersects: () => false,

@@ -22,7 +22,7 @@ export class ButtonComp<
         })
     }
 
-    static create<C extends ButtonComp>(this: CompCtor<C>, entity: C['entity']) {
+    static create<M extends ButtonComp>(this: CompCtor<M>, entity: M['entity']) {
         return new this(entity, {}, {})
     }
 }

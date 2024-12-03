@@ -6,6 +6,7 @@ import {
     RenderPipeline, RenderNode, RenderJob,
     GameObject, GameObjectEvents,
     RenderNodeCtor,
+    CompStatic,
 } from '@/engine'
 import { apply, eq, mapk, not, remove } from '@/utils'
 
@@ -207,7 +208,7 @@ export class Entity<
     addRawComp(comp: Comp) {
         if (this.state.cloning) return this
         const _addComp = () => {
-            const { dependencies } = comp.constructor as CompCtor
+            const { dependencies } = comp.constructor as CompStatic
             if (! this.hasComp(...dependencies))
                 this.error(`Component missing dependencies: ${
                     dependencies.map(dep => Comp.getCtorFromSelector(dep).name).join(', ')
