@@ -95,8 +95,9 @@ export class SunEntity extends TextureEntity<SunConfig, SunState, SunEvents> {
                     entity.dispose()
                     process
                         .ui.sunSlot.sunImage
-                        .withComp(TransitionComp, transition => {
-                            transition.start('pingpong', { resetDirection: true })
+                        .withComp(TransitionComp, trans => {
+                            trans.state.direction = 1
+                            trans.start('pingpong')
                         })
                 })
             )

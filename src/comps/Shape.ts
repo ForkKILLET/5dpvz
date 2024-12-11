@@ -1,4 +1,7 @@
-import { Vector2D, Comp, Entity, CompSelector, CompCtor, CompEvents, CompCtorA } from '@/engine'
+import {
+    Comp, Entity, CompSelector, CompCtor, CompEvents, CompCtorA,
+    Vector2D, Rect, RectP, Size,
+} from '@/engine'
 import { clamp, mapk, PartialBy, Pred } from '@/utils'
 
 export type ShapeTag = 'boundary' | 'texture' | 'hitbox'
@@ -114,20 +117,6 @@ export class PointShape extends ShapeComp {
 
 export interface OriginConfig {
     origin: 'center' | 'top-left'
-}
-
-export interface Size {
-    width: number
-    height: number
-}
-
-export interface Rect extends Vector2D, Size {}
-
-export interface RectP {
-    x1: number
-    y1: number
-    x2: number
-    y2: number
 }
 
 export interface RectShapeConfig extends Size, OriginConfig, ShapeConfig {}

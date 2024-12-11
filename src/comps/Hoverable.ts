@@ -12,7 +12,7 @@ export interface HoverableEvents extends Events {
 export interface HoverableConfig {}
 
 export interface HoverableState {
-    hovering: boolean
+    isHovered: boolean
 }
 
 export class HoverableComp extends Comp<HoverableConfig, HoverableState> {

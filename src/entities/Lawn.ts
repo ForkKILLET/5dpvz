@@ -1,7 +1,7 @@
-import { EntityState, Entity, EntityEvents, EntityConfig } from '@/engine'
+import { EntityState, Entity, EntityEvents, EntityConfig, Size } from '@/engine'
 import { matrix, placeholder, StrictOmit } from '@/utils'
 import { LawnBlockEntity } from '@/entities/LawnBlock'
-import { RectShape, Size } from '@/comps/Shape'
+import { RectShape } from '@/comps/Shape'
 import { kDebugFold } from '@/debug'
 
 export interface LawnConfig extends Size, EntityConfig {}

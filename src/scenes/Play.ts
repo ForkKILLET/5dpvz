@@ -1,96 +1,36 @@
-import { AudioPlayback, Scene } from '@/engine'
-import { ProcessEntity } from '@/entities/Process'
-import { Stage1_1 } from '@/data/stages'
 import { CursorComp } from '@/comps/Cursor'
+import { Stage1_1 } from '@/data/stages'
+import { Scene } from '@/engine'
+import { ProcessEntity } from '@/entities/Process'
+import { SpacetimeEntity } from '@/entities/Spacetime'
 import { TextureEntity } from '@/entities/Texture'
-import { placeholder } from '@/utils'
-import { TransitionComp } from '@/comps/Transition'
 
 export class PlayScene extends Scene {
-    bgmPlayBack: AudioPlayback = placeholder
 
     constructor() {
         super()
 
-        const getProcessById = (processId: number) => processes.find(process => process.config.processId === processId)
-
-        const switchProcess = (sourceProcessId: number) => {
-            const targetProcess = getProcessById(sourceProcessId + 1) ?? (sourceProcessId === 0 ? undefined : process0)
-            if (! targetProcess) return
-            const sourceProcess = getProcessById(sourceProcessId)!
-            sourceProcess.withComp(TransitionComp, trans => {
-                trans.state.frame = 0
-                trans.state.direction = 1
-                trans.start('once')
-                trans.emitter.on('transition-finish', () => {
-                    sourceProcess.deactivate()
-                    currentProcess = targetProcess
-                        .activate()
-                        .withComp(TransitionComp, trans => {
-                            trans.state.frame = this.game.unit.ms2f(700)
-                            trans.state.direction = - 1
-                            trans.start('once')
-                        })
-                }, { once: true })
-            })
-        }
-
-        const process0 = ProcessEntity
-            .createProcess(
-                {
-                    processId: 0,
-                    plantSlots: {
-                        slotNum: 2,
-                        plantIds: [ 'pea_shooter', 'sunflower' ],
-                    },
-                    lawn: {
-                        width: 9,
-                        height: 5,
-                    },
-                    sun: {
-                        sunDroppingInterval: 10000,
-                        firstSunDroppingTime: 6000,
-                        sunDroppingSpeed: 30 / 1000,
-                        sunLife: 8000,
-                        sunAtStart: 200,
-                    },
-                    shovelSlot: {
-                        shovelId: 'iron_shovel',
-                    },
-                    stage: Stage1_1,
-                },
-                {
-                    pos: { x: 0, y: 0 },
-                    zIndex: 0,
-                }
-            )
-            .on('switch-process', switchProcess)
+        const spacetime = SpacetimeEntity
+            .createSpacetime({ stage: Stage1_1 }, { pos: { x: 0, y: 0 }, zIndex: 0 })
             .attachTo(this)
 
-        const processes = [ process0 ]
-        let currentProcess = process0
-
-        this.afterStart(() => {
-            this.bgmPlayBack = this.game.audioManager.playAudio(`./assets/audio/${ Stage1_1.bgm }.mp3`) // TODO: better
-        })
-
         const pause = () => {
-            processes.forEach(process => process.state.paused = true)
-            this.bgmPlayBack?.toggleEffect()
+            spacetime.processes.forEach(process => process.state.paused = true)
+            spacetime.bgmPlayBack?.toggleEffect()
             pauseButton.deactivate()
             resumeButton.activate()
         }
 
         const resume = () => {
-            processes.forEach(process => process.state.paused = false)
-            this.bgmPlayBack?.toggleEffect()
+            spacetime.processes.forEach(process => process.state.paused = false)
+            spacetime.bgmPlayBack?.toggleEffect()
             resumeButton.deactivate()
             pauseButton.activate()
         }
 
         this.game.on('keydown', (ev: KeyboardEvent) => {
             if (ev.key === 'Escape') {
-                if (currentProcess.state.paused) resume()
+                if (spacetime.currentProcess.state.paused) resume()
                 else pause()
             }
         })
@@ -133,18 +73,6 @@ export class PlayScene extends Scene {
             )
             .addComp(CursorComp, 'pointer')
             .attachTo(this)
-            .on('click', () => {
-                const processIds = processes.map(process => process.config.processId).filter(id => id >= 0)
-                const newProcessId = Math.max(...processIds) + 1
-                currentProcess.deactivate()
-                currentProcess = currentProcess.cloneEntity().on('switch-process', switchProcess)
-                currentProcess.config.processId = newProcessId
-                processes.push(currentProcess.attachTo(this))
-            })
-    }
-
-    async start() {
-        await super.start()
-        await this.game.audioManager.loadAudio(`./assets/audio/${ Stage1_1.bgm }.mp3`) // TODO: better
+            .on('click', () => spacetime.forkProcess())
     }
 }

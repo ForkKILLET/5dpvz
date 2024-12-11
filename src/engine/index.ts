@@ -1,5 +1,6 @@
 export * from './id'
 export * from './vector'
+export * from './shape'
 export * from './motion'
 export * from './state'
 export * from './gameObject'

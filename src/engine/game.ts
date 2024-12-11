@@ -140,9 +140,9 @@ export class Game extends GameObject<{}, GameEvents> {
                 })
             }
 
-            if (hoverableComp.state.hovering !== hovering) {
+            if (hoverableComp.state.isHovered !== hovering) {
                 hoverableComp.emitter.emit(hovering ? 'mouseenter' : 'mouseleave')
-                hoverableComp.state.hovering = hovering
+                hoverableComp.state.isHovered = hovering
             }
         }
 

@@ -35,6 +35,6 @@ export class MotionComp<Sm extends {}> extends Comp<MotionConfig<Sm>, MotionStat
             this.emitter.emit('motion-finish', this.entity)
             if (this.config.once) this.dispose()
         }
-        else this.entity.updatePos(delta)
+        else this.entity.updatePosBy(delta)
     }
 }

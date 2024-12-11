@@ -1,7 +1,8 @@
-import { CompEvents, Comp, Entity, CompCtor } from '@/engine'
-import { Direction } from '@/utils'
+import { CompEvents, Comp, Entity, CompCtor, CompSelector } from '@/engine'
+import { Direction, PartialBy } from '@/utils'
 
 export interface TransitionConfig<E extends Entity> {
+    name: string
     transition: (entity: E, t: number) => void
     defaultTotalFrame: number
 }
@@ -9,7 +10,9 @@ export interface TransitionConfig<E extends Entity> {
 export interface TransitionState {
     frame: number
     totalFrame: number
+    targetFrame: number
     direction: Direction
+    toStop: boolean
     play:
         | null
         | {
@@ -20,7 +23,7 @@ export interface TransitionState {
         }
         | {
             mode: 'pingpong'
-            returning: boolean
+            isReturning: boolean
         }
 }
 
@@ -28,52 +31,80 @@ export type TransitionPlayMode = 'once' | 'loop' | 'pingpong'
 
 export interface TransitionPlayOptions {
     totalFrame?: number
-    resetDirection?: boolean
+    reset?: boolean
+    direction?: Direction
+    targetT?: number
 }
 
 export interface TransitionEvents extends CompEvents {
     'transition-finish': [ entity: Entity ]
 }
 
-export class TransitionComp<E extends Entity> extends Comp<TransitionConfig<E>, TransitionState, TransitionEvents, E> {
+export class TransitionComp<
+    E extends Entity = Entity
+> extends Comp<TransitionConfig<E>, TransitionState, TransitionEvents, E> {
     static create<M extends Comp>(
         this: CompCtor<M>,
         entity: M['entity'],
-        config: TransitionConfig<M['entity']>,
+        config: PartialBy<TransitionConfig<M['entity']>, 'name'>,
     ) {
-        return new this(entity, config, {
-            frame: 0,
-            totalFrame: config.defaultTotalFrame,
-            direction: 1,
-            play: null,
-        } satisfies TransitionState)
+        return new this(
+            entity,
+            {
+                name: 'default',
+                ...config,
+            } satisfies TransitionConfig<M['entity']>,
+            {
+                frame: 0,
+                totalFrame: config.defaultTotalFrame,
+                direction: 1,
+                targetFrame: config.defaultTotalFrame,
+                play: null,
+                toStop: false,
+            } satisfies TransitionState
+        )
+    }
+
+    static withName(name: string): CompSelector<TransitionComp> {
+        return [ TransitionComp, trans => trans.config.name === name ]
     }
 
     update() {
-        const { play } = this.state
+        const { state } = this
+
+        const { play, totalFrame, targetFrame } = state
         if (! play) return
 
-        this.config.transition(this.entity, this.state.frame / this.state.totalFrame)
-        this.state.frame += this.state.direction
-        if (this.state.frame === this.state.totalFrame || this.state.frame === - 1) {
+        this.config.transition(this.entity, state.frame / totalFrame)
+        if (state.toStop) {
+            state.toStop = false
+            return this.stop()
+        }
+
+        this.state.frame += state.direction
+        if (state.frame === targetFrame || state.frame === - 1) {
             switch (play.mode) {
                 case 'once': {
-                    this.stop()
+                    this.stopAtNextFrame()
                     break
                 }
                 case 'loop': {
-                    this.state.frame += this.state.totalFrame
+                    state.frame += targetFrame
                     break
                 }
                 case 'pingpong': {
-                    this.state.direction *= - 1
-                    this.state.frame += this.state.direction
-                    if (play.returning) return this.stop()
-                    play.returning = true
+                    state.direction *= - 1
+                    state.frame += state.direction
+                    if (play.isReturning) return this.stopAtNextFrame()
+                    play.isReturning = true
                     break
                 }
             }
         }
+    }
+
+    stopAtNextFrame() {
+        this.state.toStop = true
     }
 
     stop() {
@@ -83,24 +114,34 @@ export class TransitionComp<E extends Entity> extends Comp<TransitionConfig<E>, 
 
     start(mode: TransitionPlayMode, {
         totalFrame = this.config.defaultTotalFrame,
-        resetDirection = false,
-    }: TransitionPlayOptions = {}) {
-        this.state.totalFrame = totalFrame
-        if (resetDirection) this.state.direction = 1
+        reset = false,
+        direction,
+        targetT = 1,
+    }: TransitionPlayOptions = {}): Promise<void> {
+        const { state } = this
+
+        state.totalFrame = totalFrame
+        state.targetFrame = targetT * totalFrame
+        if (typeof direction === 'number') state.direction = direction
+        if (reset) state.frame = state.direction > 0 ? 0 : totalFrame - 1
+
         switch (mode) {
             case 'once': {
-                this.state.play = { mode }
+                state.play = { mode }
                 break
             }
             case 'loop': {
-                this.state.play = { mode }
+                state.play = { mode }
                 break
             }
             case 'pingpong': {
-                this.state.play = { mode, returning: false }
+                state.play = { mode, isReturning: false }
                 break
             }
         }
-        return this
+
+        return new Promise(res => {
+            this.emitter.on('transition-finish', () => res(), { once: true })
+        })
     }
 }

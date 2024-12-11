@@ -1,7 +1,7 @@
-import { RectShape, Size } from '@/comps/Shape'
-import { kDebugFold } from '@/debug'
+import { RectShape } from '@/comps/Shape'
+import { kDebugAttr, kDebugFold } from '@/debug'
 import {
-    Game, createIdGenerator, Vector2D, vAdd,
+    Game, createIdGenerator, Vector2D, vAdd, vSub, Size,
     Comp, CompCtor, CompSelector,
     RenderPipeline, RenderNode, RenderJob,
     GameObject, GameObjectEvents,
@@ -45,14 +45,11 @@ export class Entity<
         if (state.cloning) this.on('clone-finish', () => this.build())
         else this.afterStart(() => this.build())
 
-        this.afterStart(() => {
-            const { width, height } = this.state.size
-            this.pipeline.inputNode.width = width
-            this.pipeline.inputNode.height = height
-        })
+        this.afterStart(() => this.updateSizeTo(this.state.size))
     }
 
-    [kDebugFold] = false
+    public [kDebugFold] = false
+    public [kDebugAttr]: (() => string)[] = []
 
     static generateEntityId = createIdGenerator()
     readonly id = Entity.generateEntityId()
@@ -293,6 +290,9 @@ export class Entity<
     get pos(): Vector2D {
         return this.getComp(RectShape.withTag(eq('boundary')))?.rect ?? this.state.pos
     }
+    get relPos(): Vector2D {
+        return vSub(this.pos, this.superPos)
+    }
     get zIndex(): number {
         return this.state.zIndex
     }
@@ -315,17 +315,31 @@ export class Entity<
     }
     update() {}
 
-    updatePos(delta: Vector2D) {
-        this.emit('pos-update', delta)
-        this.state.pos = vAdd(this.state.pos, delta)
-        this.attachedEntities.forEach(entity => entity.updatePos(delta))
+    get size() {
+        return this.state.size
+    }
+    updateSizeBy(delta: Size) {
+        this.updateSizeTo({
+            width: this.state.size.width + delta.width,
+            height: this.state.size.height + delta.height,
+        })
         return this
     }
-    updatePosTo({ x, y }: Vector2D) {
-        return this.updatePos({
-            x: x - this.state.pos.x,
-            y: y - this.state.pos.y,
-        })
+    updateSizeTo(size: Size) {
+        this.state.size = size
+        this.pipeline.inputNode.width = size.width
+        this.pipeline.inputNode.height = size.height
+        return this
+    }
+
+    updatePosBy(delta: Vector2D) {
+        this.emit('pos-update', delta)
+        this.state.pos = vAdd(this.state.pos, delta)
+        this.attachedEntities.forEach(entity => entity.updatePosBy(delta))
+        return this
+    }
+    updatePosTo(target: Vector2D) {
+        return this.updatePosBy(vSub(target, this.state.pos))
     }
 
     cloneEntity(entityMap: EntityCloneMap = new Map): this {
@@ -336,11 +350,12 @@ export class Entity<
         newEntity.beforeStart(() => {
             newEntity.state.cloning = false
             newEntity.buildName = this.buildName
-            Promise.all(newAttachedEntities.map(entity => new Promise(res => entity
+            const attachingPromise = Promise.all(newAttachedEntities.map(entity => new Promise(res => entity
                 .attachTo(newEntity)
                 .on('attach', res)
             ))).then(() => newEntity.emit('clone-finish'))
             this.comps.forEach(comp => newEntity.addRawComp(comp.cloneComp(entityMap, newEntity)))
+            return attachingPromise
         })
         return newEntity
     }

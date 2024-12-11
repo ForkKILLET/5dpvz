@@ -1,16 +1,13 @@
 import { MotionComp } from '@/comps/Motion'
 import { RngComp } from '@/comps/Rng'
 import { RectShape } from '@/comps/Shape'
-import { TransitionComp } from '@/comps/Transition'
 import { BulletId } from '@/data/bullets'
 import { PlantId, PLANTS, plantTextures } from '@/data/plants'
 import { ShovelId, shovelTextures } from '@/data/shovels'
 import { StageData } from '@/data/stages'
 import { ZombieId } from '@/data/zombies'
-import {
-    easeInSine,
-    Entity, EntityConfig, EntityEvents, EntityState, injectKey, ScaleNode, TrapezoidNode, Vector2D,
-} from '@/engine'
+import { kDebugAttr } from '@/debug'
+import { Entity, EntityConfig, EntityEvents, EntityState, injectKey, Vector2D } from '@/engine'
 import { BulletEntity } from '@/entities/bullets/Bullet'
 import { LawnConfig, LawnEntity } from '@/entities/Lawn'
 import { LawnBlockEntity } from '@/entities/LawnBlock'
@@ -97,7 +94,7 @@ export interface ProcessUniqueState {
 export interface ProcessState extends ProcessUniqueState, EntityState {}
 
 export interface ProcessEvents extends EntityEvents {
-    'switch-process': [ processId: number ]
+    'switch-process': []
 }
 
 export const kProcess = injectKey<ProcessEntity>('kProcess')
@@ -134,6 +131,10 @@ export class ProcessEntity extends Entity<ProcessConfig, ProcessState, ProcessEv
         })
     }
 
+    public [kDebugAttr] = [
+        () => `pid: ${ this.config.processId }`,
+    ]
+
     ui: UIEntity = placeholder
     lawn: LawnEntity = placeholder
     label: ProcessLabelEntity = placeholder
@@ -152,6 +153,13 @@ export class ProcessEntity extends Entity<ProcessConfig, ProcessState, ProcessEv
 
         this.state.size = pick(ProcessEntity, [ 'width', 'height' ])
 
+        this.afterStart(() => {
+            this.updatePosTo({
+                x: this.config.processId * (ProcessEntity.width + 30),
+                y: 0,
+            })
+        })
+
         this.state.plantSlotsData ??= config.plantSlots.plantIds.map((plantId): PlantSlotData => {
             const Plant = PLANTS[plantId]
             return {
@@ -165,24 +173,8 @@ export class ProcessEntity extends Entity<ProcessConfig, ProcessState, ProcessEv
 
         this.state.plantsOnBlocks ??= matrix(config.lawn.width, config.lawn.height, () => null)
 
-        this
-            .appendRenderNode(new TrapezoidNode({ scaleTop: 1, centerTop: ProcessEntity.width / 2 }))
-            .appendRenderNode(new ScaleNode({ scaleX: 1, scaleY: 1, origin: { x: 'center', y: 'center' } }))
-            .addComp(RectShape, pick(ProcessEntity, [ 'width', 'height' ]))
-            .addComp(RngComp, random(2 ** 32))
-            .addComp(TransitionComp, {
-                transition: (entity, t) => {
-                    entity
-                        .withRenderNode(ScaleNode, node => {
-                            node.config.scaleX = 1 - easeInSine(t) * 0.2
-                            node.config.scaleY = 1 - easeInSine(t) * 0.4
-                        })
-                        .withRenderNode(TrapezoidNode, node => {
-                            node.config.scaleTop = 1 - easeInSine(t) * 0.4
-                        })
-                },
-                defaultTotalFrame: this.game.unit.ms2f(800),
-            })
+        this.addComp(RectShape, pick(ProcessEntity, [ 'width', 'height' ]))
+        this.addComp(RngComp, random(2 ** 32))
 
         this.provide(kProcess, this)
 
@@ -309,7 +301,7 @@ export class ProcessEntity extends Entity<ProcessConfig, ProcessState, ProcessEv
                 pos: { x: ProcessEntity.width - 64 - 5, y: 5 + 32 + 5 },
                 zIndex: this.state.zIndex + 11,
             }))
-            .on('click', () => this.emit('switch-process', this.config.processId))
+            .on('click', () => this.emit('switch-process'))
     }
 
     plant(slotId: number, i: number, j: number) {
@@ -326,7 +318,6 @@ export class ProcessEntity extends Entity<ProcessConfig, ProcessState, ProcessEv
 
         this.updatePlantSlot(false)
 
-        console.log(plantId)
         const plant = PlantEntity
             .createPlant(
                 plantId,
@@ -504,6 +495,7 @@ export class ProcessEntity extends Entity<ProcessConfig, ProcessState, ProcessEv
         })
     }
 
+    // TODO
     win() {
         alert('win')
     }
@@ -566,9 +558,8 @@ export class ProcessEntity extends Entity<ProcessConfig, ProcessState, ProcessEv
     preRender() {
         if (this.state.paused) this.addRenderJob(() => {
             const { ctx } = this
-            const { x, y } = this.state.pos
             ctx.fillStyle = 'rgba(0, 32, 255, .3)'
-            ctx.fillRect(x, y, ProcessEntity.width, ProcessEntity.height)
+            ctx.fillRect(0, 0, ProcessEntity.width, ProcessEntity.height)
         }, 10)
 
         super.preRender()

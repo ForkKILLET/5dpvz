@@ -1,7 +1,6 @@
 import { absurd, Endo, eq, id, remove, WithThisParameter } from '@/utils'
-import { createIdGenerator, vAdd, Vector2D } from '@/engine'
+import { createIdGenerator, Rect, rectToTuple, Size, vAdd, Vector2D, vSub } from '@/engine'
 import { Unit, unitLikeToString } from '@/utils/unit'
-import { Size } from '@/comps/Shape'
 
 type RenderData = {
     canvas: OffscreenCanvas
@@ -222,12 +221,29 @@ export class OutputNode extends RenderNode {
     }
 }
 
-export abstract class FilterNode<F> extends RenderNode {
+export abstract class ProcessNode<C extends {}> extends RenderNode {
+    constructor(public config: C, processor: RenderProcessor) {
+        super(processor)
+    }
+
+    adjust(config: Partial<C>) {
+        let updated = false
+        for (const key in config) {
+            if (this.config[key] !== config[key]) {
+                this.config[key] = config[key] as C[typeof key]
+                updated = true
+            }
+        }
+        if (updated) this.clearCache()
+    }
+}
+
+export abstract class FilterNode<C extends {}> extends ProcessNode<C> {
     static leftCount = [ 1 ]
     static rightCount = [ 1 ]
 
-    constructor(public config: F) {
-        super(({ offset, canvas }) => {
+    constructor(config: C) {
+        super(config, ({ offset, canvas }) => {
             return {
                 canvas: this.applyFilter(canvas),
                 offset,
@@ -244,14 +260,6 @@ export abstract class FilterNode<F> extends RenderNode {
         ctx.drawImage(sourceCanvas, 0, 0)
 
         return canvas
-    }
-
-    adjust(config: F) {
-        if (this.config !== config) {
-            this.config = config
-            this.clearCache()
-        }
-        return this
     }
 
     abstract getFilterStr(): string
@@ -284,18 +292,33 @@ export const originToString = ({ x, y }: Origin): string => {
     return `${ unitLikeToString(x) } ${ unitLikeToString(y) }`
 }
 
+export const normalizeOrigin = ({ x: ox, y: oy }: Origin, { width, height }: Size): Vector2D => {
+    const x =
+        ox === 'left' ? 0 :
+        ox === 'center' ? width / 2 :
+        ox === 'right' ? width :
+        ox[0] === '%' ? ox[1] * width / 100 :
+        ox[1]
+    const y =
+        oy === 'top' ? 0 :
+        oy === 'center' ? height / 2 :
+        oy === 'bottom' ? height :
+        oy[0] === '%' ? oy[1] * height / 100 :
+        oy[1]
+    return { x, y }
+}
+
 export interface ScaleConfig {
     scaleX: number
     scaleY: number
     origin: Origin
 }
-
-export class ScaleNode extends RenderNode {
+export class ScaleNode extends ProcessNode<ScaleConfig> {
     static leftCount = [ 1 ]
     static rightCount = [ 1 ]
 
-    constructor(public config: ScaleConfig) {
-        super(({ canvas, offset }) => {
+    constructor(config: ScaleConfig) {
+        super(config, ({ canvas, offset }) => {
             return {
                 canvas: this.process(canvas),
                 offset: vAdd(offset, this.getOffset(canvas)),
@@ -303,10 +326,12 @@ export class ScaleNode extends RenderNode {
         })
     }
 
-    protected process(sourceCanvas: OffscreenCanvas): OffscreenCanvas {
+    process(sourceCanvas: OffscreenCanvas): OffscreenCanvas {
         const { width, height } = sourceCanvas
         const { scaleX, scaleY } = this.config
         const { canvas, ctx } = this
+
+        if (scaleX === 1 && scaleY === 1) return sourceCanvas
 
         const newWidth = canvas.width = Math.floor(width * scaleX)
         const newHeight = canvas.height = Math.floor(height * scaleY)
@@ -316,32 +341,35 @@ export class ScaleNode extends RenderNode {
         return canvas
     }
 
-    protected getOffset(size: Size): Vector2D {
-        const { scaleX, scaleY, origin: { x: ox, y: oy } } = this.config
-        const { width, height } = size
-        const x =
-            ox === 'left' ? 0 :
-            ox === 'center' ? width / 2 :
-            ox === 'right' ? width :
-            ox[0] === '%' ? ox[1] * width / 100 :
-            ox[1]
-        const y =
-            oy === 'top' ? 0 :
-            oy === 'center' ? height / 2 :
-            oy === 'bottom' ? height :
-            oy[0] === '%' ? oy[1] * height / 100 :
-            oy[1]
+    getOffset(size: Size): Vector2D {
+        const { scaleX, scaleY, origin } = this.config
+        const { x, y } = normalizeOrigin(origin, size)
         return {
             x: Math.round(x * (1 - scaleX)),
             y: Math.round(y * (1 - scaleY)),
         }
     }
+}
 
-    configScale(config: ScaleConfig) {
-        if (this.config.scaleX !== config.scaleX ||
-            this.config.scaleY !== config.scaleY ||
-            originToString(this.config.origin) !== originToString(config.origin)
-        ) this.clearCache()
+export interface TranslationConfig {
+    translateX: number
+    translateY: number
+}
+export class TranslationNode extends ProcessNode<TranslationConfig> {
+    static leftCount = [ 1 ]
+    static rightCount = [ 1 ]
+
+    constructor(config: TranslationConfig) {
+        super(config, ({ canvas, offset }) => {
+            const { translateX: x, translateY: y } = this.config
+            return {
+                canvas,
+                offset: vAdd(offset, { x, y }),
+            }
+        })
+    }
+
+    adjust(config: TranslationConfig) {
         this.config = config
         return this
     }
@@ -352,12 +380,12 @@ export interface ShearConfig {
     shearY: number
 }
 
-export class ShearNode extends RenderNode {
+export class ShearNode extends ProcessNode<ShearConfig> {
     static leftCount = [ 1 ]
     static rightCount = [ 1 ]
 
-    constructor(public config: ShearConfig) {
-        super(({ canvas, offset }) => {
+    constructor(config: ShearConfig) {
+        super(config, ({ canvas, offset }) => {
             return {
                 canvas: this.process(canvas),
                 offset: vAdd(offset, this.getOffset(canvas)),
@@ -365,7 +393,7 @@ export class ShearNode extends RenderNode {
         })
     }
 
-    private process(sourceCanvas: OffscreenCanvas): OffscreenCanvas {
+    process(sourceCanvas: OffscreenCanvas): OffscreenCanvas {
         const { width, height } = sourceCanvas
         const { shearX, shearY } = this.config
         const { ctx, canvas } = this
@@ -385,7 +413,7 @@ export class ShearNode extends RenderNode {
         return canvas
     }
 
-    private getOffset(canvas: OffscreenCanvas): Vector2D {
+    getOffset(canvas: OffscreenCanvas): Vector2D {
         const { width, height } = canvas
         const { shearX, shearY } = this.config
         return {
@@ -393,44 +421,38 @@ export class ShearNode extends RenderNode {
             y: - Math.max(0, shearY * height),
         }
     }
-
-    adjust(config: ShearConfig) {
-        if (this.config.shearX !== config.shearX || this.config.shearY !== config.shearX)
-            this.clearCache()
-        this.config = config
-        return this
-    }
 }
 
 export interface TrapezoidConfig {
-    scaleTop: number
-    centerTop: number
+    invSlope: number
+    sourceBox: Rect
+    targetPos: Vector2D & {
+        origin: Origin
+    }
 }
 
-export class TrapezoidNode extends RenderNode {
+export class TrapezoidNode extends ProcessNode<TrapezoidConfig> {
     static leftCount = [ 1 ]
     static rightCount = [ 1 ]
 
-    constructor(public config: TrapezoidConfig) {
-        super(({ canvas, offset }) => ({
+    constructor(config: TrapezoidConfig) {
+        super(config, ({ canvas, offset }) => ({
             canvas: this.process(canvas),
-            offset,
+            offset: vAdd(offset, this.getOffset()),
         }))
     }
 
-    protected process(sourceCanvas: OffscreenCanvas): OffscreenCanvas {
-        const { width, height } = sourceCanvas
-        const { scaleTop, centerTop } = this.config
-
-        if (scaleTop === 1) return sourceCanvas
+    process(sourceCanvas: OffscreenCanvas): OffscreenCanvas {
+        const { invSlope, sourceBox } = this.config
+        const { width, height } = sourceBox
 
         const { canvas, ctx } = this
 
         const sourceCtx = sourceCanvas.getContext('2d')!
-        const sourceImageData = sourceCtx!.getImageData(0, 0, width, height)
+        const sourceImageData = sourceCtx!.getImageData(...rectToTuple(sourceBox))
         const imageData = ctx.createImageData(width, height)
 
-        const padTop = centerTop - width * scaleTop / 2
+        const padTop = height * invSlope
 
         for (let j = 0; j < height; j ++) {
             const padJ = Math.round((height - j) / height * padTop)
@@ -449,9 +471,9 @@ export class TrapezoidNode extends RenderNode {
         return canvas
     }
 
-    adjust(config: TrapezoidConfig) {
-        if (this.config.scaleTop !== config.scaleTop) this.clearCache()
-        this.config = config
-        return this
+    getOffset(): Vector2D {
+        const { targetPos, sourceBox } = this.config
+        const origin = normalizeOrigin(targetPos.origin, sourceBox)
+        return vSub(targetPos, origin)
     }
 }

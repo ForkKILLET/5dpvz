@@ -23,3 +23,11 @@ export type StrictOmit<T, K extends keyof T> = Omit<T, K>
 export type StrictPick<T, K extends keyof T> = Pick<T, K>
 
 export type Direction = 1 | - 1
+
+type _Tuple<X, N extends number, Xs extends any[]> = Xs extends { length: N }
+    ? Xs
+    : _Tuple<X, N, [ X, ...Xs ]>
+export type Tuple<X, N extends number> =
+    number extends N
+        ? X[]
+        : _Tuple<X, N, []>

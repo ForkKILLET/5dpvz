@@ -1,5 +1,4 @@
-import { Size } from '@/comps/Shape'
-import { Vector2D } from '@/engine'
+import { Vector2D, Size } from '@/engine'
 import { abs, matrix } from '@/utils'
 
 export interface ImageManager {

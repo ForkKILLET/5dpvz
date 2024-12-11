@@ -5,6 +5,7 @@ import { by, eq, mapk, neq } from '@/utils'
 import { ShapeComp } from '@/comps/Shape'
 
 export const kDebugFold = Symbol('kDebugFold')
+export const kDebugAttr = Symbol('kDebugAttr')
 
 export const loadDebugWindow = (game: Game) => {
     const $debugWindow = document.querySelector('#debug-window') as HTMLDivElement
@@ -14,7 +15,7 @@ export const loadDebugWindow = (game: Game) => {
                 position: fixed;
                 top: 5px;
                 right: 5px;
-                width: 300px;
+                width: 400px;
                 height: calc(100vh - 5px * 2 - 10px * 2);
                 overflow: scroll;
                 padding: 10px;
@@ -130,6 +131,7 @@ export const loadDebugWindow = (game: Game) => {
                 background-color: blue;
                 margin: 1px;
                 width: 1px;
+                flex-shrink: 0;
             }
 
             .render-node {
@@ -247,7 +249,7 @@ export const loadDebugWindow = (game: Game) => {
             <debug-button id="step" class="disabled">Step</debug-button>
             <br /><br />
             <b>mspf</b>: <debug-input><input id="mspf-input" type="number" value="${ game.mspf }" /></debug-input>
-            <debug-button id="mspf-submit">OK</debug-button>
+            <debug-button id="mspf-submit">OK</debug-button> <br />
             <b>loop duration</b>: <json-number id="loop-duration">0</json-number>ms
             <div id="loop-duration-chart"></div>
         </tab-content>
@@ -336,8 +338,8 @@ export const loadDebugWindow = (game: Game) => {
         update() {
             const { loopDuration } = this.game
             $loopDuration.innerText = loopDuration.toString()
-            if ($loopDurationChart.childElementCount > 100)
-                $loopDurationChart.removeChild($loopDurationChart.firstElementChild!)
+            if ($loopDurationChart.childElementCount > $loopDurationChart.clientWidth / 3 - 2)
+                $loopDurationChart.firstElementChild?.remove()
             const $bar = document.createElement('div')
             $bar.style.height = `${ loopDuration * 5 }px`
             $loopDurationChart.appendChild($bar)
@@ -396,6 +398,7 @@ export const loadDebugWindow = (game: Game) => {
         return [
             game.hoveringEntity === entity ? 'hovering' : null,
             ! entity.started && 'unstarted',
+            ...entity[kDebugAttr].map(attrGetter => attrGetter()),
         ].filter(c => c)
     }
 
@@ -480,6 +483,7 @@ export const loadDebugWindow = (game: Game) => {
     })
     window.addEventListener('keypress', ({ key }) => {
         if (key === '@') toggleSelecting()
+        if (key === '#') togglePausing()
     })
 
     const showFunction = (fn: Function) => (fn.name as string)?.replace(/(^_)|(\d+$)/, '') || 'function'
@@ -661,7 +665,7 @@ export const loadDebugWindow = (game: Game) => {
 
     let stepCount = 0
     const $pauseStartButton = $('#pause-start')!
-    $pauseStartButton.addEventListener('click', () => {
+    const togglePausing = () => {
         game[game.running ? 'pause' : 'start']()
         if (game.running) {
             $stepButton.innerHTML = 'Step'
@@ -669,7 +673,8 @@ export const loadDebugWindow = (game: Game) => {
         }
         $pauseStartButton.innerHTML = game.running ? 'Pause' : 'Start'
         $stepButton.className = game.running ? 'disabled' : ''
-    })
+    }
+    $pauseStartButton.addEventListener('click', togglePausing)
 
     const $stepButton = $('#step')!
     $stepButton.addEventListener('click', () => {

@@ -107,11 +107,11 @@ export class ZombieEntity<
 
     update() {
         super.update()
-        if (! this.state.enteredHouse && this.state.pos.x < 0) {
-            this.state.enteredHouse = true
+        if (! this.state.enteredHouse && this.relPos.x < 0) {
+            // this.state.enteredHouse = true
         }
-        if (this.state.pos.x > - this.getComp(RectShape)!.rect.width) {
-            this.updatePos(this.nextMove())
+        if (this.relPos.x > - this.getComp(RectShape)!.rect.width) {
+            this.updatePosBy(this.nextMove())
         }
     }
 }

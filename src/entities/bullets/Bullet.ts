@@ -75,7 +75,7 @@ export class BulletEntity<
 
     update() {
         super.update()
-        this.updatePos(this.nextMove())
+        this.updatePosBy(this.nextMove())
         if (! this.inject(kProcess)!.isInsideLawn(this.state.pos)) this.dispose()
     }
 }
